@@ -545,7 +545,7 @@ function connectWS() {
         if (chat && getPeerUserId(chat) === data.user_id) {
           const dotEl = document.querySelector('.chat-header .presence-dot');
           if (dotEl) {
-            const color = data.status==='online'?'#22c55e':data.status==='away'?'#f97316':'#ef4444';
+            const color = data.status==='online'?'#22c55e':data.status==='away'?'#eab308':'#ef4444';
             dotEl.style.background = color;
             dotEl.title = data.status;
           }
@@ -590,7 +590,7 @@ async function loadPresence() {
 
 function presenceDot(userId) {
   const s = S.presence[userId] || 'offline';
-  const color = s === 'online' ? '#22c55e' : s === 'away' ? '#f97316' : '#ef4444';
+  const color = s === 'online' ? '#22c55e' : s === 'away' ? '#eab308' : '#ef4444';
   return `<span class="presence-dot" style="background:${color}" title="${s}"></span>`;
 }
 
