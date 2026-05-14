@@ -61,6 +61,22 @@ window.addEventListener('DOMContentLoaded', async () => {
     enterApp();
   } else { applySettings(); }
 
+  // Show HA button on Windows only
+  if (window.electron) {
+    const platform = await window.electron.getPlatform();
+    if (platform === 'win32') {
+      const btn = document.getElementById('ha-toggle-btn');
+      if (btn) {
+        btn.style.display = 'flex';
+        const cfg = await window.electron.getHAConfig();
+        if (cfg?.drive) {
+          btn.classList.add('ha-active');
+          document.getElementById('ha-toggle-label').textContent = `HA: ${cfg.drive}:\\`;
+        }
+      }
+    }
+  }
+
   document.getElementById('l-password').addEventListener('keydown', e => e.key==='Enter' && doLogin());
   document.getElementById('l-server').addEventListener('keydown', e => e.key==='Enter' && document.getElementById('l-username').focus());
   document.getElementById('l-username').addEventListener('keydown', e => e.key==='Enter' && document.getElementById('l-password').focus());
@@ -1119,3 +1135,51 @@ async function ctxChatDelete() {
 // ── MODAL HELPERS ──
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ── HIGH AVAILABILITY ──
+async function openHAModal() {
+  const select = document.getElementById('ha-drive-select');
+  const activeInfo = document.getElementById('ha-active-info');
+  const disableBtn = document.getElementById('ha-disable-btn');
+  const pathPreview = document.getElementById('ha-path-preview');
+
+  select.innerHTML = '<option value="">Загрузка…</option>';
+  openModal('modal-ha');
+
+  const [drives, cfg] = await Promise.all([
+    window.electron.listDrives(),
+    window.electron.getHAConfig(),
+  ]);
+
+  if (cfg?.drive) {
+    activeInfo.style.display = 'block';
+    document.getElementById('ha-active-path').textContent = `${cfg.drive}:\\Corp-Chat`;
+    disableBtn.style.display = 'inline-flex';
+  } else {
+    activeInfo.style.display = 'none';
+    disableBtn.style.display = 'none';
+  }
+
+  select.innerHTML = '<option value="">— Выберите диск —</option>' +
+    drives.map(d => `<option value="${d.letter}" ${cfg?.drive === d.letter ? 'selected' : ''}>${d.label}</option>`).join('');
+
+  const updatePreview = () => {
+    const v = select.value;
+    pathPreview.textContent = v ? `${v}:\\Corp-Chat` : '…\\Corp-Chat';
+  };
+  select.onchange = updatePreview;
+  updatePreview();
+}
+
+async function saveHA() {
+  const drive = document.getElementById('ha-drive-select').value;
+  if (!drive) { return; }
+  await window.electron.setHAConfig(drive);
+  // app will relaunch automatically
+}
+
+async function disableHA() {
+  closeModal('modal-ha');
+  await window.electron.clearHAConfig();
+  // app will relaunch automatically
+}

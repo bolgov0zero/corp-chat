@@ -1,6 +1,25 @@
 const { app, BrowserWindow, Tray, Menu, nativeImage, Notification, ipcMain } = require('electron');
 const path = require('path');
 const zlib = require('zlib');
+const fs = require('fs');
+
+// ── HIGH AVAILABILITY ──
+// Config is stored outside userData so it survives userData path changes.
+// On Windows: %APPDATA%\corp-chat-ha.json
+const HA_CONFIG_PATH = process.platform === 'win32' && process.env.APPDATA
+  ? path.join(process.env.APPDATA, 'corp-chat-ha.json')
+  : null;
+
+function readHAConfig() {
+  if (!HA_CONFIG_PATH) return null;
+  try { return JSON.parse(fs.readFileSync(HA_CONFIG_PATH, 'utf8')); } catch { return null; }
+}
+
+// Apply BEFORE app.ready so Electron uses the correct userData path
+const haConfig = readHAConfig();
+if (haConfig?.drive) {
+  app.setPath('userData', path.join(haConfig.drive + ':\\Corp-Chat'));
+}
 
 let mainWindow = null;
 let tray = null;
@@ -181,6 +200,47 @@ ipcMain.on('unread', (_, count) => {
 });
 
 ipcMain.handle('get-platform', () => process.platform);
+
+// ── HA IPC ──
+ipcMain.handle('ha-list-drives', async () => {
+  if (process.platform !== 'win32') return [];
+  try {
+    const { execSync } = require('child_process');
+    const out = execSync('wmic logicaldisk get caption,drivetype,volumename', { encoding: 'utf8', timeout: 5000 });
+    const lines = out.split('\n').slice(1).map(l => l.trim()).filter(Boolean);
+    return lines.map(line => {
+      const parts = line.trim().split(/\s+/);
+      const caption = parts[0]; // e.g. C:
+      const driveType = parts[1]; // 2=removable,3=local,4=network,5=optical
+      const volumeName = parts.slice(2).join(' ') || '';
+      if (!/^[A-Z]:$/.test(caption)) return null;
+      const typeLabel = driveType === '3' ? 'Локальный' : driveType === '4' ? 'Сетевой' : driveType === '2' ? 'Съёмный' : 'Диск';
+      return { letter: caption[0], caption, label: volumeName ? `${caption} — ${volumeName} (${typeLabel})` : `${caption} (${typeLabel})` };
+    }).filter(Boolean);
+  } catch { return []; }
+});
+
+ipcMain.handle('ha-get-config', () => readHAConfig());
+
+ipcMain.handle('ha-set-config', (_, drive) => {
+  if (!HA_CONFIG_PATH || !drive) return false;
+  try {
+    fs.writeFileSync(HA_CONFIG_PATH, JSON.stringify({ drive }), 'utf8');
+    app.relaunch();
+    app.quit();
+    return true;
+  } catch { return false; }
+});
+
+ipcMain.handle('ha-clear-config', () => {
+  if (!HA_CONFIG_PATH) return false;
+  try {
+    if (fs.existsSync(HA_CONFIG_PATH)) fs.unlinkSync(HA_CONFIG_PATH);
+    app.relaunch();
+    app.quit();
+    return true;
+  } catch { return false; }
+});
 
 ipcMain.handle('get-autostart', () => {
   return app.getLoginItemSettings({ args: ['--hidden'] }).openAtLogin;

@@ -7,4 +7,9 @@ contextBridge.exposeInMainWorld('electron', {
   onOpenChat: (cb) => ipcRenderer.on('open-chat', (_, chatId) => cb(chatId)),
   getAutostart: () => ipcRenderer.invoke('get-autostart'),
   setAutostart: (enabled) => ipcRenderer.invoke('set-autostart', enabled),
+  // High Availability
+  listDrives: () => ipcRenderer.invoke('ha-list-drives'),
+  getHAConfig: () => ipcRenderer.invoke('ha-get-config'),
+  setHAConfig: (drive) => ipcRenderer.invoke('ha-set-config', drive),
+  clearHAConfig: () => ipcRenderer.invoke('ha-clear-config'),
 });

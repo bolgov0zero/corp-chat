@@ -10,6 +10,10 @@
 
 <!-- Login -->
 <div id="screen-login" class="screen active">
+  <button id="ha-toggle-btn" style="display:none" onclick="openHAModal()" title="Высокая доступность">
+    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    <span id="ha-toggle-label">Высокая доступность</span>
+  </button>
   <div class="login-wrap">
     <div class="login-icon">💬</div>
     <h1>Corp Chat</h1>
@@ -19,6 +23,37 @@
     <div class="field"><label>Пароль</label><input id="l-password" type="password" placeholder="••••••••" autocomplete="current-password"></div>
     <button class="btn-login" id="l-btn" onclick="doLogin()">Войти</button>
     <div class="login-err" id="l-err"></div>
+  </div>
+</div>
+
+<!-- HA Modal -->
+<div class="modal-bg" id="modal-ha">
+  <div class="modal" style="width:380px">
+    <div class="modal-header">
+      <span class="modal-title">Высокая доступность</span>
+      <button class="modal-x" onclick="closeModal('modal-ha')">✕</button>
+    </div>
+    <div style="padding:20px">
+      <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px">
+        Данные приложения (сессия, настройки) будут сохраняться на выбранном диске.<br>
+        Удобно для сетевых дисков в корпоративной среде.
+      </p>
+      <div id="ha-active-info" style="display:none;margin-bottom:16px;padding:10px 12px;background:var(--primary-light,#eff6ff);border-radius:8px;font-size:13px">
+        <strong>Активен:</strong> <span id="ha-active-path"></span>
+      </div>
+      <label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Диск для хранения данных</label>
+      <select id="ha-drive-select" style="width:100%;padding:9px 12px;border:1.5px solid var(--border,#e2e8f0);border-radius:8px;font-size:14px;outline:none;background:#fff;color:var(--text,#1e293b)">
+        <option value="">Загрузка дисков…</option>
+      </select>
+      <p style="font-size:11px;color:var(--muted);margin-top:6px">Данные будут сохранены в <code id="ha-path-preview" style="background:#f1f5f9;padding:1px 5px;border-radius:4px">…\Corp-Chat</code></p>
+    </div>
+    <div style="padding:12px 20px;border-top:1px solid var(--border,#e2e8f0);display:flex;justify-content:space-between;gap:8px">
+      <button id="ha-disable-btn" class="btn" style="display:none" onclick="disableHA()">Отключить</button>
+      <div style="display:flex;gap:8px;margin-left:auto">
+        <button class="btn" onclick="closeModal('modal-ha')">Отмена</button>
+        <button class="btn btn-primary" onclick="saveHA()">Применить и перезапустить</button>
+      </div>
+    </div>
   </div>
 </div>
 
