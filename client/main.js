@@ -90,7 +90,18 @@ function createWindow() {
   });
   mainWindow.loadFile(path.join(__dirname, 'src', 'index.html'));
   mainWindow.once('ready-to-show', () => mainWindow.show());
-  mainWindow.on('close', e => { if (!app.isQuiting) { e.preventDefault(); mainWindow.hide(); } });
+  mainWindow.on('close', e => {
+    if (!app.isQuiting) {
+      e.preventDefault();
+      mainWindow.hide();
+      // На macOS скрываем и из Dock
+      if (process.platform === 'darwin') app.dock?.hide();
+    }
+  });
+
+  mainWindow.on('show', () => {
+    if (process.platform === 'darwin') app.dock?.show();
+  });
   mainWindow.on('focus', () => {
     // Stop blinking when window is focused
     if (unreadCount === 0) stopBlink();
