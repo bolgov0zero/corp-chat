@@ -10,6 +10,7 @@ const S = {
   ctx: { messageId: null, canEdit: false, isMine: false },
   editingMessageId: null,
   egChatId: null, egRemovedIds: new Set(), egAddIds: new Set(),
+  newGroupAvatarBase64: null,
   presence: {}, // userId -> 'online'|'away'|'offline'
   reactions: {}, // messageId -> [{reaction, count}]
 };
@@ -633,7 +634,7 @@ function connectWS() {
   const ws = new WebSocket(`ws://${S.server}/ws?token=${S.token}`);
   S.ws = ws;
 
-  ws.onmessage = e => {
+  ws.onmessage = async e => {
     let data; try { data=JSON.parse(e.data); } catch { return; }
 
     if (data.type==='message') {
@@ -730,6 +731,10 @@ function connectWS() {
         if (el) el.outerHTML = renderStatus(m.status);
       }
     }
+
+    if (data.type==='avatar_updated') {
+      renderChatList();
+    }
   };
 
   ws.onclose = () => {
@@ -772,12 +777,30 @@ function getPeerUserId(chat) {
   return chat.members?.find(m => m.id !== S.user.id)?.id || null;
 }
 
+function triggerGroupAvatarUpload() { document.getElementById('group-avatar-input').click(); }
+async function onGroupAvatarChange(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    S.newGroupAvatarBase64 = e.target.result.split(',')[1];
+    const el = document.getElementById('new-group-av');
+    el.style.backgroundImage = `url('${e.target.result}')`;
+    el.style.backgroundSize = 'cover';
+    el.textContent = '';
+  };
+  reader.readAsDataURL(file);
+}
+
 // ── NEW CHAT MODAL ──
 function openNewChat() {
   renderModalUsers('users-list-direct', false);
   renderModalUsers('users-list-group', true);
   document.getElementById('group-name').value='';
   document.querySelectorAll('#users-list-group .user-row').forEach(el=>el.classList.remove('selected'));
+  // Reset group avatar
+  S.newGroupAvatarBase64 = null;
+  const av = document.getElementById('new-group-av');
+  if (av) { av.style.backgroundImage=''; av.style.backgroundSize=''; av.textContent='+'; }
   openModal('modal-new-chat');
 }
 
@@ -812,7 +835,13 @@ async function createGroup() {
   if (!name) { document.getElementById('group-name').focus(); return; }
   const selected = [...document.querySelectorAll('#users-list-group .user-row.selected')].map(el=>parseInt(el.dataset.uid));
   const data = await api('POST','/chats/group',{name, member_ids:selected});
-  if (data?.id) { closeModal('modal-new-chat'); await loadChats(); openChat(data.id); }
+  if (data?.id) {
+    if (S.newGroupAvatarBase64) {
+      await api('POST', `/chats/${data.id}/avatar`, { data: S.newGroupAvatarBase64 });
+      S.newGroupAvatarBase64 = null;
+    }
+    closeModal('modal-new-chat'); await loadChats(); openChat(data.id);
+  }
 }
 
 function switchTab(tab) {

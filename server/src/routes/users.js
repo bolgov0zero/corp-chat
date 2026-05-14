@@ -4,7 +4,7 @@ const path2 = require('path');
 const fs = require('fs');
 const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
-const { getStatus } = require('../ws');
+const { getStatus, sendTo } = require('../ws');
 
 const DB_DIR = path2.join(__dirname, '..', '..', '..', 'chat_db');
 const AVATAR_DIR = path2.join(DB_DIR, 'avatar');
@@ -43,6 +43,9 @@ router.post('/me/avatar', authMiddleware, (req, res) => {
   try {
     const buf = Buffer.from(data, 'base64');
     fs.writeFileSync(path2.join(AVATAR_DIR, `${req.user.id}.jpg`), buf);
+    const peers = db.prepare(`SELECT DISTINCT cm2.user_id FROM chat_members cm1 JOIN chat_members cm2 ON cm2.chat_id = cm1.chat_id AND cm2.user_id != cm1.user_id JOIN chats c ON c.id = cm1.chat_id WHERE cm1.user_id = ?`).all(req.user.id).map(r=>r.user_id);
+    peers.forEach(uid => sendTo(uid, { type: 'avatar_updated', user_id: req.user.id }));
+    sendTo(req.user.id, { type: 'avatar_updated', user_id: req.user.id });
     res.json({ ok: true, url: `/api/users/${req.user.id}/avatar` });
   } catch (e) {
     res.status(500).json({ error: 'Failed to save avatar' });

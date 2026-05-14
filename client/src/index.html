@@ -127,6 +127,11 @@
     </div>
     <div id="tab-group" style="display:none">
       <div class="field" style="padding:8px 14px"><input id="group-name" placeholder="Название группы / комнаты"></div>
+      <div class="field group-avatar-row" style="padding:8px 14px;display:flex;align-items:center;gap:10px">
+        <div class="av av-sm av-green" id="new-group-av" style="cursor:pointer;flex-shrink:0" onclick="triggerGroupAvatarUpload()" title="Добавить фото">+</div>
+        <span style="font-size:13px;color:var(--muted);cursor:pointer" onclick="triggerGroupAvatarUpload()">Добавить фото группы</span>
+        <input type="file" id="group-avatar-input" accept="image/*" style="display:none" onchange="onGroupAvatarChange(this)">
+      </div>
       <div class="modal-search"><input placeholder="Добавить участников..." oninput="filterModalUsers(this.value,'users-list-group')"></div>
       <div class="users-list" id="users-list-group"></div>
       <button class="modal-create-btn" onclick="createGroup()">Создать</button>

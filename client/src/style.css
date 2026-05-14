@@ -97,7 +97,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .unread-badge { background: var(--primary); color: #fff; border-radius: 10px; font-size: 11px; font-weight: 700; padding: 1px 6px; min-width: 18px; text-align: center; }
 
 /* ── AVATAR ── */
-.av { border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; flex-shrink: 0; text-transform: uppercase; }
+.av { border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; flex-shrink: 0; text-transform: uppercase; }
 .av-sm { width: 32px; height: 32px; font-size: 13px; }
 .av-md { width: 38px; height: 38px; font-size: 15px; }
 .av-lg { width: 44px; height: 44px; font-size: 17px; }
@@ -156,7 +156,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .chat-input-area { flex: 1; display: flex; flex-direction: column; }
 .chat-input-area textarea { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 1rem; font-family: inherit; resize: none; outline: none; max-height: 120px; line-height: 1.5; background: var(--input-bg); color: var(--text); transition: border-color .2s; }
 .chat-input-area textarea:focus { border-color: var(--primary); }
-.send-btn { width: 38px; height: 38px; border: none; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background .2s; flex-shrink: 0; }
+.send-btn { width: 38px; height: 38px; border: none; border-radius: 10px; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background .2s; flex-shrink: 0; }
 .send-btn:hover { background: #1d4ed8; }
 .send-btn:disabled { background: #93c5fd; cursor: not-allowed; }
 .send-btn svg { width: 16px; height: 16px; }
@@ -235,8 +235,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .emoji-picker { position: fixed; z-index: 400; background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,.18); padding: 8px; display: grid; grid-template-columns: repeat(6, 36px); gap: 2px; }
 .emoji-item { width: 36px; height: 36px; background: none; border: none; font-size: 20px; cursor: pointer; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: background .12s; }
 .emoji-item:hover { background: var(--bg); }
-.emoji-btn { color: var(--muted); }
-.emoji-btn:hover { color: var(--text); }
+.emoji-btn { width: 36px; height: 36px; border: none; border-radius: 8px; background: none; color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background .15s, color .15s; flex-shrink: 0; padding: 0; }
+.emoji-btn:hover { background: var(--bg); color: var(--text); }
 
 /* ── CONTEXT MENU REACTIONS ROW ── */
 .ctx-reactions { display: flex; gap: 4px; padding: 6px 10px 4px; border-bottom: 1px solid var(--border); }
@@ -246,7 +246,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 /* ── PROFILE EDIT ── */
 .profile-edit-row { display: flex; align-items: center; gap: 14px; padding: 8px 0 14px; }
 .profile-av-wrap { position: relative; cursor: pointer; flex-shrink: 0; }
-.profile-av-overlay { position: absolute; inset: 0; border-radius: 50%; background: rgba(0,0,0,.45); color: #fff; font-size: 16px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .15s; }
+.profile-av-overlay { position: absolute; inset: 0; border-radius: 8px; background: rgba(0,0,0,.5); color: #fff; font-size: 16px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .15s; }
 .profile-av-wrap:hover .profile-av-overlay { opacity: 1; }
 .profile-name-input { width: 100%; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; outline: none; background: var(--input-bg); color: var(--text); transition: border-color .2s; }
 .profile-name-input:focus { border-color: var(--primary); }
