@@ -508,13 +508,15 @@ function renderMsg(m, isGroup, hideTime = false) {
     </div>` : '';
   return `<div class="msg-group ${mine?'mine':'theirs'}" data-msg-id="${m.id}" data-sender-id="${m.sender_id}" data-sent-at="${m.sent_at}">
     ${isGroup&&!mine?`<div class="msg-sender">${esc(m.sender_name)}</div>`:''}
-    <div class="msg-row">
-      <div class="bubble${isDeleted?' deleted':''}" oncontextmenu="${!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at},${mine})`:'event.preventDefault()'}">
-        ${replyHtml}
-        <div class="bubble-text">${bodyText}</div>
+    <div class="msg-bubble-row">
+      <div class="msg-row">
+        <div class="bubble${isDeleted?' deleted':''}" oncontextmenu="${!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at},${mine})`:'event.preventDefault()'}">
+          ${replyHtml}
+          <div class="bubble-text">${bodyText}</div>
+        </div>
       </div>
+      ${reactionsHtml}
     </div>
-    ${reactionsHtml}
     <div class="msg-meta${hideTime?' msg-meta-hidden':''}">
       <span class="msg-time">${time}</span>
       ${statusIcon}
@@ -872,8 +874,8 @@ function connectWS() {
           if (existing) {
             existing.outerHTML = reactionsHtml || '';
           } else if (reactionsHtml) {
-            const meta = msgEl.querySelector('.msg-meta');
-            if (meta) meta.insertAdjacentHTML('beforebegin', reactionsHtml);
+            const bubbleRow = msgEl.querySelector('.msg-bubble-row');
+            if (bubbleRow) bubbleRow.insertAdjacentHTML('beforeend', reactionsHtml);
           }
         }
       }
