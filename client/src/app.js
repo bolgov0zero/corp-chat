@@ -377,7 +377,7 @@ async function ctxInfo() {
   const msgId = S.ctx.messageId;
   if (!msgId) return;
   const data = await api('GET', `/messages/${msgId}/info`);
-  if (!data) return;
+  if (!data || data.error) return;
 
   function fmtDt(ts) {
     if (!ts) return '—';
@@ -416,7 +416,7 @@ async function ctxInfo() {
   }
 
   document.getElementById('msg-info-body').innerHTML = body;
-  document.getElementById('modal-msg-info').classList.add('open');
+  openModal('modal-msg-info');
 }
 
 // ── DELETE CHAT / LEAVE GROUP ──
