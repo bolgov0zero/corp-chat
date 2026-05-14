@@ -8,8 +8,8 @@ let unreadCount = 0;
 let blinkInterval = null;
 let blinkState = false;
 
-// Generate a solid-color PNG using Node's built-in zlib
-function makePNG(width, height, r, g, b, a = 255) {
+// Generate PNG from pixel buffer using Node's built-in zlib
+function makePNGFromPixels(w, h, pixels) {
   function crc32(buf) {
     let c = 0xFFFFFFFF;
     for (const byte of buf) { c ^= byte; for (let i = 0; i < 8; i++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); }
@@ -22,47 +22,73 @@ function makePNG(width, height, r, g, b, a = 255) {
     const crcVal = Buffer.alloc(4); crcVal.writeUInt32BE(crc32(crcBuf));
     return Buffer.concat([len, t, data, crcVal]);
   }
-  const hasAlpha = a < 255;
-  const channels = hasAlpha ? 4 : 3;
-  const colorType = hasAlpha ? 6 : 2;
-  const row = Buffer.alloc(1 + width * channels);
-  const raw = Buffer.alloc(height * (1 + width * channels));
-  for (let y = 0; y < height; y++) {
-    row[0] = 0;
-    for (let x = 0; x < width; x++) {
-      const i = 1 + x * channels;
-      row[i] = r; row[i+1] = g; row[i+2] = b;
-      if (hasAlpha) row[i+3] = a;
-    }
-    row.copy(raw, y * row.length);
+  const raw = Buffer.alloc(h * (1 + w * 4));
+  for (let y = 0; y < h; y++) {
+    raw[y * (1 + w * 4)] = 0;
+    pixels.copy(raw, y * (1 + w * 4) + 1, y * w * 4, (y + 1) * w * 4);
   }
   const sig = Buffer.from([137,80,78,71,13,10,26,10]);
-  const ihdr = chunk('IHDR', Buffer.from([0,0,0,width,0,0,0,height,8,colorType,0,0,0]));
+  const ihdr = chunk('IHDR', Buffer.from([0,0,0,w,0,0,0,h,8,6,0,0,0]));
   const idat = chunk('IDAT', zlib.deflateSync(raw));
   const iend = chunk('IEND', Buffer.alloc(0));
   return Buffer.concat([sig, ihdr, idat, iend]);
 }
 
-// Normal icon: blue square with "C"
-// Envelope icon for blinking: orange
-const ICON_NORMAL = makePNG(32, 32, 37, 99, 235);   // #2563eb
-const ICON_BLINK  = makePNG(32, 32, 234, 88, 12);   // #ea580c (orange)
+// Envelope icon for blinking (orange, 32x32)
+function makeEnvelopePNG() {
+  const W = 32, H = 32;
+  const px = Buffer.alloc(W * H * 4);
+  const O = [234, 88, 12, 255];   // orange bg
+  const L = [255, 255, 255, 255]; // white
+  function set(x, y, c) {
+    if (x < 0 || x >= W || y < 0 || y >= H) return;
+    const i = (y * W + x) * 4;
+    px[i] = c[0]; px[i+1] = c[1]; px[i+2] = c[2]; px[i+3] = c[3];
+  }
+  function rect(x1, y1, x2, y2, c) { for (let y=y1;y<=y2;y++) for (let x=x1;x<=x2;x++) set(x,y,c); }
+  // Fill orange background
+  rect(0, 0, W-1, H-1, O);
+  // Envelope body (white rectangle)
+  rect(4, 9, 27, 22, L);
+  // Envelope flap (V-shape pointing down from top)
+  for (let i = 0; i <= 11; i++) {
+    set(4 + i, 9 + i, O);
+    set(27 - i, 9 + i, O);
+  }
+  // Bottom fold line (subtle V pointing up)
+  for (let i = 0; i <= 5; i++) {
+    set(4 + i, 22 - i, O);
+    set(27 - i, 22 - i, O);
+  }
+  return makePNGFromPixels(W, H, px);
+}
+
+const ICON_BLINK = makeEnvelopePNG();
 
 function makeImage(buf) {
   return nativeImage.createFromBuffer(buf, { scaleFactor: 1 });
+}
+
+const TRAY_ICON_PATH = path.join(__dirname, 'src', 'assets', 'tray-icon.png');
+const ICON_NORMAL_IMAGE = (() => {
+  try { return nativeImage.createFromPath(TRAY_ICON_PATH); } catch { return null; }
+})();
+
+function getNormalImage() {
+  return (ICON_NORMAL_IMAGE && !ICON_NORMAL_IMAGE.isEmpty()) ? ICON_NORMAL_IMAGE : nativeImage.createEmpty();
 }
 
 function startBlink() {
   if (blinkInterval) return;
   blinkInterval = setInterval(() => {
     blinkState = !blinkState;
-    try { tray?.setImage(makeImage(blinkState ? ICON_BLINK : ICON_NORMAL)); } catch {}
+    try { tray?.setImage(blinkState ? makeImage(ICON_BLINK) : getNormalImage()); } catch {}
   }, 600);
 }
 
 function stopBlink() {
   if (blinkInterval) { clearInterval(blinkInterval); blinkInterval = null; }
-  try { tray?.setImage(makeImage(ICON_NORMAL)); } catch {}
+  try { tray?.setImage(getNormalImage()); } catch {}
 }
 
 function updateTray() {
@@ -109,7 +135,7 @@ function createWindow() {
 }
 
 function createTray() {
-  try { tray = new Tray(makeImage(ICON_NORMAL)); }
+  try { tray = new Tray(getNormalImage()); }
   catch { tray = new Tray(nativeImage.createEmpty()); }
   updateTray();
   tray.on('click', () => { mainWindow?.show(); mainWindow?.focus(); });
