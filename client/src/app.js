@@ -93,6 +93,7 @@ async function doLogin() {
 }
 
 function logout() {
+  closeSettings();
   if (S.ws) S.ws.close();
   Object.assign(S, { token:null, user:null, chats:[], activeChatId:null, ws:null, unread:{}, allUsers:[] });
   localStorage.removeItem(SESSION_KEY);
