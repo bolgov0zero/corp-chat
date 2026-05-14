@@ -130,8 +130,18 @@ function applySettings() {
 }
 function setTheme(t) { S.settings.theme=t; applySettings(); saveSession(); }
 function setFontSize(f) { S.settings.fontSize=f; applySettings(); saveSession(); }
-function openSettings() { document.getElementById('drawer-settings').classList.add('open'); document.getElementById('drawer-bg').classList.add('open'); }
+async function openSettings() {
+  document.getElementById('drawer-settings').classList.add('open');
+  document.getElementById('drawer-bg').classList.add('open');
+  if (window.electron?.getAutostart) {
+    const row = document.getElementById('autostart-row');
+    row.style.display = '';
+    const enabled = await window.electron.getAutostart();
+    document.getElementById('autostart-chk').checked = !!enabled;
+  }
+}
 function closeSettings() { document.getElementById('drawer-settings').classList.remove('open'); document.getElementById('drawer-bg').classList.remove('open'); }
+async function setAutostart(enabled) { await window.electron?.setAutostart(enabled); }
 
 // ── CHAT LIST ──
 async function loadChats() {

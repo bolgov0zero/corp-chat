@@ -188,11 +188,35 @@ ipcMain.on('unread', (_, count) => {
 
 ipcMain.handle('get-platform', () => process.platform);
 
+ipcMain.handle('get-autostart', () => {
+  return app.getLoginItemSettings({ args: ['--hidden'] }).openAtLogin;
+});
+
+ipcMain.handle('set-autostart', (_, enabled) => {
+  if (process.platform === 'darwin') {
+    app.setLoginItemSettings({ openAtLogin: enabled, openAsHidden: true });
+  } else {
+    app.setLoginItemSettings({ openAtLogin: enabled, args: enabled ? ['--hidden'] : [] });
+  }
+});
+
+// Detect if launched at login (should start hidden in tray)
+function shouldStartHidden() {
+  if (process.platform === 'darwin') {
+    return app.getLoginItemSettings().wasOpenedAsHidden;
+  }
+  return process.argv.includes('--hidden');
+}
+
 if (process.platform === 'win32') app.setAppUserModelId('Corp Chat');
 
 app.whenReady().then(() => {
   createWindow();
   createTray();
+  if (shouldStartHidden()) {
+    mainWindow.hide();
+    if (process.platform === 'darwin') app.dock?.hide();
+  }
 });
 
 app.on('window-all-closed', e => e.preventDefault());
