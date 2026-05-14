@@ -34,55 +34,81 @@ function makePNGFromPixels(w, h, pixels) {
   return Buffer.concat([sig, ihdr, idat, iend]);
 }
 
-// Envelope icon for blinking: orange envelope on transparent background (44x44 @2x = 22pt)
-function makeEnvelopePNG() {
-  const W = 44, H = 44;
-  const px = Buffer.alloc(W * H * 4); // all transparent by default
-  const E = [234, 88, 12, 255]; // orange
-  function set(x, y, c) {
-    if (x < 0 || x >= W || y < 0 || y >= H) return;
-    const i = (y * W + x) * 4;
-    px[i] = c[0]; px[i+1] = c[1]; px[i+2] = c[2]; px[i+3] = c[3];
+// Draw electron atom symbol: 3 orbits + center dot, black on transparent
+// size: pixel dimensions of the PNG (displayed at size/2 pt on macOS @2x)
+function makeElectronSymbolPNG(size) {
+  const px = Buffer.alloc(size * size * 4); // fully transparent
+  const BLACK = [0, 0, 0, 255];
+  function setpx(x, y) {
+    x = Math.round(x); y = Math.round(y);
+    if (x < 0 || x >= size || y < 0 || y >= size) return;
+    const i = (y * size + x) * 4;
+    px[i] = 0; px[i+1] = 0; px[i+2] = 0; px[i+3] = 255;
   }
-  function rect(x1, y1, x2, y2, c) { for (let y=y1;y<=y2;y++) for (let x=x1;x<=x2;x++) set(x,y,c); }
-  // Envelope body outline (border only, 2px thick)
-  const [x1,y1,x2,y2] = [5, 12, 39, 32];
-  for (let t=0; t<2; t++) {
-    for (let x=x1+t; x<=x2-t; x++) { set(x, y1+t, E); set(x, y2-t, E); }
-    for (let y=y1+t; y<=y2-t; y++) { set(x1+t, y, E); set(x2-t, y, E); }
-  }
-  // Envelope flap V (2px thick lines from top corners to center)
-  const mx = Math.floor((x1+x2)/2);
-  const my = Math.floor((y1+y2)/2) - 2;
-  for (let t=0; t<2; t++) {
-    for (let i=0; i<=(mx-x1); i++) {
-      const frac = i / (mx - x1);
-      const fy = Math.round(y1 + frac * (my - y1));
-      set(x1 + i + t, fy, E);
-      set(x2 - i - t, fy, E);
+  const cx = (size - 1) / 2, cy = (size - 1) / 2;
+  const a = size * 0.38, b = size * 0.13; // semi-major/minor axes
+  // Three orbits rotated 0°, 60°, 120°
+  for (let orbit = 0; orbit < 3; orbit++) {
+    const th = (orbit * Math.PI) / 3;
+    for (let t = 0; t < 2 * Math.PI; t += 0.015) {
+      const ex = cx + a * Math.cos(t) * Math.cos(th) - b * Math.sin(t) * Math.sin(th);
+      const ey = cy + a * Math.cos(t) * Math.sin(th) + b * Math.sin(t) * Math.cos(th);
+      setpx(ex, ey);
+      // 2px line width
+      setpx(ex + Math.cos(th + Math.PI/2), ey + Math.sin(th + Math.PI/2));
     }
   }
-  return makePNGFromPixels(W, H, px);
+  // Center nucleus dot (radius ~2px scaled)
+  const r = Math.max(2, Math.round(size * 0.07));
+  for (let dy = -r; dy <= r; dy++)
+    for (let dx = -r; dx <= r; dx++)
+      if (dx*dx + dy*dy <= r*r) setpx(cx + dx, cy + dy);
+  return makePNGFromPixels(size, size, px);
 }
 
-// Load normal tray icon: electron app icon, displayed as template on macOS
+// Draw orange envelope on transparent background
+function makeEnvelopePNG(size) {
+  const px = Buffer.alloc(size * size * 4); // transparent
+  const E = [234, 88, 12, 255]; // orange
+  function set(x, y) {
+    x = Math.round(x); y = Math.round(y);
+    if (x < 0 || x >= size || y < 0 || y >= size) return;
+    const i = (y * size + x) * 4;
+    px[i] = E[0]; px[i+1] = E[1]; px[i+2] = E[2]; px[i+3] = E[3];
+  }
+  const pad = Math.round(size * 0.12);
+  const x1 = pad, y1 = Math.round(size * 0.27), x2 = size - pad - 1, y2 = Math.round(size * 0.73);
+  const thick = Math.max(1, Math.round(size * 0.05));
+  // Border
+  for (let t = 0; t < thick; t++) {
+    for (let x = x1+t; x <= x2-t; x++) { set(x, y1+t); set(x, y2-t); }
+    for (let y = y1+t; y <= y2-t; y++) { set(x1+t, y); set(x2-t, y); }
+  }
+  // Envelope flap V from top-corners to center
+  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - size * 0.05;
+  for (let t = 0; t < thick; t++) {
+    const steps = mx - x1;
+    for (let i = 0; i <= steps; i++) {
+      const frac = i / steps;
+      const fy = y1 + frac * (my - y1);
+      set(x1 + i + t, fy); set(x2 - i - t, fy);
+    }
+  }
+  return makePNGFromPixels(size, size, px);
+}
+
+// Pre-generate icon buffers
+const ELECTRON_ICON_BUF = makeElectronSymbolPNG(32); // 32px → 16pt @2x on macOS
+const ENVELOPE_ICON_BUF = makeEnvelopePNG(32);        // 32px → 16pt @2x on macOS
+
 function getNormalImage() {
-  const iconPath = path.join(__dirname, 'src', 'assets', 'tray-icon.png');
-  try {
-    const fs = require('fs');
-    const buf = fs.readFileSync(iconPath);
-    // scaleFactor:2 → 32px image displays as 16pt (proper menu bar size)
-    const img = nativeImage.createFromBuffer(buf, { scaleFactor: 2 });
-    if (!img.isEmpty() && process.platform === 'darwin') img.setTemplateImage(true);
-    return img;
-  } catch { return nativeImage.createEmpty(); }
+  const img = nativeImage.createFromBuffer(ELECTRON_ICON_BUF, { scaleFactor: process.platform === 'darwin' ? 2 : 1 });
+  if (process.platform === 'darwin') img.setTemplateImage(true);
+  return img;
 }
-
-const ICON_BLINK = makeEnvelopePNG();
 
 function getBlinkImage() {
-  // scaleFactor:2 → 44px image displays as 22pt
-  return nativeImage.createFromBuffer(ICON_BLINK, { scaleFactor: 2 });
+  return nativeImage.createFromBuffer(ENVELOPE_ICON_BUF, { scaleFactor: process.platform === 'darwin' ? 2 : 1 });
 }
 
 function startBlink() {
