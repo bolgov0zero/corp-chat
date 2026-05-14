@@ -3,7 +3,7 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const fs = require('fs');
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'chat.db');
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', '..', 'chat_db', 'chat.db');
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
 const db = new Database(DB_PATH);
