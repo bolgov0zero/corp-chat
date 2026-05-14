@@ -69,6 +69,7 @@ fs.mkdirSync(path.join(path.dirname(DB_PATH), 'avatar'), { recursive: true });
 const tryAlter = (sql) => { try { db.exec(sql); } catch {} };
 tryAlter('ALTER TABLE messages ADD COLUMN edited_at INTEGER');
 tryAlter('ALTER TABLE messages ADD COLUMN deleted INTEGER DEFAULT 0');
+tryAlter('ALTER TABLE chat_members ADD COLUMN hidden_at INTEGER');
 
 // Default admin
 const userCount = db.prepare('SELECT COUNT(*) as c FROM users').get();

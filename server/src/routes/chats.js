@@ -26,26 +26,31 @@ router.get('/', authMiddleware, (req, res) => {
   const chats = db.prepare(`
     SELECT c.id, c.type, c.name, c.created_at, c.created_by
     FROM chats c JOIN chat_members cm ON cm.chat_id = c.id
-    WHERE cm.user_id = ?
+    WHERE cm.user_id = ? AND cm.hidden_at IS NULL
     ORDER BY (SELECT COALESCE(MAX(sent_at), 0) FROM messages WHERE chat_id = c.id) DESC
   `).all(req.user.id);
   res.json(chats.map(c => enrichChat(c, req.user.id)));
 });
 
-// Create direct chat — Fix 1: do NOT notify recipient (they'll see it when first message arrives)
+// Create direct chat
 router.post('/direct', authMiddleware, (req, res) => {
   const { user_id } = req.body;
   if (!user_id) return res.status(400).json({ error: 'Missing user_id' });
+  // Check existing (including hidden)
   const existing = db.prepare(`
     SELECT c.id FROM chats c
     JOIN chat_members cm1 ON cm1.chat_id = c.id AND cm1.user_id = ?
     JOIN chat_members cm2 ON cm2.chat_id = c.id AND cm2.user_id = ?
     WHERE c.type = 'direct' LIMIT 1
   `).get(req.user.id, user_id);
-  if (existing) return res.json(enrichChat(existing, req.user.id));
+  if (existing) {
+    // Unhide for requester if it was hidden
+    db.prepare('UPDATE chat_members SET hidden_at = NULL WHERE chat_id = ? AND user_id = ?').run(existing.id, req.user.id);
+    return res.json(enrichChat(existing, req.user.id));
+  }
   const result = db.prepare("INSERT INTO chats (type, created_by) VALUES ('direct', ?)").run(req.user.id);
   db.prepare('INSERT INTO chat_members (chat_id, user_id) VALUES (?, ?), (?, ?)').run(result.lastInsertRowid, req.user.id, result.lastInsertRowid, user_id);
-  sendTo(user_id, { type: 'reload_chats' });
+  sendTo(Number(user_id), { type: 'reload_chats' });
   const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(result.lastInsertRowid);
   res.json(enrichChat(chat, req.user.id));
 });
@@ -131,7 +136,7 @@ router.get('/:id/avatar', (req, res) => {
   res.sendFile(file, err => { if (err) res.status(404).end(); });
 });
 
-// Delete own chat — Fix 3: get members before delete, notify after; Fix 8: group delete permission
+// Delete own chat
 router.delete('/:id', authMiddleware, (req, res) => {
   const id = Number(req.params.id);
   const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(id);
@@ -139,11 +144,9 @@ router.delete('/:id', authMiddleware, (req, res) => {
   if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(id, req.user.id))
     return res.status(403).json({ error: 'Not a member' });
   if (chat.type === 'direct') {
-    // Get the other member before removing
-    const otherMember = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ? AND user_id != ?').get(id, req.user.id);
-    db.prepare('DELETE FROM chat_members WHERE chat_id = ? AND user_id = ?').run(id, req.user.id);
-    // Also send chat_deleted to the other member so both sides remove it
-    if (otherMember) sendTo(otherMember.user_id, { type: 'chat_deleted', chat_id: id });
+    // Soft delete: hide only for this user, other side keeps the chat
+    db.prepare('UPDATE chat_members SET hidden_at = unixepoch() WHERE chat_id = ? AND user_id = ?').run(id, req.user.id);
+    sendTo(req.user.id, { type: 'chat_deleted', chat_id: id });
   } else {
     if (!req.user.is_admin && chat.created_by !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
     const members = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ?').all(id);

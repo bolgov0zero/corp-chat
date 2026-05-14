@@ -73,6 +73,13 @@ function setup(server) {
         if (!chat_id || !text?.trim()) return;
         if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chat_id, user.id)) return;
 
+        // Unhide chat for any members who had hidden it (e.g. deleted direct chat)
+        const hidden = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ? AND hidden_at IS NOT NULL').all(chat_id);
+        if (hidden.length) {
+          db.prepare('UPDATE chat_members SET hidden_at = NULL WHERE chat_id = ? AND hidden_at IS NOT NULL').run(chat_id);
+          hidden.forEach(({ user_id }) => sendTo(user_id, { type: 'reload_chats' }));
+        }
+
         const result = db.prepare('INSERT INTO messages (chat_id, sender_id, text) VALUES (?, ?, ?)').run(chat_id, user.id, text.trim());
         const msg = getMessageWithStatus(result.lastInsertRowid, user.id);
         broadcast(chat_id, { type: 'message', message: msg });

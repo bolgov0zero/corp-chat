@@ -799,6 +799,8 @@ function connectWS() {
   ws.onopen = () => {
     S.wsRetry = 0;
     ws.send(JSON.stringify({ type: 'set_status', status: document.hidden ? 'away' : 'online' }));
+    // Refresh chat list on every connect/reconnect to catch missed events
+    loadChats();
   };
   ws.onerror = () => ws.close();
 }
