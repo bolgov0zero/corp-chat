@@ -188,6 +188,8 @@ ipcMain.on('unread', (_, count) => {
 
 ipcMain.handle('get-platform', () => process.platform);
 
+if (process.platform === 'win32') app.setAppUserModelId('Corp Chat');
+
 app.whenReady().then(() => {
   createWindow();
   createTray();
