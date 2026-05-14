@@ -128,7 +128,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .messages::-webkit-scrollbar { width: 5px; }
 .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
-.msg-group { display: flex; flex-direction: column; margin: 3px 0; }
+.msg-group { display: flex; flex-direction: column; margin: 3px 0; margin-bottom: 0; }
+.msg-group + .msg-group { margin-top: 3px; }
 .msg-group.mine { align-items: flex-end; }
 .msg-group.theirs { align-items: flex-start; }
 .msg-sender { font-size: 11px; font-weight: 700; color: var(--primary); margin-bottom: 3px; padding: 0 6px; }
@@ -143,6 +144,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .bubble-text { font-size: 1rem; }
 
 .msg-meta { display: flex; align-items: center; gap: 3px; margin-top: 2px; padding: 0 4px; }
+.msg-meta-hidden { visibility: hidden; height: 0; margin: 0; overflow: hidden; }
 .msg-time { font-size: 10px; color: var(--muted); }
 .msg-status { display: flex; }
 .msg-status svg { width: 14px; height: 14px; }

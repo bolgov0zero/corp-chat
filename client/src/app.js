@@ -447,6 +447,14 @@ function insertEmoji(em) {
 }
 
 // ── RENDER MESSAGES ──
+// Two messages are in the same "time group" if same sender and same HH:MM
+function sameTimeGroup(a, b) {
+  if (!a || !b) return false;
+  if (a.sender_id !== b.sender_id) return false;
+  const ta = new Date(a.sent_at * 1000), tb = new Date(b.sent_at * 1000);
+  return ta.getHours() === tb.getHours() && ta.getMinutes() === tb.getMinutes() && ta.toDateString() === tb.toDateString();
+}
+
 function renderMessages(msgs) {
   const container = document.getElementById('messages');
   if (!container) return;
@@ -454,10 +462,13 @@ function renderMessages(msgs) {
   const isGroup = chat?.type==='group';
   let html = '';
   let lastDate = '';
-  msgs.forEach(m => {
+  msgs.forEach((m, i) => {
     const dateStr = fmtDate(m.sent_at);
     if (dateStr!==lastDate) { html+=`<div class="date-divider"><span>${dateStr}</span></div>`; lastDate=dateStr; }
-    html += renderMsg(m, isGroup);
+    const next = msgs[i + 1];
+    // Hide timestamp if next message is from same sender in same minute
+    const hideTime = !m.deleted && next && sameTimeGroup(m, next) && fmtDate(m.sent_at) === fmtDate(next.sent_at);
+    html += renderMsg(m, isGroup, hideTime);
   });
   container.innerHTML = html;
   container.scrollTop = container.scrollHeight;
@@ -471,14 +482,14 @@ function renderReactions(msgId) {
   ).join('')}</div>`;
 }
 
-function renderMsg(m, isGroup) {
+function renderMsg(m, isGroup, hideTime = false) {
   const mine = m.sender_id===S.user.id;
   const time = fmtTime(m.sent_at);
   const isDeleted = m.deleted;
   const bodyText = isDeleted ? 'Сообщение удалено' : esc(m.text) + (m.edited_at?` <span class="edited-tag">изм.</span>`:'');
   const statusIcon = mine && !isDeleted ? renderStatus(m.status) : '';
   const reactionsHtml = isDeleted ? '' : renderReactions(m.id);
-  return `<div class="msg-group ${mine?'mine':'theirs'}" data-msg-id="${m.id}">
+  return `<div class="msg-group ${mine?'mine':'theirs'}" data-msg-id="${m.id}" data-sender-id="${m.sender_id}" data-sent-at="${m.sent_at}">
     ${isGroup&&!mine?`<div class="msg-sender">${esc(m.sender_name)}</div>`:''}
     <div class="msg-row">
       <div class="bubble${isDeleted?' deleted':''}" oncontextmenu="${!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at},${mine})`:'event.preventDefault()'}">
@@ -486,7 +497,7 @@ function renderMsg(m, isGroup) {
       </div>
     </div>
     ${reactionsHtml}
-    <div class="msg-meta">
+    <div class="msg-meta${hideTime?' msg-meta-hidden':''}">
       <span class="msg-time">${time}</span>
       ${statusIcon}
     </div>
@@ -514,6 +525,21 @@ function appendMsg(m) {
   const container = document.getElementById('messages');
   if (!container) return;
   const chat = S.chats.find(c=>c.id===S.activeChatId);
+  // Check if previous message is from same sender in same minute → hide its timestamp
+  const prevEl = container.querySelector('[data-msg-id]:last-of-type');
+  if (prevEl && !m.deleted) {
+    const prevId = parseInt(prevEl.dataset.msgId);
+    const allMsgs = [...container.querySelectorAll('[data-msg-id]')];
+    const lastEl = allMsgs[allMsgs.length - 1];
+    if (lastEl) {
+      const prevSenderId = parseInt(lastEl.dataset.senderId || '0');
+      const prevTime = parseInt(lastEl.dataset.sentAt || '0');
+      const prevMsg = { sender_id: prevSenderId, sent_at: prevTime };
+      if (sameTimeGroup(prevMsg, m)) {
+        lastEl.querySelector('.msg-meta')?.classList.add('msg-meta-hidden');
+      }
+    }
+  }
   container.insertAdjacentHTML('beforeend', renderMsg(m, chat?.type==='group'));
   container.scrollTop = container.scrollHeight;
 }
