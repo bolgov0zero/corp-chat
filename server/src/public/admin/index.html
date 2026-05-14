@@ -394,17 +394,22 @@ function initials(name) { return (name||'?').split(' ').slice(0,2).map(w=>w[0]||
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtDate(ts) { return ts ? new Date(ts*1000).toLocaleDateString('ru',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—'; }
 
-// Build avatar HTML: tries real photo, falls back to initials
-// userId=null means it's a chat/room (no photo)
-function avHtml(name, size=32, radius=8, userId=null, status=null) {
+// Build avatar HTML.
+// hasAvatar=true → show only photo (no initials flash).
+// hasAvatar=false/null → show initials only.
+// userId=null → chat/room (no photo possible).
+function avHtml(name, size=32, radius=8, userId=null, status=null, hasAvatar=false) {
   const bg = avColor(name);
   const sz = `width:${size}px;height:${size}px;border-radius:${radius}px;font-size:${Math.round(size*0.38)}px`;
   const dotHtml = status && status !== 'offline'
     ? `<div class="status-dot ${status}"></div>` : '';
-  const imgHtml = userId
-    ? `<img src="/api/users/${userId}/avatar?t=${Date.now()}" style="width:100%;height:100%;object-fit:cover;border-radius:${radius}px" onerror="this.style.display='none'" loading="lazy">`
-    : '';
-  return `<div class="av-wrap"><div class="av-table" style="${sz};background:${bg}">${imgHtml}${initials(name)}</div>${dotHtml}</div>`;
+  let inner;
+  if (userId && hasAvatar) {
+    inner = `<img src="/api/users/${userId}/avatar" style="width:100%;height:100%;object-fit:cover;border-radius:${radius}px" loading="lazy">`;
+  } else {
+    inner = initials(name);
+  }
+  return `<div class="av-wrap"><div class="av-table" style="${sz};background:${bg}">${inner}</div>${dotHtml}</div>`;
 }
 
 function toast(msg, type='') {
@@ -491,7 +496,7 @@ async function renderDashboard() {
 
   const onlineCards = active.length ? active.map(u => `
     <div class="online-user-card">
-      ${avHtml(u.display_name, 36, 9, u.id, u.status)}
+      ${avHtml(u.display_name, 36, 9, u.id, u.status, u.has_avatar)}
       <div>
         <div class="online-user-name">${esc(u.display_name)}</div>
         <div class="online-status-label ${u.status}">${u.status === 'online' ? 'В сети' : 'Отошёл'}</div>
@@ -523,23 +528,8 @@ async function renderDashboard() {
       </div>
     </div>
 
-    <div class="card" style="margin-bottom:20px">
-      <div class="card-header">
-        <div style="display:flex;align-items:center;gap:10px">
-          <h3>Активные пользователи</h3>
-          ${online.length ? `<span class="badge badge-green">${online.length} онлайн</span>` : ''}
-          ${away.length ? `<span class="badge" style="background:#fff7ed;color:#c2410c">${away.length} отошли</span>` : ''}
-        </div>
-        <button class="btn btn-ghost btn-sm" onclick="renderDashboard()">
-          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-          Обновить
-        </button>
-      </div>
-      <div style="padding:14px 18px"><div class="online-grid">${onlineCards}</div></div>
-    </div>
-
     <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">Быстрые действия</div>
-    <div class="quick-grid">
+    <div class="quick-grid" style="margin-bottom:20px">
       <div class="quick-card" onclick="nav('users')">
         <div class="quick-card-icon ic-blue"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
         <div class="quick-card-title">Управление пользователями</div>
@@ -555,6 +545,21 @@ async function renderDashboard() {
         <div class="quick-card-title">Чаты и группы</div>
         <div class="quick-card-sub">Мониторинг и модерация</div>
       </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <h3>Активные пользователи</h3>
+          ${online.length ? `<span class="badge badge-green">${online.length} онлайн</span>` : ''}
+          ${away.length ? `<span class="badge" style="background:#fff7ed;color:#c2410c">${away.length} отошли</span>` : ''}
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="renderDashboard()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Обновить
+        </button>
+      </div>
+      <div style="padding:14px 18px"><div class="online-grid">${onlineCards}</div></div>
     </div>`;
 }
 
@@ -679,7 +684,7 @@ function statusBadge(s) {
 
 function userRowHtml(u) {
   return `<tr>
-    <td><div class="user-cell">${avHtml(u.display_name,32,8,u.id,u.status)}<div class="user-cell-info"><div class="name">${esc(u.display_name)}</div><div class="uname">@${esc(u.username)}</div></div></div></td>
+    <td><div class="user-cell">${avHtml(u.display_name,32,8,u.id,u.status,u.has_avatar)}<div class="user-cell-info"><div class="name">${esc(u.display_name)}</div><div class="uname">@${esc(u.username)}</div></div></div></td>
     <td>${u.is_admin?'<span class="badge badge-blue">Администратор</span>':'<span class="badge badge-gray">Пользователь</span>'}</td>
     <td>${statusBadge(u.status)}</td>
     <td style="color:var(--muted)">${fmtDate(u.created_at)}</td>
