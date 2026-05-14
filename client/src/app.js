@@ -62,6 +62,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('l-username').addEventListener('keydown', e => e.key==='Enter' && document.getElementById('l-password').focus());
   document.addEventListener('click', hideCtxMenu);
   document.addEventListener('keydown', e => { if(e.key==='Escape'){ hideCtxMenu(); closeSettings(); }});
+  window.electron?.onOpenChat(chatId => { const chat = S.chats.find(c=>c.id===chatId); if(chat) openChat(chatId); });
 });
 
 // ── LOGIN ──
@@ -146,7 +147,15 @@ function chatIcon(chat) {
 function renderChatList() {
   const q = document.getElementById('search').value.toLowerCase();
   const list = document.getElementById('chats-list');
-  const filtered = S.chats.filter(c=>chatName(c).toLowerCase().includes(q));
+  // Rooms always on top, then sort by last message time
+  const filtered = S.chats
+    .filter(c=>chatName(c).toLowerCase().includes(q))
+    .sort((a,b) => {
+      if (a.type==='room' && b.type!=='room') return -1;
+      if (a.type!=='room' && b.type==='room') return 1;
+      const ta = a.last_message?.sent_at||0, tb = b.last_message?.sent_at||0;
+      return tb-ta;
+    });
   if (!filtered.length) { list.innerHTML='<div style="padding:20px;text-align:center;color:var(--sidebar-muted);font-size:13px">Нет чатов</div>'; return; }
   list.innerHTML = filtered.map(c => {
     const name = chatName(c);
@@ -393,7 +402,9 @@ function connectWS() {
         S.unread[chatId] = (S.unread[chatId]||0)+1;
         if (message.sender_id!==S.user.id) {
           const chat2 = S.chats.find(c=>c.id===chatId);
-          window.electron?.notify(chatName(chat2)||'Corp Chat', `${message.sender_name}: ${message.text}`);
+          const title = chatName(chat2) || 'Corp Chat';
+          const body = `${message.sender_name}: ${message.text}`;
+          window.electron?.notify(title, body, chatId);
         }
         if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'delivered', message_id:message.id}));
       }
@@ -419,6 +430,10 @@ function connectWS() {
         if (el) { const b=el.querySelector('.bubble'); if(b){b.classList.add('deleted');b.querySelector('.bubble-text').innerHTML='Сообщение удалено';} }
       }
       renderChatList();
+    }
+
+    if (data.type==='reload_chats') {
+      loadChats();
     }
 
     if (data.type==='status_update') {

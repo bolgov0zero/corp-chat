@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
+const { sendTo } = require('../ws');
 
 router.use(authMiddleware, adminMiddleware);
 
@@ -14,16 +15,27 @@ router.get('/stats', (req, res) => {
   });
 });
 
-// Create room (admin only)
+// Create room (admin only) — notifies members via WS
 router.post('/rooms', (req, res) => {
   const { name, member_ids } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Missing name' });
   const result = db.prepare("INSERT INTO chats (type, name, created_by) VALUES ('room', ?, ?)").run(name.trim(), req.user.id);
+  const chatId = result.lastInsertRowid;
   if (Array.isArray(member_ids) && member_ids.length) {
     const ins = db.prepare('INSERT OR IGNORE INTO chat_members (chat_id, user_id) VALUES (?, ?)');
-    member_ids.forEach(uid => ins.run(result.lastInsertRowid, uid));
+    member_ids.forEach(uid => { ins.run(chatId, uid); sendTo(uid, { type: 'reload_chats' }); });
   }
-  res.json({ id: result.lastInsertRowid });
+  res.json({ id: chatId });
+});
+
+// Add member to chat/room — notify via WS
+router.post('/chats/:id/members', authMiddleware, adminMiddleware, (req, res) => {
+  const { user_id } = req.body;
+  try {
+    db.prepare('INSERT OR IGNORE INTO chat_members (chat_id, user_id) VALUES (?, ?)').run(req.params.id, user_id);
+    sendTo(user_id, { type: 'reload_chats' });
+  } catch {}
+  res.json({ ok: true });
 });
 
 router.get('/users', (req, res) => {

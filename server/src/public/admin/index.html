@@ -541,7 +541,7 @@ function renderChatsTable(chats) {
       <td>${c.message_count}</td>
       <td style="color:var(--muted)">${fmtDate(c.created_at)}</td>
       <td><div class="td-actions">
-        ${c.type === 'group' ? `<button class="btn btn-ghost btn-sm" onclick="openMembers(${c.id},'${esc(c.name||'')}')">Участники</button>` : ''}
+        ${c.type !== 'direct' ? `<button class="btn btn-ghost btn-sm" onclick="openMembers(${c.id},'${esc(c.name||'')}')">Участники</button>` : ''}
         <button class="btn btn-ghost btn-sm" onclick="clearHistory(${c.id})">Очистить историю</button>
         <button class="btn btn-danger btn-sm" onclick="deleteChat(${c.id})">Удалить</button>
       </div></td>
@@ -589,6 +589,9 @@ async function openMembers(chatId, name) {
   membersForChatId = chatId;
   selectedAddMembers = new Set();
   document.getElementById('members-title').textContent = `Участники: ${name}`;
+  document.querySelector('#modal-members .modal-footer').innerHTML = `
+    <button class="btn btn-ghost" onclick="closeModal('modal-members')">Закрыть</button>
+    <button class="btn btn-primary" onclick="addSelectedMembers()">Добавить выбранных</button>`;
   const [members, allU] = await Promise.all([api('GET', '/api/admin/chats/' + chatId + '/members'), api('GET', '/api/admin/users')]);
   const memberIds = new Set(members.map(m => m.id));
 

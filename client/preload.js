@@ -1,7 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electron', {
-  notify: (title, body) => ipcRenderer.send('notify', { title, body }),
+  notify: (title, body, chatId) => ipcRenderer.send('notify', { title, body, chatId }),
   setUnread: (count) => ipcRenderer.send('unread', count),
   getPlatform: () => ipcRenderer.invoke('get-platform'),
+  onOpenChat: (cb) => ipcRenderer.on('open-chat', (_, chatId) => cb(chatId)),
 });

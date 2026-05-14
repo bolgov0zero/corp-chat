@@ -98,7 +98,7 @@ function setup(server) {
         const { message_id } = data;
         const msg = db.prepare('SELECT * FROM messages WHERE id = ? AND deleted = 0').get(message_id);
         if (!msg || msg.sender_id !== user.id) return;
-        db.prepare('UPDATE messages SET deleted = 1, text = "" WHERE id = ?').run(message_id);
+        db.prepare("UPDATE messages SET deleted = 1, text = '' WHERE id = ?").run(message_id);
         broadcast(msg.chat_id, { type: 'message_deleted', message_id, chat_id: msg.chat_id });
       }
 
