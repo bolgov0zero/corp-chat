@@ -70,6 +70,7 @@ const tryAlter = (sql) => { try { db.exec(sql); } catch {} };
 tryAlter('ALTER TABLE messages ADD COLUMN edited_at INTEGER');
 tryAlter('ALTER TABLE messages ADD COLUMN deleted INTEGER DEFAULT 0');
 tryAlter('ALTER TABLE chat_members ADD COLUMN hidden_at INTEGER');
+tryAlter('ALTER TABLE messages ADD COLUMN reply_to_id INTEGER REFERENCES messages(id)');
 
 // Default admin
 const userCount = db.prepare('SELECT COUNT(*) as c FROM users').get();

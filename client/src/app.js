@@ -7,8 +7,9 @@ const S = {
   ws: null, wsRetry: 0,
   unread: {}, allUsers: [],
   settings: { theme: 'light', fontSize: 'medium' },
-  ctx: { messageId: null, canEdit: false, isMine: false },
+  ctx: { messageId: null, canEdit: false, isMine: false, replyText: '', replySenderName: '' },
   editingMessageId: null,
+  replyTo: null, // { id, text, senderName }
   egChatId: null, egRemovedIds: new Set(), egAddIds: new Set(),
   newGroupAvatarBase64: null,
   presence: {}, // userId -> 'online'|'away'|'offline'
@@ -389,6 +390,13 @@ async function openChat(chatId) {
     <div class="messages" id="messages"></div>
     <div class="chat-input-wrap" id="input-wrap">
       <div class="chat-input-area">
+        <div id="reply-bar" style="display:none" class="input-reply-bar">
+          <div class="reply-bar-content">
+            <div class="reply-bar-name" id="reply-bar-name"></div>
+            <div class="reply-bar-text" id="reply-bar-text"></div>
+          </div>
+          <button onclick="hideReplyBar()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:0 4px">✕</button>
+        </div>
         <div id="edit-bar" style="display:none" class="input-edit-bar">
           <span>Редактирование</span>
           <button onclick="cancelEdit()" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:18px">✕</button>
@@ -493,10 +501,16 @@ function renderMsg(m, isGroup, hideTime = false) {
   const bodyText = isDeleted ? 'Сообщение удалено' : esc(m.text) + (m.edited_at?` <span class="edited-tag">изм.</span>`:'');
   const statusIcon = mine && !isDeleted ? renderStatus(m.status) : '';
   const reactionsHtml = isDeleted ? '' : renderReactions(m.id);
+  const replyHtml = m.reply_to_id ? `
+    <div class="reply-quote" onclick="scrollToMsg(${m.reply_to_id})">
+      <div class="reply-quote-name">${esc(m.reply_sender_name || '')}</div>
+      <div class="reply-quote-text">${m.reply_deleted ? 'Сообщение удалено' : esc((m.reply_text||'').slice(0,80))}</div>
+    </div>` : '';
   return `<div class="msg-group ${mine?'mine':'theirs'}" data-msg-id="${m.id}" data-sender-id="${m.sender_id}" data-sent-at="${m.sent_at}">
     ${isGroup&&!mine?`<div class="msg-sender">${esc(m.sender_name)}</div>`:''}
     <div class="msg-row">
       <div class="bubble${isDeleted?' deleted':''}" oncontextmenu="${!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at},${mine})`:'event.preventDefault()'}">
+        ${replyHtml}
         <div class="bubble-text">${bodyText}</div>
       </div>
     </div>
@@ -581,7 +595,10 @@ function sendOrEdit() {
   const input = document.getElementById('msg-input');
   const text = input?.value.trim();
   if (!text||!S.ws||S.ws.readyState!==1) return;
-  S.ws.send(JSON.stringify({type:'message', chat_id:S.activeChatId, text}));
+  const payload = { type:'message', chat_id:S.activeChatId, text };
+  if (S.replyTo) payload.reply_to_id = S.replyTo.id;
+  S.ws.send(JSON.stringify(payload));
+  hideReplyBar();
   input.value=''; input.style.height=''; input.style.overflow='hidden';
 }
 
@@ -597,6 +614,7 @@ function cancelEdit() {
   S.editingMessageId = null;
   const bar = document.getElementById('edit-bar');
   if (bar) bar.style.display='none';
+  hideReplyBar();
   const input = document.getElementById('msg-input');
   if (input) { input.value=''; input.style.height='auto'; }
 }
@@ -608,11 +626,54 @@ function showCtxMenu(e, msgId, sentAt, isMine) {
   S.ctx.canEdit = isMine && (Date.now()/1000 - sentAt) < 120;
   S.ctx.isMine = isMine;
   const menu = document.getElementById('ctx-menu');
+  document.getElementById('ctx-reply-btn').style.display = '';
   document.getElementById('ctx-edit-btn').style.display = (isMine && S.ctx.canEdit) ? '' : 'none';
   document.getElementById('ctx-delete-btn').style.display = isMine ? '' : 'none';
   menu.style.left = Math.min(e.clientX, window.innerWidth-180)+'px';
-  menu.style.top = Math.min(e.clientY, window.innerHeight-140)+'px';
+  menu.style.top = Math.min(e.clientY, window.innerHeight-160)+'px';
   menu.classList.add('open');
+}
+
+function ctxReply() {
+  hideCtxMenu();
+  const msgId = S.ctx.messageId;
+  if (!msgId) return;
+  const bubbleEl = document.querySelector(`[data-msg-id="${msgId}"] .bubble-text`);
+  const text = bubbleEl?.innerText || '';
+  const msgEl = document.querySelector(`[data-msg-id="${msgId}"]`);
+  const senderIdAttr = parseInt(msgEl?.dataset.senderId || '0');
+  let senderName;
+  if (senderIdAttr === S.user.id) {
+    senderName = S.user.display_name;
+  } else {
+    const u = S.allUsers.find(u => u.id === senderIdAttr);
+    senderName = u?.display_name || '';
+  }
+  S.replyTo = { id: msgId, text: text.slice(0, 100), senderName };
+  showReplyBar();
+}
+
+function showReplyBar() {
+  const bar = document.getElementById('reply-bar');
+  if (!bar || !S.replyTo) return;
+  document.getElementById('reply-bar-name').textContent = S.replyTo.senderName;
+  document.getElementById('reply-bar-text').textContent = S.replyTo.text;
+  bar.style.display = '';
+  document.getElementById('msg-input')?.focus();
+}
+
+function hideReplyBar() {
+  S.replyTo = null;
+  const bar = document.getElementById('reply-bar');
+  if (bar) bar.style.display = 'none';
+}
+
+function scrollToMsg(msgId) {
+  const el = document.querySelector(`[data-msg-id="${msgId}"]`);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.classList.add('msg-highlight');
+  setTimeout(() => el.classList.remove('msg-highlight'), 1500);
 }
 function hideCtxMenu() { document.getElementById('ctx-menu').classList.remove('open'); }
 

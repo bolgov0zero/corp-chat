@@ -40,8 +40,13 @@ function broadcastStatus(userId, status) {
 function getMessageWithStatus(msgId, viewerId) {
   const msg = db.prepare(`
     SELECT m.id, m.chat_id, m.text, m.sent_at, m.edited_at, m.deleted,
-      u.id as sender_id, u.display_name as sender_name
-    FROM messages m JOIN users u ON u.id = m.sender_id WHERE m.id = ?
+      u.id as sender_id, u.display_name as sender_name,
+      m.reply_to_id,
+      rm.text as reply_text, ru.display_name as reply_sender_name
+    FROM messages m JOIN users u ON u.id = m.sender_id
+    LEFT JOIN messages rm ON rm.id = m.reply_to_id
+    LEFT JOIN users ru ON ru.id = rm.sender_id
+    WHERE m.id = ?
   `).get(msgId);
   if (!msg) return null;
 
@@ -69,7 +74,7 @@ function setup(server) {
       let data; try { data = JSON.parse(raw); } catch { return; }
 
       if (data.type === 'message') {
-        const { chat_id, text } = data;
+        const { chat_id, text, reply_to_id } = data;
         if (!chat_id || !text?.trim()) return;
         if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chat_id, user.id)) return;
 
@@ -80,7 +85,7 @@ function setup(server) {
           hidden.forEach(({ user_id }) => sendTo(user_id, { type: 'reload_chats' }));
         }
 
-        const result = db.prepare('INSERT INTO messages (chat_id, sender_id, text) VALUES (?, ?, ?)').run(chat_id, user.id, text.trim());
+        const result = db.prepare('INSERT INTO messages (chat_id, sender_id, text, reply_to_id) VALUES (?, ?, ?, ?)').run(chat_id, user.id, text.trim(), reply_to_id || null);
         const msg = getMessageWithStatus(result.lastInsertRowid, user.id);
         broadcast(chat_id, { type: 'message', message: msg });
       }
