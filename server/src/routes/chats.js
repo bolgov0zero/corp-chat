@@ -93,10 +93,10 @@ router.post('/:id/members', authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
-// Remove member from group
+// Remove member from group or room
 router.delete('/:id/members/:userId', authMiddleware, (req, res) => {
   const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(req.params.id);
-  if (!chat || chat.type !== 'group') return res.status(404).json({ error: 'Not found' });
+  if (!chat || (chat.type !== 'group' && chat.type !== 'room')) return res.status(404).json({ error: 'Not found' });
   const isMember = db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(req.params.id, req.user.id);
   const isAdmin = req.user.is_admin;
   if (!isMember && !isAdmin) return res.status(403).json({ error: 'Forbidden' });

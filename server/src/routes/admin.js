@@ -28,13 +28,18 @@ router.post('/rooms', (req, res) => {
   res.json({ id: chatId });
 });
 
-// Add member to chat/room — notify via WS
-router.post('/chats/:id/members', authMiddleware, adminMiddleware, (req, res) => {
+// Add member to any chat/room — notify via WS
+router.post('/chats/:id/members', (req, res) => {
   const { user_id } = req.body;
-  try {
-    db.prepare('INSERT OR IGNORE INTO chat_members (chat_id, user_id) VALUES (?, ?)').run(req.params.id, user_id);
-    sendTo(user_id, { type: 'reload_chats' });
-  } catch {}
+  if (!user_id) return res.status(400).json({ error: 'Missing user_id' });
+  db.prepare('INSERT OR IGNORE INTO chat_members (chat_id, user_id) VALUES (?, ?)').run(req.params.id, Number(user_id));
+  sendTo(Number(user_id), { type: 'reload_chats' });
+  res.json({ ok: true });
+});
+
+// Remove member from any chat/room
+router.delete('/chats/:id/members/:userId', (req, res) => {
+  db.prepare('DELETE FROM chat_members WHERE chat_id = ? AND user_id = ?').run(req.params.id, req.params.userId);
   res.json({ ok: true });
 });
 

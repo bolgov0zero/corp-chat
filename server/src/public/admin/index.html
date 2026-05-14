@@ -1,121 +1,198 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Corp Chat — Admin</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--primary:#2563eb;--primary-dark:#1d4ed8;--danger:#dc2626;--danger-dark:#b91c1c;--success:#16a34a;--sidebar-bg:#0f172a;--sidebar-hover:#1e293b;--sidebar-active:#2563eb;--bg:#f8fafc;--card:#fff;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--radius:10px}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;overflow:hidden}
-/* LOGIN */
-#login{display:flex;align-items:center;justify-content:center;width:100%;background:linear-gradient(135deg,#0f172a,#1e3a5f)}
-.login-card{background:#fff;border-radius:16px;padding:48px 40px;width:380px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
-.login-logo{width:56px;height:56px;background:var(--primary);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:28px}
-.login-card h1{text-align:center;font-size:22px;font-weight:700;margin-bottom:6px}
-.login-card p{text-align:center;color:var(--muted);font-size:13px;margin-bottom:28px}
-.form-group{margin-bottom:16px}
-.form-group label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
-.form-group input,.form-group select{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;outline:none;transition:border-color .2s;background:#fff}
-.form-group input:focus,.form-group select:focus{border-color:var(--primary)}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap}
+:root{
+  --primary:#3b82f6;--primary-dark:#2563eb;--primary-light:#eff6ff;
+  --danger:#ef4444;--danger-dark:#dc2626;--danger-light:#fef2f2;
+  --success:#22c55e;--success-light:#f0fdf4;
+  --warn:#f59e0b;
+  --sidebar:#0f172a;--sidebar-border:#1e293b;--sidebar-item:#94a3b8;--sidebar-active:#60a5fa;
+  --bg:#f1f5f9;--card:#ffffff;--border:#e2e8f0;
+  --text:#1e293b;--text-sm:#334155;--muted:#64748b;--muted-light:#94a3b8;
+  --radius:10px;--shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05);
+  --shadow-md:0 4px 16px rgba(0,0,0,.1),0 2px 6px rgba(0,0,0,.06);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;overflow:hidden;font-size:14px;-webkit-font-smoothing:antialiased}
+
+/* ── LOGIN ── */
+#login{display:flex;align-items:center;justify-content:center;width:100%;background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%)}
+.login-card{background:#fff;border-radius:16px;padding:44px 40px;width:380px;box-shadow:0 24px 64px rgba(0,0,0,.3)}
+.login-brand{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:28px}
+.login-icon{width:48px;height:48px;background:var(--primary);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.login-icon svg{color:#fff}
+.login-brand-text{text-align:left}
+.login-brand-name{font-size:18px;font-weight:800;color:var(--text)}
+.login-brand-sub{font-size:12px;color:var(--muted)}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
+.form-group input,.form-group select{width:100%;padding:9px 13px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;outline:none;transition:border-color .15s;background:#fff;color:var(--text)}
+.form-group input:focus,.form-group select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;font-family:inherit}
+.btn:active{transform:translateY(1px)}
 .btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dark)}
 .btn-danger{background:var(--danger);color:#fff}.btn-danger:hover{background:var(--danger-dark)}
-.btn-ghost{background:none;color:var(--muted);border:1.5px solid var(--border)}.btn-ghost:hover{background:var(--bg)}
+.btn-ghost{background:transparent;color:var(--text-sm);border:1.5px solid var(--border)}.btn-ghost:hover{background:var(--bg);border-color:#cbd5e1}
 .btn-success{background:var(--success);color:#fff}
-.btn-sm{padding:6px 12px;font-size:13px}
+.btn-sm{padding:5px 11px;font-size:12px;border-radius:7px}
+.btn-xs{padding:3px 9px;font-size:11px;border-radius:6px}
 .btn-full{width:100%;justify-content:center}
-.err{color:var(--danger);font-size:13px;margin-top:8px}
-/* LAYOUT */
+.btn-icon{padding:7px;border-radius:7px}
+.err{color:var(--danger);font-size:12px;margin-top:6px}
+
+/* ── LAYOUT ── */
 #app{display:none;width:100%;height:100vh}
-.sidebar{width:240px;min-width:240px;background:var(--sidebar-bg);display:flex;flex-direction:column;height:100vh}
-.sidebar-logo{padding:20px 20px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #1e293b}
-.sidebar-logo .icon{width:36px;height:36px;background:var(--primary);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.sidebar-logo .name{color:#f1f5f9;font-weight:700;font-size:15px}
-.sidebar-logo .sub{color:#64748b;font-size:11px}
-nav{flex:1;padding:12px 0;overflow-y:auto}
-.nav-section{padding:8px 16px 4px;font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.8px}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;color:#94a3b8;font-size:13px;font-weight:500;transition:all .15s;border-left:3px solid transparent}
-.nav-item:hover{background:var(--sidebar-hover);color:#f1f5f9}
-.nav-item.active{background:rgba(37,99,235,.15);color:#60a5fa;border-left-color:#2563eb}
-.nav-item svg{flex-shrink:0;opacity:.7}
+.sidebar{width:232px;min-width:232px;background:var(--sidebar);display:flex;flex-direction:column;height:100vh;border-right:1px solid var(--sidebar-border)}
+.sidebar-logo{padding:18px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--sidebar-border)}
+.sidebar-logo .icon{width:34px;height:34px;background:var(--primary);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sidebar-logo .name{color:#f1f5f9;font-weight:700;font-size:14px;line-height:1.2}
+.sidebar-logo .sub{color:#475569;font-size:11px}
+nav{flex:1;padding:10px 8px;overflow-y:auto}
+.nav-section{padding:10px 8px 4px;font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.8px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;cursor:pointer;color:var(--sidebar-item);font-size:13px;font-weight:500;transition:all .12s;border-radius:8px;margin-bottom:1px}
+.nav-item:hover{background:#1e293b;color:#e2e8f0}
+.nav-item.active{background:rgba(59,130,246,.15);color:var(--sidebar-active);font-weight:600}
+.nav-item svg{flex-shrink:0;opacity:.8}
 .nav-item.active svg{opacity:1}
-.sidebar-footer{padding:16px;border-top:1px solid #1e293b}
-.sidebar-user{display:flex;align-items:center;gap:10px}
-.sidebar-user .av{width:32px;height:32px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
-.sidebar-user .info{flex:1;overflow:hidden}
+.sidebar-footer{padding:12px;border-top:1px solid var(--sidebar-border)}
+.sidebar-user{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px}
+.sidebar-user .av{width:30px;height:30px;border-radius:8px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.sidebar-user .info{flex:1;overflow:hidden;min-width:0}
 .sidebar-user .uname{color:#f1f5f9;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sidebar-user .role{color:#64748b;font-size:11px}
+.sidebar-user .role{color:#475569;font-size:11px}
+.sidebar-user .logout-btn{background:none;border:none;color:#475569;cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;flex-shrink:0;transition:color .12s}
+.sidebar-user .logout-btn:hover{color:#94a3b8}
 .content{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.topbar{background:#fff;border-bottom:1px solid var(--border);padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.topbar h2{font-size:18px;font-weight:700}
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:var(--shadow)}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.topbar h2{font-size:17px;font-weight:700;color:var(--text)}
 .topbar .actions{display:flex;gap:8px;align-items:center}
-.page-body{flex:1;overflow-y:auto;padding:24px 28px}
-/* STATS */
-.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:28px}
-.stat-card{background:var(--card);border-radius:var(--radius);padding:20px 24px;border:1px solid var(--border);display:flex;align-items:center;gap:16px}
-.stat-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
-.stat-icon.blue{background:#dbeafe}.stat-icon.green{background:#dcfce7}.stat-icon.purple{background:#f3e8ff}.stat-icon.orange{background:#ffedd5}
-.stat-val{font-size:28px;font-weight:800;line-height:1}
-.stat-lbl{font-size:12px;color:var(--muted);margin-top:3px}
-/* TABLE */
-.card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden}
-.card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.card-header h3{font-size:15px;font-weight:700}
+.page-body{flex:1;overflow-y:auto;padding:24px}
+
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
+.stat-card{background:var(--card);border-radius:var(--radius);padding:18px 20px;border:1px solid var(--border);display:flex;align-items:center;gap:14px;box-shadow:var(--shadow);transition:box-shadow .15s}
+.stat-card:hover{box-shadow:var(--shadow-md)}
+.stat-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ic-blue{background:#dbeafe;color:#2563eb}
+.ic-green{background:#dcfce7;color:#16a34a}
+.ic-purple{background:#ede9fe;color:#7c3aed}
+.ic-orange{background:#ffedd5;color:#c2410c}
+.ic-teal{background:#ccfbf1;color:#0d9488}
+.stat-val{font-size:26px;font-weight:800;line-height:1;color:var(--text)}
+.stat-lbl{font-size:12px;color:var(--muted);margin-top:3px;font-weight:500}
+
+/* ── CARD / TABLE ── */
+.card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow)}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.card-header h3{font-size:14px;font-weight:700;color:var(--text)}
+.card-header-left{display:flex;align-items:center;gap:12px}
 table{width:100%;border-collapse:collapse}
-th{background:#f8fafc;text-align:left;padding:10px 16px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
-td{padding:12px 16px;font-size:13px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+th{background:#f8fafc;text-align:left;padding:9px 16px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+td{padding:11px 16px;font-size:13px;border-bottom:1px solid #f1f5f9;vertical-align:middle;color:var(--text-sm)}
 tr:last-child td{border-bottom:none}
 tbody tr:hover td{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.3px}
+.td-id{font-weight:600;color:var(--muted-light);font-size:12px;width:50px}
+.td-actions{display:flex;gap:5px;align-items:center}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.2px}
 .badge-blue{background:#dbeafe;color:#1d4ed8}
 .badge-green{background:#dcfce7;color:#15803d}
 .badge-gray{background:#f1f5f9;color:#475569}
 .badge-red{background:#fee2e2;color:#b91c1c}
-.td-actions{display:flex;gap:6px;align-items:center}
-/* MODAL */
-.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.badge-purple{background:#ede9fe;color:#6d28d9}
+
+/* ── AVATAR ── */
+.av-table{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;color:#fff}
+.user-cell{display:flex;align-items:center;gap:10px}
+.user-cell-info .name{font-weight:600;font-size:13px;color:var(--text)}
+.user-cell-info .uname{font-size:11px;color:var(--muted)}
+
+/* ── FILTER PILLS ── */
+.filter-pills{display:flex;gap:6px;margin-bottom:16px}
+.pill{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--card);color:var(--muted);transition:all .12s}
+.pill:hover{border-color:#94a3b8;color:var(--text-sm)}
+.pill.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+/* ── SEARCH ── */
+.search-box{display:flex;align-items:center;gap:7px;background:#f8fafc;border:1.5px solid var(--border);border-radius:8px;padding:5px 11px;min-width:200px}
+.search-box svg{color:var(--muted-light);flex-shrink:0}
+.search-box input{border:none;background:none;outline:none;font-size:13px;width:100%;color:var(--text)}
+
+/* ── EMPTY ── */
+.empty-state{text-align:center;padding:48px 24px;color:var(--muted)}
+.empty-state svg{margin:0 auto 12px;display:block;opacity:.3}
+.empty-state p{font-size:14px;font-weight:500}
+.empty-state small{font-size:12px;margin-top:4px;display:block}
+
+/* ── MODAL ── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
 .modal-bg.open{display:flex}
-.modal{background:#fff;border-radius:14px;width:460px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2)}
-.modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.modal-header h3{font-size:16px;font-weight:700}
-.modal-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:8px}
+.modal{background:#fff;border-radius:14px;width:480px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.2);overflow:hidden}
+.modal-sm{width:380px}
+.modal-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.modal-header h3{font-size:15px;font-weight:700}
+.modal-close{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:7px;transition:background .12s;line-height:1}
 .modal-close:hover{background:var(--bg)}
-.modal-body{padding:20px 24px;overflow-y:auto;flex:1}
-.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0}
-.members-list{display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto}
-.member-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border)}
-.member-row .av{width:32px;height:32px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
-.member-row .info{flex:1}
-.member-row .mname{font-size:13px;font-weight:600}
+.modal-body{padding:20px 22px;overflow-y:auto;flex:1}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0}
+
+/* ── MEMBERS MODAL ── */
+.members-section-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+.members-list{display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto}
+.member-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fafafa}
+.member-row .av{width:30px;height:30px;border-radius:7px;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.member-row .info{flex:1;min-width:0}
+.member-row .mname{font-size:13px;font-weight:600;color:var(--text)}
 .member-row .muname{font-size:11px;color:var(--muted)}
-.checkbox-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;border:1.5px solid transparent}
-.checkbox-row:hover{background:var(--bg)}
-.checkbox-row.selected{border-color:var(--primary);background:#eff6ff}
-.checkbox-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--primary);cursor:pointer}
-/* TOAST */
-#toast-container{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px}
-.toast{background:#1e293b;color:#f1f5f9;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.25);animation:slideIn .3s ease;max-width:320px}
-.toast.success{background:#15803d}
-.toast.error{background:#b91c1c}
-@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
-/* SEARCH */
-.search-bar{display:flex;align-items:center;gap:8px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 12px;width:240px}
-.search-bar input{border:none;background:none;outline:none;font-size:13px;width:100%}
-/* empty */
-.empty-row td{text-align:center;color:var(--muted);padding:32px;font-size:13px}
+.add-members-section{margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}
+.checkbox-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer;border:1.5px solid transparent;transition:all .1s}
+.checkbox-row:hover{background:#f8fafc;border-color:var(--border)}
+.checkbox-row.selected{border-color:var(--primary);background:var(--primary-light)}
+.checkbox-row input[type=checkbox]{width:15px;height:15px;accent-color:var(--primary);cursor:pointer;flex-shrink:0}
+.checkbox-row .av{width:28px;height:28px;border-radius:7px;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.checkbox-row .cname{font-size:13px;font-weight:600;color:var(--text)}
+.checkbox-row .cuname{font-size:11px;color:var(--muted)}
+
+/* ── TOAST ── */
+#toast-container{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:6px}
+.toast{background:#1e293b;color:#f1f5f9;padding:11px 16px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:var(--shadow-md);animation:toastIn .25s ease;display:flex;align-items:center;gap:8px;max-width:300px}
+.toast.success{background:#15803d}.toast.error{background:#b91c1c}
+@keyframes toastIn{from{transform:translateY(8px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* ── DASHBOARD QUICK ACTIONS ── */
+.quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:8px}
+.quick-card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px 20px;cursor:pointer;transition:all .15s;box-shadow:var(--shadow)}
+.quick-card:hover{border-color:var(--primary);box-shadow:var(--shadow-md)}
+.quick-card-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.quick-card-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px}
+.quick-card-sub{font-size:12px;color:var(--muted)}
+
+/* ── ROOM CREATE MODAL ── */
+#room-name-input{width:100%;padding:9px 13px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;outline:none;transition:border-color .15s}
+#room-name-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.1)}
 </style>
 </head>
 <body>
 
 <div id="login">
   <div class="login-card">
-    <div class="login-logo">💬</div>
-    <h1>Corp Chat</h1>
-    <p>Панель администратора</p>
+    <div class="login-brand">
+      <div class="login-icon">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <div class="login-brand-text">
+        <div class="login-brand-name">Corp Chat</div>
+        <div class="login-brand-sub">Панель администратора</div>
+      </div>
+    </div>
     <div class="form-group"><label>Логин</label><input id="l-user" value="admin" autocomplete="username"></div>
     <div class="form-group"><label>Пароль</label><input id="l-pass" type="password" autocomplete="current-password"></div>
-    <button class="btn btn-primary btn-full" onclick="doLogin()">Войти</button>
+    <button class="btn btn-primary btn-full" style="margin-top:4px" onclick="doLogin()">Войти</button>
     <div class="err" id="l-err"></div>
   </div>
 </div>
@@ -123,27 +200,29 @@ tbody tr:hover td{background:#f8fafc}
 <div id="app">
   <div class="sidebar">
     <div class="sidebar-logo">
-      <div class="icon">💬</div>
+      <div class="icon">
+        <svg width="18" height="18" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </div>
       <div><div class="name">Corp Chat</div><div class="sub">Admin Panel</div></div>
     </div>
     <nav>
       <div class="nav-section">Обзор</div>
       <div class="nav-item active" onclick="nav('dashboard')" data-page="dashboard">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
         Главная
       </div>
       <div class="nav-section">Управление</div>
       <div class="nav-item" onclick="nav('users')" data-page="users">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg>
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg>
         Пользователи
       </div>
       <div class="nav-item" onclick="nav('rooms')" data-page="rooms">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         Комнаты
       </div>
       <div class="nav-item" onclick="nav('chats')" data-page="chats">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        Личные чаты и группы
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Чаты и группы
       </div>
     </nav>
     <div class="sidebar-footer">
@@ -153,7 +232,7 @@ tbody tr:hover td{background:#f8fafc}
           <div class="uname" id="nav-name">Admin</div>
           <div class="role">Администратор</div>
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="logout()" title="Выйти">
+        <button class="logout-btn" onclick="logout()" title="Выйти">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         </button>
       </div>
@@ -162,7 +241,9 @@ tbody tr:hover td{background:#f8fafc}
 
   <div class="content">
     <div class="topbar">
-      <h2 id="page-title">Главная</h2>
+      <div class="topbar-left">
+        <h2 id="page-title">Главная</h2>
+      </div>
       <div class="actions" id="topbar-actions"></div>
     </div>
     <div class="page-body" id="page-body"></div>
@@ -171,18 +252,21 @@ tbody tr:hover td{background:#f8fafc}
 
 <!-- User modal -->
 <div class="modal-bg" id="modal-user">
-  <div class="modal">
+  <div class="modal modal-sm">
     <div class="modal-header">
       <h3 id="user-modal-title">Создать пользователя</h3>
       <button class="modal-close" onclick="closeModal('modal-user')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-group"><label>Логин</label><input id="u-username" placeholder="username"></div>
+      <div class="form-group"><label>Логин</label><input id="u-username" placeholder="username" autocomplete="off"></div>
       <div class="form-group"><label>Отображаемое имя</label><input id="u-display" placeholder="Иван Иванов"></div>
-      <div class="form-group"><label>Пароль <span id="u-pass-hint" style="color:var(--muted);font-weight:400">(оставьте пустым, чтобы не менять)</span></label><input id="u-password" type="password" placeholder="••••••••"></div>
       <div class="form-group">
-        <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:14px;cursor:pointer">
-          <input type="checkbox" id="u-admin" style="width:16px;height:16px;accent-color:var(--primary)">
+        <label>Пароль <span id="u-pass-hint" style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">(оставьте пустым, чтобы не менять)</span></label>
+        <input id="u-password" type="password" placeholder="••••••••" autocomplete="new-password">
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;font-weight:500;letter-spacing:0;cursor:pointer">
+          <input type="checkbox" id="u-admin" style="width:15px;height:15px;accent-color:var(--primary)">
           Права администратора
         </label>
       </div>
@@ -197,18 +281,37 @@ tbody tr:hover td{background:#f8fafc}
 
 <!-- Change password modal -->
 <div class="modal-bg" id="modal-password">
-  <div class="modal">
+  <div class="modal modal-sm">
     <div class="modal-header">
       <h3>Сменить пароль</h3>
       <button class="modal-close" onclick="closeModal('modal-password')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-group"><label>Новый пароль</label><input id="cp-pass" type="password" placeholder="••••••••"></div>
+      <div class="form-group"><label>Новый пароль</label><input id="cp-pass" type="password" placeholder="Минимум 6 символов" autocomplete="new-password"></div>
       <div class="err" id="cp-err"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-password')">Отмена</button>
       <button class="btn btn-primary" onclick="savePassword()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create room modal -->
+<div class="modal-bg" id="modal-create-room">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Создать комнату</h3>
+      <button class="modal-close" onclick="closeModal('modal-create-room')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:16px"><label>Название комнаты</label><input id="room-name-input" placeholder="Например: Общий, Разработка…"></div>
+      <div class="members-section-title">Участники</div>
+      <div class="members-list" id="room-create-users"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-create-room')">Отмена</button>
+      <button class="btn btn-primary" onclick="submitCreateRoom()">Создать</button>
     </div>
   </div>
 </div>
@@ -221,22 +324,22 @@ tbody tr:hover td{background:#f8fafc}
       <button class="modal-close" onclick="closeModal('modal-members')">✕</button>
     </div>
     <div class="modal-body">
+      <div class="members-section-title">Текущие участники</div>
       <div class="members-list" id="members-list"></div>
-      <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px">
-        <p style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Добавить участников</p>
+      <div class="add-members-section" id="add-members-section">
+        <div class="members-section-title">Добавить участников</div>
         <div class="members-list" id="add-members-list"></div>
       </div>
     </div>
-    <div class="modal-footer">
+    <div class="modal-footer" id="members-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-members')">Закрыть</button>
-      <button class="btn btn-primary" onclick="addSelectedMembers()">Добавить выбранных</button>
     </div>
   </div>
 </div>
 
 <!-- Confirm modal -->
 <div class="modal-bg" id="modal-confirm">
-  <div class="modal" style="width:380px">
+  <div class="modal modal-sm">
     <div class="modal-header">
       <h3 id="confirm-title">Подтверждение</h3>
       <button class="modal-close" onclick="closeModal('modal-confirm')">✕</button>
@@ -254,129 +357,183 @@ tbody tr:hover td{background:#f8fafc}
 <div id="toast-container"></div>
 
 <script>
-let token = null, currentUser = null;
-let editingUserId = null, membersForChatId = null;
+let token = null, currentUser = null, currentPage = 'dashboard';
+let editingUserId = null, membersForChatId = null, membersForChatType = null;
+let changingPassId = null;
+let allUsers = [], allRooms = [], allChats = [], allUsersCache = [];
+let createRoomSelectedIds = new Set(), selectedAddMembers = new Set();
+let chatFilter = '';
 
 const api = async (method, path, body) => {
   const res = await fetch(path, { method, headers: {'Content-Type':'application/json', ...(token?{Authorization:'Bearer '+token}:{})}, body: body ? JSON.stringify(body) : undefined });
   return res.json();
 };
 
-function toast(msg, type='') {
-  const el = document.createElement('div');
-  el.className = 'toast' + (type ? ' '+type : '');
-  el.textContent = msg;
-  document.getElementById('toast-container').appendChild(el);
-  setTimeout(() => el.remove(), 3000);
+const AVcolors = ['#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f59e0b','#ef4444','#10b981','#6366f1'];
+function avColor(name) { let h=0; for(let c of (name||'')) h=(h*31+c.charCodeAt(0))&0xffff; return AVcolors[h%AVcolors.length]; }
+function initials(name) { return (name||'?').split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?'; }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(ts) { return ts ? new Date(ts*1000).toLocaleDateString('ru',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—'; }
+function avHtml(name, size=32, radius=8) {
+  const bg = avColor(name); const sz = `width:${size}px;height:${size}px;border-radius:${radius}px;font-size:${Math.round(size*0.38)}px`;
+  return `<div class="av-table" style="${sz};background:${bg}">${initials(name)}</div>`;
 }
 
-document.getElementById('l-pass').addEventListener('keydown', e => e.key === 'Enter' && doLogin());
+function toast(msg, type='') {
+  const el = document.createElement('div');
+  el.className = 'toast'+(type?' '+type:'');
+  const icon = type==='success'?'✓':type==='error'?'✕':'ℹ';
+  el.innerHTML = `<span style="font-size:14px">${icon}</span><span>${msg}</span>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+document.getElementById('l-pass').addEventListener('keydown', e => e.key==='Enter' && doLogin());
 
 function enterApp(user) {
   document.getElementById('nav-name').textContent = user.display_name;
-  document.getElementById('nav-av').textContent = initials(user.display_name);
+  const av = document.getElementById('nav-av');
+  av.textContent = initials(user.display_name);
+  av.style.background = avColor(user.display_name);
   document.getElementById('login').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   nav('dashboard');
 }
 
 async function doLogin() {
-  const data = await api('POST', '/api/auth/login', {username: document.getElementById('l-user').value, password: document.getElementById('l-pass').value});
+  document.getElementById('l-err').textContent = '';
+  const data = await api('POST','/api/auth/login',{username:document.getElementById('l-user').value,password:document.getElementById('l-pass').value});
   if (data.token) {
-    if (!data.user.is_admin) { document.getElementById('l-err').textContent = 'Нет прав администратора'; return; }
-    token = data.token; currentUser = data.user;
-    localStorage.setItem('admin_token', token);
-    localStorage.setItem('admin_user', JSON.stringify(currentUser));
+    if (!data.user.is_admin) { document.getElementById('l-err').textContent='Нет прав администратора'; return; }
+    token=data.token; currentUser=data.user;
+    localStorage.setItem('admin_token',token);
+    localStorage.setItem('admin_user',JSON.stringify(currentUser));
     enterApp(currentUser);
-  } else { document.getElementById('l-err').textContent = data.error || 'Ошибка входа'; }
+  } else { document.getElementById('l-err').textContent=data.error||'Ошибка входа'; }
 }
 
 function logout() {
-  token = null; currentUser = null;
+  token=null; currentUser=null;
   localStorage.removeItem('admin_token');
   localStorage.removeItem('admin_user');
   location.reload();
 }
 
-// Restore session from localStorage
 (async () => {
-  const saved = localStorage.getItem('admin_token');
-  const savedUser = localStorage.getItem('admin_user');
-  if (saved && savedUser) {
-    token = saved;
+  const saved=localStorage.getItem('admin_token');
+  if (saved) {
+    token=saved;
     try {
-      // Verify token is still valid
-      const me = await api('GET', '/api/auth/me');
-      if (me?.id && me.is_admin) {
-        currentUser = me;
-        localStorage.setItem('admin_user', JSON.stringify(me));
-        enterApp(me);
-        return;
-      }
+      const me=await api('GET','/api/auth/me');
+      if (me?.id && me.is_admin) { currentUser=me; enterApp(me); return; }
     } catch {}
     localStorage.removeItem('admin_token');
     localStorage.removeItem('admin_user');
-    token = null;
+    token=null;
   }
 })();
 
-const pages = { dashboard: renderDashboard, users: renderUsers, rooms: renderRooms, chats: renderChats };
-const pageTitles = { dashboard: 'Главная', users: 'Пользователи', rooms: 'Комнаты', chats: 'Личные чаты и группы' };
+const pageTitles = {dashboard:'Главная',users:'Пользователи',rooms:'Комнаты',chats:'Чаты и группы'};
+const pageRenders = {dashboard:renderDashboard,users:renderUsers,rooms:renderRooms,chats:renderChats};
 
 function nav(page) {
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.page === page));
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.page===page));
   document.getElementById('page-title').textContent = pageTitles[page];
-  pages[page]();
+  pageRenders[page]();
 }
 
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
 function confirm(title, text, onOk) {
-  document.getElementById('confirm-title').textContent = title;
-  document.getElementById('confirm-text').textContent = text;
-  document.getElementById('confirm-ok').onclick = () => { closeModal('modal-confirm'); onOk(); };
+  document.getElementById('confirm-title').textContent=title;
+  document.getElementById('confirm-text').textContent=text;
+  document.getElementById('confirm-ok').onclick=()=>{ closeModal('modal-confirm'); onOk(); };
   openModal('modal-confirm');
 }
 
-// DASHBOARD
+// ── DASHBOARD ──
 async function renderDashboard() {
-  document.getElementById('topbar-actions').innerHTML = '';
-  const s = await api('GET', '/api/admin/stats');
-  document.getElementById('page-body').innerHTML = `
+  document.getElementById('topbar-actions').innerHTML='';
+  const s = await api('GET','/api/admin/stats');
+  document.getElementById('page-body').innerHTML=`
     <div class="stats-grid">
-      <div class="stat-card"><div class="stat-icon blue">👤</div><div><div class="stat-val">${s.users}</div><div class="stat-lbl">Пользователей</div></div></div>
-      <div class="stat-card"><div class="stat-icon green">🏠</div><div><div class="stat-val">${s.rooms}</div><div class="stat-lbl">Комнат</div></div></div>
-      <div class="stat-card"><div class="stat-icon purple">👥</div><div><div class="stat-val">${s.groups}</div><div class="stat-lbl">Групп</div></div></div>
-      <div class="stat-card"><div class="stat-icon blue">💬</div><div><div class="stat-val">${s.chats}</div><div class="stat-lbl">Личных чатов</div></div></div>
-      <div class="stat-card"><div class="stat-icon orange">✉️</div><div><div class="stat-val">${s.messages}</div><div class="stat-lbl">Сообщений</div></div></div>
+      <div class="stat-card">
+        <div class="stat-icon ic-blue"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+        <div><div class="stat-val">${s.users}</div><div class="stat-lbl">Пользователей</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon ic-teal"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+        <div><div class="stat-val">${s.rooms}</div><div class="stat-lbl">Комнат</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon ic-purple"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <div><div class="stat-val">${s.groups}</div><div class="stat-lbl">Групп</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon ic-blue"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+        <div><div class="stat-val">${s.chats}</div><div class="stat-lbl">Личных чатов</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon ic-orange"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+        <div><div class="stat-val">${s.messages}</div><div class="stat-lbl">Сообщений</div></div>
+      </div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">Быстрые действия</div>
+    <div class="quick-grid">
+      <div class="quick-card" onclick="nav('users')">
+        <div class="quick-card-icon ic-blue"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+        <div class="quick-card-title">Управление пользователями</div>
+        <div class="quick-card-sub">Создание, редактирование, удаление</div>
+      </div>
+      <div class="quick-card" onclick="nav('rooms')">
+        <div class="quick-card-icon ic-teal"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+        <div class="quick-card-title">Управление комнатами</div>
+        <div class="quick-card-sub">Создание, участники, история</div>
+      </div>
+      <div class="quick-card" onclick="nav('chats')">
+        <div class="quick-card-icon ic-purple"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+        <div class="quick-card-title">Чаты и группы</div>
+        <div class="quick-card-sub">Мониторинг и модерация</div>
+      </div>
     </div>`;
 }
 
-// ROOMS
-let allRooms = [], allUsersCache = [];
+// ── ROOMS ──
 async function renderRooms() {
-  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary btn-sm" onclick="openCreateRoom()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Создать комнату</button>`;
+  document.getElementById('topbar-actions').innerHTML=`
+    <button class="btn btn-primary btn-sm" onclick="openCreateRoom()">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Создать комнату
+    </button>`;
   [allRooms, allUsersCache] = await Promise.all([api('GET','/api/admin/chats'), api('GET','/api/admin/users')]);
-  allRooms = allRooms.filter(c => c.type === 'room');
+  allRooms = allRooms.filter(c => c.type==='room');
   renderRoomsTable();
 }
 
 function renderRoomsTable() {
-  const rows = allRooms.length ? allRooms.map(r => `
+  const body = document.getElementById('page-body');
+  if (!allRooms.length) {
+    body.innerHTML=`<div class="card"><div class="empty-state">
+      <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <p>Комнат нет</p><small>Создайте первую комнату</small></div></div>`;
+    return;
+  }
+  const rows = allRooms.map(r=>`
     <tr>
-      <td style="font-weight:600;color:var(--muted);font-size:12px">#${r.id}</td>
-      <td style="font-weight:700">${esc(r.name||'—')}</td>
+      <td class="td-id">#${r.id}</td>
+      <td><div class="user-cell">${avHtml(r.name,30,7)}<div class="user-cell-info"><div class="name">${esc(r.name||'—')}</div></div></div></td>
       <td>${r.member_count}</td>
       <td>${r.message_count}</td>
       <td style="color:var(--muted)">${fmtDate(r.created_at)}</td>
       <td><div class="td-actions">
         <button class="btn btn-ghost btn-sm" onclick="openRoomMembers(${r.id},'${esc(r.name||'')}')">Участники</button>
-        <button class="btn btn-ghost btn-sm" onclick="clearHistory(${r.id})">Очистить историю</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearHistory(${r.id})">Очистить</button>
         <button class="btn btn-danger btn-sm" onclick="deleteRoom(${r.id})">Удалить</button>
       </div></td>
-    </tr>`).join('') : '<tr class="empty-row"><td colspan="6">Комнат нет. Создайте первую!</td></tr>';
-  document.getElementById('page-body').innerHTML = `
+    </tr>`).join('');
+  body.innerHTML=`
     <div class="card">
       <div class="card-header"><h3>Комнаты (${allRooms.length})</h3></div>
       <table><thead><tr><th>ID</th><th>Название</th><th>Участников</th><th>Сообщений</th><th>Создана</th><th>Действия</th></tr></thead>
@@ -384,320 +541,293 @@ function renderRoomsTable() {
     </div>`;
 }
 
-// Create room modal state
-let createRoomSelectedIds = new Set();
 function openCreateRoom() {
   createRoomSelectedIds = new Set();
-  const usersHtml = allUsersCache.map(u => `
-    <div class="checkbox-row" onclick="toggleRoomUser(this,${u.id})">
-      <input type="checkbox" onclick="event.stopPropagation();toggleRoomUser(this.parentElement,${u.id})">
-      <div class="av" style="width:28px;height:28px;font-size:11px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">${initials(u.display_name)}</div>
-      <div><div style="font-size:13px;font-weight:600">${esc(u.display_name)}</div><div style="font-size:11px;color:var(--muted)">@${esc(u.username)}</div></div>
-    </div>`).join('');
-  document.getElementById('members-title').textContent = 'Создать комнату';
-  document.getElementById('members-list').innerHTML = `
-    <div class="form-group" style="margin-bottom:12px"><label>Название комнаты</label><input id="room-name-input" placeholder="Например: Общий, Разработка…"></div>`;
-  document.getElementById('add-members-list').innerHTML = usersHtml;
-  document.getElementById('confirm-ok').style.display = 'none';
-  // Reuse members modal with custom footer
-  document.querySelector('#modal-members .modal-footer').innerHTML = `
-    <button class="btn btn-ghost" onclick="closeModal('modal-members')">Отмена</button>
-    <button class="btn btn-primary" onclick="submitCreateRoom()">Создать комнату</button>`;
-  openModal('modal-members');
+  document.getElementById('room-name-input').value = '';
+  document.getElementById('room-create-users').innerHTML = allUsersCache.map(u=>`
+    <div class="checkbox-row" id="cr-row-${u.id}" onclick="toggleRoomUser(${u.id})">
+      <input type="checkbox" id="cr-chk-${u.id}" onclick="event.stopPropagation();toggleRoomUser(${u.id})">
+      ${avHtml(u.display_name,28,7)}
+      <div><div class="cname">${esc(u.display_name)}</div><div class="cuname">@${esc(u.username)}</div></div>
+    </div>`).join('') || '<p style="color:var(--muted);font-size:13px">Нет пользователей</p>';
+  openModal('modal-create-room');
+  setTimeout(()=>document.getElementById('room-name-input').focus(), 50);
 }
 
-function toggleRoomUser(el, id) {
-  el.classList.toggle('selected');
-  el.querySelector('input').checked = el.classList.contains('selected');
-  createRoomSelectedIds.has(id) ? createRoomSelectedIds.delete(id) : createRoomSelectedIds.add(id);
+function toggleRoomUser(id) {
+  const row = document.getElementById('cr-row-'+id);
+  const chk = document.getElementById('cr-chk-'+id);
+  if (createRoomSelectedIds.has(id)) { createRoomSelectedIds.delete(id); row.classList.remove('selected'); chk.checked=false; }
+  else { createRoomSelectedIds.add(id); row.classList.add('selected'); chk.checked=true; }
 }
 
 async function submitCreateRoom() {
-  const name = document.getElementById('room-name-input')?.value.trim();
-  if (!name) { toast('Введите название комнаты', 'error'); return; }
-  const data = await api('POST', '/api/admin/rooms', { name, member_ids: [...createRoomSelectedIds] });
-  if (data?.id) { closeModal('modal-members'); toast('Комната создана', 'success'); renderRooms(); }
-  else toast(data?.error || 'Ошибка', 'error');
+  const name = document.getElementById('room-name-input').value.trim();
+  if (!name) { toast('Введите название комнаты','error'); return; }
+  const data = await api('POST','/api/admin/rooms',{name,member_ids:[...createRoomSelectedIds]});
+  if (data?.id) { closeModal('modal-create-room'); toast('Комната создана','success'); renderRooms(); }
+  else toast(data?.error||'Ошибка','error');
 }
 
 async function openRoomMembers(chatId, name) {
-  membersForChatId = chatId;
+  membersForChatId = chatId; membersForChatType = 'room';
   selectedAddMembers = new Set();
-  document.getElementById('members-title').textContent = `Участники: ${name}`;
-  const [members, allU] = await Promise.all([api('GET', '/api/admin/chats/' + chatId + '/members'), api('GET', '/api/admin/users')]);
-  const memberIds = new Set(members.map(m => m.id));
-  document.getElementById('members-list').innerHTML = members.map(m => `
-    <div class="member-row">
-      <div class="av">${initials(m.display_name)}</div>
-      <div class="info"><div class="mname">${esc(m.display_name)}</div><div class="muname">@${esc(m.username)}</div></div>
-      <button class="btn btn-danger btn-sm" onclick="removeMember(${chatId},${m.id},this)">Удалить</button>
-    </div>`).join('') || '<p style="color:var(--muted);font-size:13px">Нет участников</p>';
-  document.getElementById('add-members-list').innerHTML = allU.filter(u => !memberIds.has(u.id)).map(u => `
-    <div class="checkbox-row" onclick="toggleAddMember(this,${u.id})">
-      <input type="checkbox" onclick="event.stopPropagation();toggleAddMember(this.parentElement,${u.id})">
-      <div class="av" style="width:28px;height:28px;font-size:11px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">${initials(u.display_name)}</div>
-      <div><div style="font-size:13px;font-weight:600">${esc(u.display_name)}</div><div style="font-size:11px;color:var(--muted)">@${esc(u.username)}</div></div>
-    </div>`).join('') || '<p style="color:var(--muted);font-size:13px">Все пользователи уже в комнате</p>';
-  document.querySelector('#modal-members .modal-footer').innerHTML = `
+  document.getElementById('members-title').textContent = name;
+  document.getElementById('add-members-section').style.display = '';
+  document.getElementById('members-footer').innerHTML = `
     <button class="btn btn-ghost" onclick="closeModal('modal-members')">Закрыть</button>
     <button class="btn btn-primary" onclick="addSelectedMembers()">Добавить выбранных</button>`;
+  const [members, allU] = await Promise.all([api('GET','/api/admin/chats/'+chatId+'/members'), api('GET','/api/admin/users')]);
+  const memberIds = new Set(members.map(m=>m.id));
+  document.getElementById('members-list').innerHTML = members.map(m=>`
+    <div class="member-row" id="mr-${m.id}">
+      ${avHtml(m.display_name,30,7)}
+      <div class="info"><div class="mname">${esc(m.display_name)}</div><div class="muname">@${esc(m.username)}</div></div>
+      <button class="btn btn-danger btn-xs" onclick="removeMember(${chatId},${m.id},this)">Удалить</button>
+    </div>`).join('') || '<p style="color:var(--muted);font-size:13px;padding:8px 0">Нет участников</p>';
+  document.getElementById('add-members-list').innerHTML = allU.filter(u=>!memberIds.has(u.id)).map(u=>`
+    <div class="checkbox-row" id="am-row-${u.id}" onclick="toggleAddMember(${u.id})">
+      <input type="checkbox" id="am-chk-${u.id}" onclick="event.stopPropagation();toggleAddMember(${u.id})">
+      ${avHtml(u.display_name,28,7)}
+      <div><div class="cname">${esc(u.display_name)}</div><div class="cuname">@${esc(u.username)}</div></div>
+    </div>`).join('') || '<p style="color:var(--muted);font-size:13px;padding:8px 0">Все пользователи уже в комнате</p>';
   openModal('modal-members');
 }
 
 function deleteRoom(id) {
-  confirm('Удалить комнату?', `Комната #${id} и все сообщения будут удалены безвозвратно.`, async () => {
-    await api('DELETE', '/api/chats/admin/' + id);
+  confirm('Удалить комнату?',`Комната #${id} и все сообщения будут удалены безвозвратно.`, async ()=>{
+    await api('DELETE','/api/chats/admin/'+id);
     toast('Комната удалена');
     renderRooms();
   });
 }
 
-// USERS
-let allUsers = [];
+// ── USERS ──
 async function renderUsers() {
-  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary btn-sm" onclick="openCreateUser()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Создать пользователя</button>`;
-  allUsers = await api('GET', '/api/admin/users');
+  document.getElementById('topbar-actions').innerHTML=`
+    <button class="btn btn-primary btn-sm" onclick="openCreateUser()">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Создать пользователя
+    </button>`;
+  allUsers = await api('GET','/api/admin/users');
   renderUsersTable(allUsers);
 }
 
+function userRowHtml(u) {
+  return `<tr>
+    <td><div class="user-cell">${avHtml(u.display_name)}<div class="user-cell-info"><div class="name">${esc(u.display_name)}</div><div class="uname">@${esc(u.username)}</div></div></div></td>
+    <td>${u.is_admin?'<span class="badge badge-blue">Администратор</span>':'<span class="badge badge-gray">Пользователь</span>'}</td>
+    <td style="color:var(--muted)">${fmtDate(u.created_at)}</td>
+    <td><div class="td-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openEditUser(${u.id})">Изменить</button>
+      <button class="btn btn-ghost btn-sm" onclick="openChangePass(${u.id})">Пароль</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id},'${esc(u.display_name)}')">Удалить</button>
+    </div></td>
+  </tr>`;
+}
+
 function renderUsersTable(users) {
-  const rows = users.length ? users.map(u => `
-    <tr>
-      <td><div style="display:flex;align-items:center;gap:10px"><div class="av" style="width:32px;height:32px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${initials(u.display_name)}</div><div><div style="font-weight:600">${esc(u.display_name)}</div><div style="font-size:11px;color:var(--muted)">@${esc(u.username)}</div></div></div></td>
-      <td>${u.is_admin ? '<span class="badge badge-blue">Администратор</span>' : '<span class="badge badge-gray">Пользователь</span>'}</td>
-      <td style="color:var(--muted)">${fmtDate(u.created_at)}</td>
-      <td><div class="td-actions">
-        <button class="btn btn-ghost btn-sm" onclick="openEditUser(${u.id})">Изменить</button>
-        <button class="btn btn-ghost btn-sm" onclick="openChangePass(${u.id})">Пароль</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id},'${esc(u.display_name)}')">Удалить</button>
-      </div></td>
-    </tr>`).join('') : '<tr class="empty-row"><td colspan="4">Пользователи не найдены</td></tr>';
-  document.getElementById('page-body').innerHTML = `
+  const rows = users.length ? users.map(userRowHtml).join('') : `<tr><td colspan="4"><div class="empty-state"><p>Пользователи не найдены</p></div></td></tr>`;
+  document.getElementById('page-body').innerHTML=`
     <div class="card">
-      <div class="card-header"><h3>Все пользователи (${users.length})</h3>
-        <div class="search-bar"><svg width="14" height="14" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Поиск..." oninput="filterUsers(this.value)"></div>
+      <div class="card-header">
+        <div class="card-header-left"><h3>Пользователи (${allUsers.length})</h3></div>
+        <div class="search-box"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Поиск по имени или логину…" oninput="filterUsers(this.value)"></div>
       </div>
       <table><thead><tr><th>Пользователь</th><th>Роль</th><th>Создан</th><th>Действия</th></tr></thead><tbody id="users-tbody">${rows}</tbody></table>
     </div>`;
 }
 
 function filterUsers(q) {
-  const f = allUsers.filter(u => u.display_name.toLowerCase().includes(q.toLowerCase()) || u.username.toLowerCase().includes(q.toLowerCase()));
-  document.getElementById('users-tbody').innerHTML = f.map(u => `
-    <tr>
-      <td><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${initials(u.display_name)}</div><div><div style="font-weight:600">${esc(u.display_name)}</div><div style="font-size:11px;color:var(--muted)">@${esc(u.username)}</div></div></div></td>
-      <td>${u.is_admin ? '<span class="badge badge-blue">Администратор</span>' : '<span class="badge badge-gray">Пользователь</span>'}</td>
-      <td style="color:var(--muted)">${fmtDate(u.created_at)}</td>
-      <td><div class="td-actions"><button class="btn btn-ghost btn-sm" onclick="openEditUser(${u.id})">Изменить</button><button class="btn btn-ghost btn-sm" onclick="openChangePass(${u.id})">Пароль</button><button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id},'${esc(u.display_name)}')">Удалить</button></div></td>
-    </tr>`).join('') || '<tr class="empty-row"><td colspan="4">Ничего не найдено</td></tr>';
+  const lq=q.toLowerCase();
+  const f=allUsers.filter(u=>u.display_name.toLowerCase().includes(lq)||u.username.toLowerCase().includes(lq));
+  document.getElementById('users-tbody').innerHTML=f.map(userRowHtml).join('')||`<tr><td colspan="4"><div class="empty-state"><p>Ничего не найдено</p></div></td></tr>`;
 }
 
 function openCreateUser() {
-  editingUserId = null;
-  document.getElementById('user-modal-title').textContent = 'Создать пользователя';
-  document.getElementById('u-save-btn').textContent = 'Создать';
-  document.getElementById('u-pass-hint').style.display = 'none';
-  ['u-username','u-display','u-password'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('u-admin').checked = false;
-  document.getElementById('u-err').textContent = '';
+  editingUserId=null;
+  document.getElementById('user-modal-title').textContent='Создать пользователя';
+  document.getElementById('u-save-btn').textContent='Создать';
+  document.getElementById('u-pass-hint').style.display='none';
+  ['u-username','u-display','u-password'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('u-admin').checked=false;
+  document.getElementById('u-err').textContent='';
   openModal('modal-user');
+  setTimeout(()=>document.getElementById('u-username').focus(),50);
 }
 
 function openEditUser(id) {
-  const u = allUsers.find(x => x.id === id);
-  editingUserId = id;
-  document.getElementById('user-modal-title').textContent = 'Изменить пользователя';
-  document.getElementById('u-save-btn').textContent = 'Сохранить';
-  document.getElementById('u-pass-hint').style.display = '';
-  document.getElementById('u-username').value = u.username;
-  document.getElementById('u-display').value = u.display_name;
-  document.getElementById('u-password').value = '';
-  document.getElementById('u-admin').checked = !!u.is_admin;
-  document.getElementById('u-err').textContent = '';
+  const u=allUsers.find(x=>x.id===id);
+  editingUserId=id;
+  document.getElementById('user-modal-title').textContent='Изменить пользователя';
+  document.getElementById('u-save-btn').textContent='Сохранить';
+  document.getElementById('u-pass-hint').style.display='';
+  document.getElementById('u-username').value=u.username;
+  document.getElementById('u-display').value=u.display_name;
+  document.getElementById('u-password').value='';
+  document.getElementById('u-admin').checked=!!u.is_admin;
+  document.getElementById('u-err').textContent='';
   openModal('modal-user');
 }
 
 async function saveUser() {
-  const username = document.getElementById('u-username').value.trim();
-  const display_name = document.getElementById('u-display').value.trim();
-  const password = document.getElementById('u-password').value;
-  const is_admin = document.getElementById('u-admin').checked;
-  document.getElementById('u-err').textContent = '';
-
+  const username=document.getElementById('u-username').value.trim();
+  const display_name=document.getElementById('u-display').value.trim();
+  const password=document.getElementById('u-password').value;
+  const is_admin=document.getElementById('u-admin').checked;
+  document.getElementById('u-err').textContent='';
   if (editingUserId) {
-    const body = { username, display_name, is_admin };
-    const data = await api('PATCH', '/api/users/' + editingUserId, body);
-    if (password) await api('PATCH', '/api/users/' + editingUserId + '/password', { password });
-    if (data.ok) { closeModal('modal-user'); toast('Пользователь обновлён', 'success'); renderUsers(); }
-    else document.getElementById('u-err').textContent = data.error || 'Ошибка';
+    const data=await api('PATCH','/api/users/'+editingUserId,{username,display_name,is_admin});
+    if (password) await api('PATCH','/api/users/'+editingUserId+'/password',{password});
+    if (data.ok) { closeModal('modal-user'); toast('Пользователь обновлён','success'); renderUsers(); }
+    else document.getElementById('u-err').textContent=data.error||'Ошибка';
   } else {
-    if (!username || !display_name || !password) { document.getElementById('u-err').textContent = 'Заполните все поля'; return; }
-    const data = await api('POST', '/api/users', { username, display_name, password, is_admin });
-    if (data.id) { closeModal('modal-user'); toast('Пользователь создан', 'success'); renderUsers(); }
-    else document.getElementById('u-err').textContent = data.error || 'Ошибка';
+    if (!username||!display_name||!password) { document.getElementById('u-err').textContent='Заполните все поля'; return; }
+    const data=await api('POST','/api/users',{username,display_name,password,is_admin});
+    if (data.id) { closeModal('modal-user'); toast('Пользователь создан','success'); renderUsers(); }
+    else document.getElementById('u-err').textContent=data.error||'Ошибка';
   }
 }
 
-let changingPassId = null;
-function openChangePass(id) { changingPassId = id; document.getElementById('cp-pass').value = ''; document.getElementById('cp-err').textContent = ''; openModal('modal-password'); }
+let changingPassIdRef = null;
+function openChangePass(id) { changingPassIdRef=id; document.getElementById('cp-pass').value=''; document.getElementById('cp-err').textContent=''; openModal('modal-password'); }
 async function savePassword() {
-  const password = document.getElementById('cp-pass').value;
-  if (!password) { document.getElementById('cp-err').textContent = 'Введите пароль'; return; }
-  const data = await api('PATCH', '/api/users/' + changingPassId + '/password', { password });
-  if (data.ok) { closeModal('modal-password'); toast('Пароль изменён', 'success'); }
-  else document.getElementById('cp-err').textContent = data.error || 'Ошибка';
+  const password=document.getElementById('cp-pass').value;
+  if (!password) { document.getElementById('cp-err').textContent='Введите пароль'; return; }
+  const data=await api('PATCH','/api/users/'+changingPassIdRef+'/password',{password});
+  if (data.ok) { closeModal('modal-password'); toast('Пароль изменён','success'); }
+  else document.getElementById('cp-err').textContent=data.error||'Ошибка';
 }
 
 function deleteUser(id, name) {
-  confirm('Удалить пользователя?', `«${name}» будет удалён. Это действие необратимо.`, async () => {
-    await api('DELETE', '/api/users/' + id);
+  confirm('Удалить пользователя?',`«${name}» будет удалён. Это действие необратимо.`, async ()=>{
+    await api('DELETE','/api/users/'+id);
     toast('Пользователь удалён');
     renderUsers();
   });
 }
 
-// CHATS
-let allChats = [];
-
+// ── CHATS ──
 function chatDisplayName(c) {
-  if (c.type === 'direct') return (c.member_names || []).join(' / ') || 'Личный чат';
-  return esc(c.name || '—');
+  if (c.type==='direct') return (c.member_names||[]).join(' / ')||'Личный чат';
+  return c.name||'—';
 }
-
 function chatTypeBadge(c) {
-  if (c.type === 'group') return '<span class="badge badge-blue">Группа</span>';
+  if (c.type==='group') return '<span class="badge badge-purple">Группа</span>';
   return '<span class="badge badge-gray">Личный</span>';
 }
-
 function chatRow(c) {
+  const name = chatDisplayName(c);
   return `<tr>
-    <td style="font-weight:600;color:var(--muted);font-size:12px">#${c.id}</td>
+    <td class="td-id">#${c.id}</td>
     <td>${chatTypeBadge(c)}</td>
-    <td style="font-weight:600">${chatDisplayName(c)}</td>
+    <td><div class="user-cell">${avHtml(name,30,7)}<div class="user-cell-info"><div class="name">${esc(name)}</div></div></div></td>
     <td>${c.member_count}</td>
     <td>${c.message_count}</td>
     <td style="color:var(--muted)">${fmtDate(c.created_at)}</td>
     <td><div class="td-actions">
-      <button class="btn btn-ghost btn-sm" onclick="openMembersReadonly(${c.id},'${chatDisplayName(c).replace(/'/g,"\\'")}')">Участники</button>
-      <button class="btn btn-ghost btn-sm" onclick="clearHistory(${c.id})">Очистить историю</button>
+      <button class="btn btn-ghost btn-sm" onclick="openMembersReadonly(${c.id},'${esc(name)}')">Участники</button>
+      <button class="btn btn-ghost btn-sm" onclick="clearHistory(${c.id})">Очистить</button>
       <button class="btn btn-danger btn-sm" onclick="deleteChat(${c.id})">Удалить</button>
     </div></td>
   </tr>`;
 }
 
 async function renderChats() {
-  document.getElementById('topbar-actions').innerHTML = '';
-  const raw = await api('GET', '/api/admin/chats');
-  allChats = raw.filter(c => c.type !== 'room');
+  document.getElementById('topbar-actions').innerHTML='';
+  chatFilter='';
+  const raw=await api('GET','/api/admin/chats');
+  allChats=raw.filter(c=>c.type!=='room');
   renderChatsTable(allChats);
 }
 
 function renderChatsTable(chats) {
-  const rows = chats.length ? chats.map(chatRow).join('') : '<tr class="empty-row"><td colspan="7">Чатов нет</td></tr>';
-  document.getElementById('page-body').innerHTML = `
-    <div style="display:flex;gap:8px;margin-bottom:16px">
-      <button class="btn btn-ghost btn-sm ${chatFilter===''?'btn-primary':''}" onclick="setChatFilter('')">Все</button>
-      <button class="btn btn-ghost btn-sm ${chatFilter==='group'?'btn-primary':''}" onclick="setChatFilter('group')">Группы</button>
-      <button class="btn btn-ghost btn-sm ${chatFilter==='direct'?'btn-primary':''}" onclick="setChatFilter('direct')">Личные</button>
+  const rows=chats.length?chats.map(chatRow).join(''):`<tr><td colspan="7"><div class="empty-state"><p>Чатов нет</p></div></td></tr>`;
+  document.getElementById('page-body').innerHTML=`
+    <div class="filter-pills">
+      <div class="pill ${chatFilter===''?'active':''}" onclick="setChatFilter('')">Все</div>
+      <div class="pill ${chatFilter==='group'?'active':''}" onclick="setChatFilter('group')">Группы</div>
+      <div class="pill ${chatFilter==='direct'?'active':''}" onclick="setChatFilter('direct')">Личные</div>
     </div>
     <div class="card">
-      <div class="card-header"><h3>Личные чаты и группы (${chats.length})</h3>
-        <div class="search-bar"><svg width="14" height="14" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Поиск..." oninput="filterChats(this.value)"></div>
+      <div class="card-header">
+        <h3>Чаты и группы (${chats.length})</h3>
+        <div class="search-box"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Поиск…" oninput="filterChats(this.value)"></div>
       </div>
-      <table><thead><tr><th>ID</th><th>Тип</th><th>Название</th><th>Участников</th><th>Сообщений</th><th>Создан</th><th>Действия</th></tr></thead><tbody id="chats-tbody">${rows}</tbody></table>
+      <table><thead><tr><th>ID</th><th>Тип</th><th>Название</th><th>Участников</th><th>Сообщений</th><th>Создан</th><th>Действия</th></tr></thead>
+      <tbody id="chats-tbody">${rows}</tbody></table>
     </div>`;
 }
 
-let chatFilter = '';
-function setChatFilter(f) { chatFilter = f; renderChatsTable(f ? allChats.filter(c => c.type === f) : allChats); }
+function setChatFilter(f) {
+  chatFilter=f;
+  document.querySelectorAll('.filter-pills .pill').forEach(p=>p.classList.toggle('active',p.textContent.trim()===(f===''?'Все':f==='group'?'Группы':'Личные')));
+  const filtered=f?allChats.filter(c=>c.type===f):allChats;
+  document.getElementById('chats-tbody').innerHTML=filtered.map(chatRow).join('')||`<tr><td colspan="7"><div class="empty-state"><p>Ничего не найдено</p></div></td></tr>`;
+}
+
 function filterChats(q) {
-  const lq = q.toLowerCase();
-  const filtered = allChats.filter(c => (chatFilter ? c.type === chatFilter : true) && chatDisplayName(c).toLowerCase().includes(lq));
-  document.getElementById('chats-tbody').innerHTML = filtered.map(chatRow).join('') || '<tr class="empty-row"><td colspan="7">Ничего не найдено</td></tr>';
+  const lq=q.toLowerCase();
+  const filtered=allChats.filter(c=>(chatFilter?c.type===chatFilter:true)&&chatDisplayName(c).toLowerCase().includes(lq));
+  document.getElementById('chats-tbody').innerHTML=filtered.map(chatRow).join('')||`<tr><td colspan="7"><div class="empty-state"><p>Ничего не найдено</p></div></td></tr>`;
 }
 
 async function openMembersReadonly(chatId, chatName) {
-  const members = await api('GET', '/api/admin/chats/' + chatId + '/members');
-  document.getElementById('members-title').textContent = 'Участники — ' + chatName;
-  document.getElementById('members-list').innerHTML = members.map(m => `
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
-      <div class="av av-sm" style="background:var(--primary);color:#fff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">${initials(m.display_name)}</div>
-      <div><div style="font-weight:600;font-size:14px">${esc(m.display_name)}</div><div style="font-size:12px;color:var(--muted)">@${esc(m.username)}</div></div>
-    </div>`).join('') || '<div style="color:var(--muted);text-align:center;padding:20px">Нет участников</div>';
-  document.querySelector('#modal-members .modal-footer').innerHTML = `<button class="btn btn-ghost" onclick="closeModal('modal-members')">Закрыть</button>`;
-  // Hide the "add members" section for readonly view
-  document.querySelector('#modal-members .modal-body > div:last-child').style.display = 'none';
+  membersForChatId=chatId; membersForChatType=null;
+  document.getElementById('members-title').textContent=chatName;
+  document.getElementById('add-members-section').style.display='none';
+  document.getElementById('members-footer').innerHTML=`<button class="btn btn-ghost" onclick="closeModal('modal-members')">Закрыть</button>`;
+  const members=await api('GET','/api/admin/chats/'+chatId+'/members');
+  document.getElementById('members-list').innerHTML=members.map(m=>`
+    <div class="member-row">
+      ${avHtml(m.display_name,30,7)}
+      <div class="info"><div class="mname">${esc(m.display_name)}</div><div class="muname">@${esc(m.username)}</div></div>
+    </div>`).join()||`<div class="empty-state" style="padding:20px"><p>Нет участников</p></div>`;
   openModal('modal-members');
 }
 
 function clearHistory(id) {
-  confirm('Очистить историю?', `Все сообщения чата #${id} будут удалены безвозвратно.`, async () => {
-    await api('DELETE', '/api/chats/admin/' + id + '/messages');
-    toast('История очищена', 'success');
-    renderChats();
+  confirm('Очистить историю?',`Все сообщения чата #${id} будут удалены безвозвратно.`, async ()=>{
+    await api('DELETE','/api/chats/admin/'+id+'/messages');
+    toast('История очищена','success');
+    if (currentPage==='rooms') renderRooms();
+    else renderChats();
   });
 }
 
 function deleteChat(id) {
-  confirm('Удалить чат?', `Чат #${id} и все его сообщения будут удалены безвозвратно.`, async () => {
-    await api('DELETE', '/api/chats/admin/' + id);
+  confirm('Удалить чат?',`Чат #${id} и все сообщения будут удалены безвозвратно.`, async ()=>{
+    await api('DELETE','/api/chats/admin/'+id);
     toast('Чат удалён');
     renderChats();
   });
 }
 
-// MEMBERS
-let selectedAddMembers = new Set();
-async function openMembers(chatId, name) {
-  membersForChatId = chatId;
-  selectedAddMembers = new Set();
-  document.getElementById('members-title').textContent = `Участники: ${name}`;
-  document.querySelector('#modal-members .modal-footer').innerHTML = `
-    <button class="btn btn-ghost" onclick="closeModal('modal-members')">Закрыть</button>
-    <button class="btn btn-primary" onclick="addSelectedMembers()">Добавить выбранных</button>`;
-  const [members, allU] = await Promise.all([api('GET', '/api/admin/chats/' + chatId + '/members'), api('GET', '/api/admin/users')]);
-  const memberIds = new Set(members.map(m => m.id));
-
-  document.getElementById('members-list').innerHTML = members.map(m => `
-    <div class="member-row">
-      <div class="av">${initials(m.display_name)}</div>
-      <div class="info"><div class="mname">${esc(m.display_name)}</div><div class="muname">@${esc(m.username)}</div></div>
-      <button class="btn btn-danger btn-sm" onclick="removeMember(${chatId},${m.id},this)">Удалить</button>
-    </div>`).join('') || '<p style="color:var(--muted);font-size:13px">Нет участников</p>';
-
-  document.getElementById('add-members-list').innerHTML = allU.filter(u => !memberIds.has(u.id)).map(u => `
-    <div class="checkbox-row" onclick="toggleAddMember(this,${u.id})">
-      <input type="checkbox" onclick="event.stopPropagation();toggleAddMember(this.parentElement,${u.id})">
-      <div class="av" style="width:28px;height:28px;font-size:11px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">${initials(u.display_name)}</div>
-      <div><div style="font-size:13px;font-weight:600">${esc(u.display_name)}</div><div style="font-size:11px;color:var(--muted)">@${esc(u.username)}</div></div>
-    </div>`).join('') || '<p style="color:var(--muted);font-size:13px">Все пользователи уже в чате</p>';
-
-  openModal('modal-members');
-}
-
-function toggleAddMember(el, id) {
-  el.classList.toggle('selected');
-  el.querySelector('input').checked = el.classList.contains('selected');
-  selectedAddMembers.has(id) ? selectedAddMembers.delete(id) : selectedAddMembers.add(id);
+// ── MEMBER MANAGEMENT ──
+function toggleAddMember(id) {
+  const row=document.getElementById('am-row-'+id);
+  const chk=document.getElementById('am-chk-'+id);
+  if (selectedAddMembers.has(id)) { selectedAddMembers.delete(id); row.classList.remove('selected'); chk.checked=false; }
+  else { selectedAddMembers.add(id); row.classList.add('selected'); chk.checked=true; }
 }
 
 async function removeMember(chatId, userId, btn) {
-  btn.disabled = true;
-  await api('DELETE', `/api/chats/${chatId}/members/${userId}`);
-  btn.closest('.member-row').remove();
+  btn.disabled=true;
+  // Always use admin endpoint for reliable removal from any chat type
+  await api('DELETE',`/api/admin/chats/${chatId}/members/${userId}`);
+  const row=document.getElementById('mr-'+userId);
+  if (row) row.remove();
   toast('Участник удалён');
 }
 
 async function addSelectedMembers() {
   if (!selectedAddMembers.size) { toast('Выберите пользователей'); return; }
-  await Promise.all([...selectedAddMembers].map(uid => api('POST', `/api/chats/${membersForChatId}/members`, { user_id: uid })));
-  toast('Участники добавлены', 'success');
+  // Use admin endpoint to support both rooms and groups
+  await Promise.all([...selectedAddMembers].map(uid=>api('POST',`/api/admin/chats/${membersForChatId}/members`,{user_id:uid})));
+  toast('Участники добавлены','success');
   closeModal('modal-members');
+  if (currentPage==='rooms') renderRooms();
 }
-
-function initials(name) { return (name||'?').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function fmtDate(ts) { return new Date(ts*1000).toLocaleDateString('ru',{day:'2-digit',month:'2-digit',year:'numeric'}); }
 </script>
 </body>
 </html>
