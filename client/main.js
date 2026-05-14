@@ -147,13 +147,7 @@ function createWindow() {
     if (!app.isQuiting) {
       e.preventDefault();
       mainWindow.hide();
-      // На macOS скрываем и из Dock
-      if (process.platform === 'darwin') app.dock?.hide();
     }
-  });
-
-  mainWindow.on('show', () => {
-    if (process.platform === 'darwin') app.dock?.show();
   });
   mainWindow.on('focus', () => {
     // Stop blinking when window is focused
@@ -215,7 +209,6 @@ app.whenReady().then(() => {
   createTray();
   if (shouldStartHidden()) {
     mainWindow.hide();
-    if (process.platform === 'darwin') app.dock?.hide();
   }
 });
 
