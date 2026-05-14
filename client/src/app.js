@@ -567,7 +567,11 @@ function connectWS() {
     const delay = Math.min(1000*S.wsRetry, 10000);
     if (S.token) setTimeout(connectWS, delay);
   };
-  ws.onopen = () => { S.wsRetry=0; };
+  ws.onopen = () => {
+    S.wsRetry = 0;
+    // Send actual visibility state — may be 'away' if started hidden
+    ws.send(JSON.stringify({ type: 'set_status', status: document.hidden ? 'away' : 'online' }));
+  };
   ws.onerror = () => ws.close();
 }
 
