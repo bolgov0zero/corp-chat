@@ -472,6 +472,7 @@ function renderMessages(msgs) {
   if (!container) return;
   const chat = S.chats.find(c=>c.id===S.activeChatId);
   const isGroup = chat?.type==='group';
+  msgs.forEach(m => { if (m.reactions?.length) S.reactions[m.id] = m.reactions; });
   let html = '';
   let lastDate = '';
   msgs.forEach((m, i) => {

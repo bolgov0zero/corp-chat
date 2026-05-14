@@ -25,7 +25,8 @@ router.get('/chat/:chatId', authMiddleware, (req, res) => {
   const result = messages.map(m => {
     const delivered = db.prepare('SELECT COUNT(*) as c FROM message_status WHERE message_id = ? AND delivered_at IS NOT NULL').get(m.id).c;
     const read = db.prepare('SELECT COUNT(*) as c FROM message_status WHERE message_id = ? AND read_at IS NOT NULL').get(m.id).c;
-    return { ...m, status: { delivered, read, total: memberCount - 1 } };
+    const reactions = db.prepare('SELECT reaction, COUNT(*) as count FROM reactions WHERE message_id = ? GROUP BY reaction').all(m.id);
+    return { ...m, status: { delivered, read, total: memberCount - 1 }, reactions };
   });
 
   res.json(result);
