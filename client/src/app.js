@@ -65,6 +65,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('l-username').addEventListener('keydown', e => e.key==='Enter' && document.getElementById('l-password').focus());
   document.addEventListener('click', e => {
     hideCtxMenu();
+    document.getElementById('ctx-chat-menu').style.display = 'none';
     // Close emoji picker if click outside
     const picker = document.getElementById('emoji-picker');
     if (picker && !picker.contains(e.target) && !e.target.closest('.emoji-btn')) {
@@ -318,7 +319,7 @@ function renderChatList() {
     const time = lm ? fmtTime(lm.sent_at) : '';
     const peerId = getPeerUserId(c);
     const dot = peerId ? presenceDot(peerId) : '';
-    return `<div class="chat-item${c.id===S.activeChatId?' active':''}" onclick="openChat(${c.id})">
+    return `<div class="chat-item${c.id===S.activeChatId?' active':''}" onclick="openChat(${c.id})" oncontextmenu="showChatCtx(event,${c.id})">
       <div class="av-wrap">
         <div class="av av-md ${chatAvatarClass(c)}" data-av-chat="${c.id}">${chatIcon(c)}</div>
         ${dot}
@@ -391,7 +392,12 @@ async function openChat(chatId) {
         <textarea id="msg-input" placeholder="Сообщение…" rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
       </div>
       <button class="icon-btn emoji-btn" title="Эмодзи" onclick="toggleEmojiPicker(event)">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M8 13s1.5 3 4 3 4-3 4-3"/>
+          <circle cx="9" cy="9" r="1" fill="currentColor"/>
+          <circle cx="15" cy="9" r="1" fill="currentColor"/>
+        </svg>
       </button>
       <button class="send-btn" onclick="sendOrEdit()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -606,33 +612,30 @@ async function ctxInfo() {
     return d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'});
   }
 
-  let body = `<div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Отправлено</div>
-    <div style="font-size:14px">${fmtDt(data.sent_at)}</div>
-  </div>`;
+  let body = `<div class="msg-info-row"><span class="msg-info-label">Отправлено</span><span class="msg-info-val">${fmtDt(data.sent_at)}</span></div>`;
 
   if (data.chat_type === 'direct') {
     const s = data.statuses[0];
-    body += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-      <div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Доставлено</div>
-        <div style="font-size:14px">${fmtDt(s?.delivered_at)}</div>
-      </div>
-      <div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Прочитано</div>
-        <div style="font-size:14px">${fmtDt(s?.read_at)}</div>
-      </div>
-    </div>`;
+    body += `<div class="msg-info-row"><span class="msg-info-label">Доставлено</span><span class="msg-info-val">${fmtDt(s?.delivered_at)}</span></div>`;
+    body += `<div class="msg-info-row"><span class="msg-info-label">Прочитано</span><span class="msg-info-val">${fmtDt(s?.read_at)}</span></div>`;
   } else {
-    body += `<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Прочитано участниками</div>`;
+    const readUsers = data.statuses.filter(s => s.read_at);
+    const unreadUsers = data.statuses.filter(s => !s.read_at);
+    if (readUsers.length) {
+      body += `<div class="msg-info-label" style="padding:0 2px">Прочитали</div>`;
+      body += readUsers.map(s => `<div class="msg-info-user-row">
+        <div style="font-size:13px;font-weight:500">${esc(s.display_name)}</div>
+        <div style="font-size:12px;color:var(--muted)">${fmtDt(s.read_at)}</div>
+      </div>`).join('');
+    }
+    if (unreadUsers.length) {
+      body += `<div class="msg-info-label" style="padding:${readUsers.length?'8px':'0'} 2px 0">Не прочитали</div>`;
+      body += unreadUsers.map(s => `<div class="msg-info-user-row">
+        <div style="font-size:13px;color:var(--muted)">${esc(s.display_name)}</div>
+      </div>`).join('');
+    }
     if (!data.statuses.length) {
-      body += `<div style="color:var(--muted);font-size:13px">Никто ещё не прочитал</div>`;
-    } else {
-      body += data.statuses.map(s => `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
-          <div style="font-size:14px;font-weight:500">${esc(s.display_name)}</div>
-          <div style="font-size:12px;color:var(--muted)">${s.read_at ? fmtDt(s.read_at) : '<span style="color:#94a3b8">не прочитано</span>'}</div>
-        </div>`).join('');
+      body += `<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">Никто ещё не прочитал</div>`;
     }
   }
 
@@ -849,14 +852,14 @@ async function onGroupAvatarChange(input) {
 
 // ── NEW CHAT MODAL ──
 function openNewChat() {
-  renderModalUsers('users-list-direct', false);
-  renderModalUsers('users-list-group', true);
+  switchTab('direct');
+  renderModalUsers('tab-direct', false);
+  renderModalUsers('tab-group', true);
   document.getElementById('group-name').value='';
-  document.querySelectorAll('#users-list-group .user-row').forEach(el=>el.classList.remove('selected'));
-  // Reset group avatar
+  document.getElementById('nc-search-input').value='';
   S.newGroupAvatarBase64 = null;
   const av = document.getElementById('new-group-av');
-  if (av) { av.style.backgroundImage=''; av.style.backgroundSize=''; av.textContent='+'; }
+  if (av) { av.style.backgroundImage=''; av.textContent='G'; }
   openModal('modal-new-chat');
 }
 
@@ -873,7 +876,10 @@ function renderModalUsers(containerId, multi, filter='') {
 }
 
 function filterModalUsers(q, containerId) {
-  const multi = containerId==='users-list-group';
+  const multi = containerId==='tab-group';
+  // Only filter the visible list
+  const el = document.getElementById(containerId);
+  if (el?.style.display==='none') return;
   renderModalUsers(containerId, multi, q.toLowerCase());
 }
 
@@ -890,7 +896,7 @@ async function startDirect(userId) {
 async function createGroup() {
   const name = document.getElementById('group-name').value.trim();
   if (!name) { document.getElementById('group-name').focus(); return; }
-  const selected = [...document.querySelectorAll('#users-list-group .user-row.selected')].map(el=>parseInt(el.dataset.uid));
+  const selected = [...document.querySelectorAll('#tab-group .user-row.selected')].map(el=>parseInt(el.dataset.uid));
   const data = await api('POST','/chats/group',{name, member_ids:selected});
   if (data?.id) {
     if (S.newGroupAvatarBase64) {
@@ -902,10 +908,13 @@ async function createGroup() {
 }
 
 function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelector(`.tab[onclick="switchTab('${tab}')"]`).classList.add('active');
-  document.getElementById('tab-direct').style.display = tab==='direct'?'':'none';
-  document.getElementById('tab-group').style.display = tab==='group'?'':'none';
+  document.querySelectorAll('.nc-type-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`nc-btn-${tab}`).classList.add('active');
+  document.getElementById('tab-direct').style.display = tab==='direct' ? 'flex' : 'none';
+  document.getElementById('tab-group').style.display = tab==='group' ? 'flex' : 'none';
+  document.getElementById('nc-group-settings').style.display = tab==='group' ? '' : 'none';
+  document.getElementById('nc-footer').style.display = tab==='group' ? '' : 'none';
+  document.getElementById('nc-title').textContent = tab==='direct' ? 'Новый чат' : 'Новая группа';
 }
 
 // ── EDIT GROUP MODAL ──
@@ -964,6 +973,25 @@ async function saveGroupEdit() {
   closeModal('modal-edit-group');
   await loadChats();
   if (S.activeChatId===chatId) openChat(chatId);
+}
+
+// ── CHAT LIST CONTEXT MENU ──
+function showChatCtx(e, chatId) {
+  e.preventDefault();
+  e.stopPropagation();
+  S.ctxChatId = chatId;
+  const menu = document.getElementById('ctx-chat-menu');
+  menu.style.display = 'block';
+  const x = Math.min(e.clientX, window.innerWidth - 160);
+  const y = Math.min(e.clientY, window.innerHeight - 80);
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+}
+
+async function ctxChatDelete() {
+  document.getElementById('ctx-chat-menu').style.display = 'none';
+  if (!S.ctxChatId) return;
+  await deleteChat(S.ctxChatId);
 }
 
 // ── MODAL HELPERS ──

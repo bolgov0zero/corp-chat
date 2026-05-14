@@ -146,7 +146,15 @@ router.delete('/:id', authMiddleware, (req, res) => {
   if (chat.type === 'direct') {
     // Soft delete: hide only for this user, other side keeps the chat
     db.prepare('UPDATE chat_members SET hidden_at = unixepoch() WHERE chat_id = ? AND user_id = ?').run(id, req.user.id);
-    sendTo(req.user.id, { type: 'chat_deleted', chat_id: id });
+    // If all members have now hidden the chat — fully delete it
+    const visibleCount = db.prepare('SELECT COUNT(*) as c FROM chat_members WHERE chat_id = ? AND hidden_at IS NULL').get(id).c;
+    if (visibleCount === 0) {
+      const allMembers = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ?').all(id);
+      db.prepare('DELETE FROM chats WHERE id = ?').run(id);
+      allMembers.forEach(({ user_id }) => sendTo(user_id, { type: 'chat_deleted', chat_id: id }));
+    } else {
+      sendTo(req.user.id, { type: 'chat_deleted', chat_id: id });
+    }
   } else {
     if (!req.user.is_admin && chat.created_by !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
     const members = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ?').all(id);

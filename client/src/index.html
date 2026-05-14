@@ -135,26 +135,49 @@
 
 <!-- New chat modal -->
 <div class="modal-bg" id="modal-new-chat">
-  <div class="modal">
-    <div class="modal-hdr"><span id="nc-title">Новый чат</span><button class="icon-btn" onclick="closeModal('modal-new-chat')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
-    <div class="tab-row">
-      <button class="tab active" onclick="switchTab('direct')">Личный</button>
-      <button class="tab" onclick="switchTab('group')">Группа / комната</button>
+  <div class="modal" style="width:420px;max-height:85vh">
+    <div class="modal-hdr">
+      <span id="nc-title">Новый чат</span>
+      <button class="icon-btn" onclick="closeModal('modal-new-chat')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
-    <div id="tab-direct">
-      <div class="modal-search"><input placeholder="Поиск пользователей..." oninput="filterModalUsers(this.value,'users-list-direct')"></div>
-      <div class="users-list" id="users-list-direct"></div>
+    <div class="nc-type-row">
+      <button class="nc-type-btn active" id="nc-btn-direct" onclick="switchTab('direct')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Личный
+      </button>
+      <button class="nc-type-btn" id="nc-btn-group" onclick="switchTab('group')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 1-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Группа
+      </button>
     </div>
-    <div id="tab-group" style="display:none">
-      <div class="field" style="padding:8px 14px"><input id="group-name" placeholder="Название группы / комнаты"></div>
-      <div class="field group-avatar-row" style="padding:8px 14px;display:flex;align-items:center;gap:10px">
-        <div class="av av-sm av-green" id="new-group-av" style="cursor:pointer;flex-shrink:0" onclick="triggerGroupAvatarUpload()" title="Добавить фото">+</div>
-        <span style="font-size:13px;color:var(--muted);cursor:pointer" onclick="triggerGroupAvatarUpload()">Добавить фото группы</span>
-        <input type="file" id="group-avatar-input" accept="image/*" style="display:none" onchange="onGroupAvatarChange(this)">
+    <!-- Group settings (hidden by default) -->
+    <div id="nc-group-settings" style="display:none;padding:0 14px 0">
+      <div class="nc-group-top">
+        <div class="profile-av-wrap" onclick="triggerGroupAvatarUpload()" title="Фото группы">
+          <div class="av av-md av-green" id="new-group-av" style="cursor:pointer">G</div>
+          <div class="profile-av-overlay">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </div>
+        </div>
+        <input id="group-name" class="nc-name-input" placeholder="Название группы">
       </div>
-      <div class="modal-search"><input placeholder="Добавить участников..." oninput="filterModalUsers(this.value,'users-list-group')"></div>
-      <div class="users-list" id="users-list-group"></div>
-      <button class="modal-create-btn" onclick="createGroup()">Создать</button>
+      <input type="file" id="group-avatar-input" accept="image/*" style="display:none" onchange="onGroupAvatarChange(this)">
+    </div>
+    <!-- Search -->
+    <div class="nc-search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="nc-search-input" placeholder="Поиск..." oninput="filterModalUsers(this.value,'tab-direct');filterModalUsers(this.value,'tab-group')">
+    </div>
+    <!-- User lists -->
+    <div id="tab-direct" class="users-list nc-list"></div>
+    <div id="tab-group" class="users-list nc-list" style="display:none"></div>
+    <!-- Footer for group -->
+    <div id="nc-footer" style="display:none" class="modal-footer">
+      <div id="nc-selected-count" style="font-size:13px;color:var(--muted);flex:1"></div>
+      <button class="modal-btn-ghost" onclick="closeModal('modal-new-chat')">Отмена</button>
+      <button class="modal-btn-primary" onclick="createGroup()">Создать группу</button>
     </div>
   </div>
 </div>
@@ -185,6 +208,14 @@
   </div>
 </div>
 
+<!-- Chat list context menu -->
+<div class="ctx-menu" id="ctx-chat-menu">
+  <button id="ctx-chat-delete" onclick="ctxChatDelete()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+    Удалить чат
+  </button>
+</div>
+
 <!-- Context menu -->
 <div class="ctx-menu" id="ctx-menu">
   <div class="ctx-reactions">
@@ -207,14 +238,14 @@
 
 <!-- Message info modal -->
 <div class="modal-bg" id="modal-msg-info" onclick="if(event.target===this)closeModal('modal-msg-info')">
-  <div class="modal" style="width:360px">
+  <div class="modal" style="width:340px">
     <div class="modal-hdr">
-      <span>Информация о сообщении</span>
+      <span>Информация</span>
       <button class="icon-btn" onclick="closeModal('modal-msg-info')">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
-    <div id="msg-info-body" style="padding:16px 18px;overflow-y:auto;max-height:60vh"></div>
+    <div id="msg-info-body" class="msg-info-body"></div>
   </div>
 </div>
 
