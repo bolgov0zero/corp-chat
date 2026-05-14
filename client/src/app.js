@@ -238,12 +238,55 @@ function chatName(chat) {
 function chatAvatarClass(chat) {
   if (chat.type==='room') return 'av-orange';
   if (chat.type==='group') return 'av-green';
-  return avatarColor(chat.id);
+  return avatarColor(getPeerUserId(chat) || chat.id);
 }
 
 function chatIcon(chat) {
   if (chat.type==='room') return '🏠';
   return initials(chatName(chat));
+}
+
+// Try loading real photo into an .av element; fall back to initials if 404
+function tryLoadAvatar(el, url, fallbackText) {
+  const img = new Image();
+  img.onload = () => {
+    el.style.backgroundImage = `url('${url}')`;
+    el.style.backgroundSize = 'cover';
+    el.style.backgroundPosition = 'center';
+    el.textContent = '';
+  };
+  img.onerror = () => {
+    el.style.backgroundImage = '';
+    el.textContent = fallbackText;
+  };
+  img.src = url;
+}
+
+// After rendering chat list / chat header — load real avatars where available
+function applyAvatars() {
+  // Chat list items: data-chat-id attribute
+  document.querySelectorAll('[data-av-chat]').forEach(el => {
+    const chatId = parseInt(el.dataset.avChat);
+    const chat = S.chats.find(c => c.id === chatId);
+    if (!chat) return;
+    if (chat.type === 'direct') {
+      const peerId = getPeerUserId(chat);
+      if (!peerId) return;
+      const url = `http://${S.server}/api/users/${peerId}/avatar?t=${S.avatarTs||0}`;
+      tryLoadAvatar(el, url, initials(chatName(chat)));
+    } else {
+      const url = `http://${S.server}/api/chats/${chatId}/avatar?t=${S.avatarTs||0}`;
+      tryLoadAvatar(el, url, chatIcon(chat));
+    }
+  });
+  // User avatars in modals / member lists
+  document.querySelectorAll('[data-av-user]').forEach(el => {
+    const uid = parseInt(el.dataset.avUser);
+    const user = S.allUsers.find(u => u.id === uid) || (uid === S.user.id ? S.user : null);
+    if (!user) return;
+    const url = `http://${S.server}/api/users/${uid}/avatar?t=${S.avatarTs||0}`;
+    tryLoadAvatar(el, url, initials(user.display_name));
+  });
 }
 
 function renderChatList() {
@@ -270,7 +313,7 @@ function renderChatList() {
     const dot = peerId ? presenceDot(peerId) : '';
     return `<div class="chat-item${c.id===S.activeChatId?' active':''}" onclick="openChat(${c.id})">
       <div class="av-wrap">
-        <div class="av av-md ${chatAvatarClass(c)}">${chatIcon(c)}</div>
+        <div class="av av-md ${chatAvatarClass(c)}" data-av-chat="${c.id}">${chatIcon(c)}</div>
         ${dot}
       </div>
       <div class="info">
@@ -283,6 +326,7 @@ function renderChatList() {
       </div>
     </div>`;
   }).join('');
+  applyAvatars();
 }
 
 function filterChats() { renderChatList(); }
@@ -311,7 +355,7 @@ async function openChat(chatId) {
   main.innerHTML = `
     <div class="chat-header">
       <div class="av-wrap">
-        <div class="av av-md ${chatAvatarClass(chat)}">${chatIcon(chat)}</div>
+        <div class="av av-md ${chatAvatarClass(chat)}" data-av-chat="${chat.id}">${chatIcon(chat)}</div>
         ${peerDot}
       </div>
       <div class="chat-header-info" ${nameClickable}>
@@ -347,6 +391,7 @@ async function openChat(chatId) {
       </button>
     </div>`;
 
+  applyAvatars();
   if (S.ws && !document.hidden) S.ws.send(JSON.stringify({type:'read', chat_id: chatId}));
   const msgs = await api('GET', `/messages/chat/${chatId}`);
   if (msgs) renderMessages(msgs);
@@ -611,7 +656,7 @@ function openGroupMembers(chatId) {
   document.getElementById('gm-title').textContent = chatName(chat);
   document.getElementById('gm-list').innerHTML = (chat.members||[]).map(m => `
     <div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border)">
-      <div class="av av-sm ${avatarColor(m.id)}">${initials(m.display_name)}</div>
+      <div class="av av-sm ${avatarColor(m.id)}" data-av-user="${m.id}">${initials(m.display_name)}</div>
       <div>
         <div style="font-size:14px;font-weight:500">${esc(m.display_name)}</div>
         <div style="font-size:12px;color:var(--muted)">@${esc(m.username)}</div>
@@ -733,6 +778,8 @@ function connectWS() {
     }
 
     if (data.type==='avatar_updated') {
+      S.avatarTs = Date.now();
+      updateMeAvatar();
       renderChatList();
     }
   };
@@ -810,9 +857,10 @@ function renderModalUsers(containerId, multi, filter='') {
   const list = S.allUsers.filter(u=>!filter||u.display_name.toLowerCase().includes(filter)||u.username.toLowerCase().includes(filter));
   container.innerHTML = list.map(u=>`
     <div class="user-row" data-uid="${u.id}" onclick="${multi?`toggleModalUser(this,${u.id})`:`startDirect(${u.id})`}">
-      <div class="av av-sm ${avatarColor(u.id)}">${initials(u.display_name)}</div>
+      <div class="av av-sm ${avatarColor(u.id)}" data-av-user="${u.id}">${initials(u.display_name)}</div>
       <div><div class="uname">${esc(u.display_name)}</div><div class="ulogin">@${esc(u.username)}</div></div>
     </div>`).join('') || '<div style="padding:12px;color:var(--muted);font-size:13px">Нет пользователей</div>';
+  applyAvatars();
 }
 
 function filterModalUsers(q, containerId) {
@@ -867,10 +915,11 @@ function renderEgMembers(members) {
   const container = document.getElementById('eg-members');
   container.innerHTML = members.filter(m=>m.id!==S.user.id&&!S.egRemovedIds.has(m.id)).map(m=>`
     <div class="member-remove-row" id="egm-${m.id}">
-      <div class="av av-sm ${avatarColor(m.id)}">${initials(m.display_name)}</div>
+      <div class="av av-sm ${avatarColor(m.id)}" data-av-user="${m.id}">${initials(m.display_name)}</div>
       <div class="info"><div class="rname">${esc(m.display_name)}</div><div class="rlogin">@${esc(m.username)}</div></div>
       <button class="rm-btn" onclick="egRemoveMember(${m.id})">✕</button>
     </div>`).join('') || '<div style="font-size:13px;color:var(--muted)">Только вы</div>';
+  applyAvatars();
 }
 
 function renderEgAdd(existingMembers) {
@@ -879,9 +928,10 @@ function renderEgAdd(existingMembers) {
   const available = S.allUsers.filter(u=>!existingIds.has(u.id)||S.egRemovedIds.has(u.id));
   container.innerHTML = available.map(u=>`
     <div class="user-row${S.egAddIds.has(u.id)?' selected':''}" data-uid="${u.id}" onclick="egToggleAdd(this,${u.id})">
-      <div class="av av-sm ${avatarColor(u.id)}">${initials(u.display_name)}</div>
+      <div class="av av-sm ${avatarColor(u.id)}" data-av-user="${u.id}">${initials(u.display_name)}</div>
       <div><div class="uname">${esc(u.display_name)}</div><div class="ulogin">@${esc(u.username)}</div></div>
     </div>`).join('') || '<div style="font-size:13px;color:var(--muted)">Нет доступных</div>';
+  applyAvatars();
 }
 
 function egRemoveMember(id) {
