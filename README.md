@@ -42,7 +42,7 @@ Chat/
 С локального Mac выполни в терминале:
 
 ```bash
-scp -r "/Users/bolgov/Documents/My Projects/Chat/server" user@192.168.1.10:/opt/corp-chat
+scp -r "/server" user@192.168.1.10:/opt/corp-chat
 ```
 
 > Замени `user` и `192.168.1.10` на своего пользователя и IP сервера.
