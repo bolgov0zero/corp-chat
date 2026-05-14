@@ -141,7 +141,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .theirs .bubble { background: var(--bubble-theirs-bg); color: var(--bubble-theirs-text); border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
 .bubble.deleted { opacity: .5; font-style: italic; }
 .bubble .edited-tag { font-size: 10px; opacity: .7; margin-left: 4px; }
-.bubble-text { font-size: 1rem; }
+.bubble-text { font-size: 1rem; white-space: pre-wrap; word-break: break-word; }
 
 .msg-meta { display: flex; align-items: center; gap: 3px; margin-top: 2px; padding: 0 4px; }
 .msg-meta-hidden { visibility: hidden; height: 0; margin: 0; overflow: hidden; }
