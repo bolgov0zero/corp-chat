@@ -86,6 +86,10 @@ window.addEventListener('DOMContentLoaded', async () => {
       if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'set_status', status:'away'}));
     }
   });
+  // On window focus (e.g. Electron window receives focus) — ensure online status
+  window.addEventListener('focus', () => {
+    if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'set_status', status:'online'}));
+  });
 });
 
 // ── LOGIN ──
@@ -852,9 +856,12 @@ function connectWS() {
   };
   ws.onopen = () => {
     S.wsRetry = 0;
-    ws.send(JSON.stringify({ type: 'set_status', status: document.hidden ? 'away' : 'online' }));
-    // Refresh chat list on every connect/reconnect to catch missed events
     loadChats();
+    // Delay status send: at launch document.hidden may still be true while window is appearing
+    setTimeout(() => {
+      if (ws.readyState === 1)
+        ws.send(JSON.stringify({ type: 'set_status', status: document.hidden ? 'away' : 'online' }));
+    }, 300);
   };
   ws.onerror = () => ws.close();
 }
