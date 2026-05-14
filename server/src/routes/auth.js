@@ -15,4 +15,16 @@ router.post('/login', (req, res) => {
   res.json({ token, user: { id: user.id, username: user.username, display_name: user.display_name, is_admin: !!user.is_admin } });
 });
 
+router.get('/me', (req, res) => {
+  const auth = req.headers.authorization?.split(' ')[1];
+  if (!auth) return res.status(401).json({ error: 'No token' });
+  try {
+    const { verifyToken } = require('../auth');
+    const payload = verifyToken(auth);
+    const user = db.prepare('SELECT id, username, display_name, is_admin FROM users WHERE id = ?').get(payload.id);
+    if (!user) return res.status(401).json({ error: 'User not found' });
+    res.json({ ...user, is_admin: !!user.is_admin });
+  } catch { res.status(401).json({ error: 'Invalid token' }); }
+});
+
 module.exports = router;

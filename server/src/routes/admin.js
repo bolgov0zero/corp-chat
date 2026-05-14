@@ -46,10 +46,12 @@ router.get('/chats', (req, res) => {
   const chats = db.prepare(`
     SELECT c.id, c.type, c.name, c.created_at, c.created_by,
       (SELECT COUNT(*) FROM messages WHERE chat_id = c.id AND deleted = 0) as message_count,
-      (SELECT COUNT(*) FROM chat_members WHERE chat_id = c.id) as member_count
+      (SELECT COUNT(*) FROM chat_members WHERE chat_id = c.id) as member_count,
+      (SELECT GROUP_CONCAT(u.display_name, '|||') FROM users u
+       JOIN chat_members cm ON cm.user_id = u.id WHERE cm.chat_id = c.id ORDER BY cm.joined_at) as member_names
     FROM chats c ORDER BY c.created_at DESC
   `).all();
-  res.json(chats);
+  res.json(chats.map(c => ({ ...c, member_names: c.member_names ? c.member_names.split('|||') : [] })));
 });
 
 router.get('/chats/:id/members', (req, res) => {
