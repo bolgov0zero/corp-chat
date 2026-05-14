@@ -22,7 +22,7 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS chats (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    type TEXT NOT NULL CHECK(type IN ('direct', 'group')),
+    type TEXT NOT NULL CHECK(type IN ('direct', 'group', 'room')),
     name TEXT,
     created_by INTEGER REFERENCES users(id),
     created_at INTEGER DEFAULT (unixepoch())

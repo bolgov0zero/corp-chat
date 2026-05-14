@@ -9,8 +9,21 @@ router.get('/stats', (req, res) => {
     users: db.prepare('SELECT COUNT(*) as c FROM users').get().c,
     chats: db.prepare("SELECT COUNT(*) as c FROM chats WHERE type='direct'").get().c,
     groups: db.prepare("SELECT COUNT(*) as c FROM chats WHERE type='group'").get().c,
+    rooms: db.prepare("SELECT COUNT(*) as c FROM chats WHERE type='room'").get().c,
     messages: db.prepare('SELECT COUNT(*) as c FROM messages WHERE deleted = 0').get().c,
   });
+});
+
+// Create room (admin only)
+router.post('/rooms', (req, res) => {
+  const { name, member_ids } = req.body;
+  if (!name?.trim()) return res.status(400).json({ error: 'Missing name' });
+  const result = db.prepare("INSERT INTO chats (type, name, created_by) VALUES ('room', ?, ?)").run(name.trim(), req.user.id);
+  if (Array.isArray(member_ids) && member_ids.length) {
+    const ins = db.prepare('INSERT OR IGNORE INTO chat_members (chat_id, user_id) VALUES (?, ?)');
+    member_ids.forEach(uid => ins.run(result.lastInsertRowid, uid));
+  }
+  res.json({ id: result.lastInsertRowid });
 });
 
 router.get('/users', (req, res) => {

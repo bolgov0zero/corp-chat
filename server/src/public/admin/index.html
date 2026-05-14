@@ -52,7 +52,7 @@ nav{flex:1;padding:12px 0;overflow-y:auto}
 .topbar .actions{display:flex;gap:8px;align-items:center}
 .page-body{flex:1;overflow-y:auto;padding:24px 28px}
 /* STATS */
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:28px}
 .stat-card{background:var(--card);border-radius:var(--radius);padding:20px 24px;border:1px solid var(--border);display:flex;align-items:center;gap:16px}
 .stat-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
 .stat-icon.blue{background:#dbeafe}.stat-icon.green{background:#dcfce7}.stat-icon.purple{background:#f3e8ff}.stat-icon.orange{background:#ffedd5}
@@ -137,9 +137,13 @@ tbody tr:hover td{background:#f8fafc}
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg>
         Пользователи
       </div>
+      <div class="nav-item" onclick="nav('rooms')" data-page="rooms">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Комнаты
+      </div>
       <div class="nav-item" onclick="nav('chats')" data-page="chats">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        Чаты и комнаты
+        Личные чаты и группы
       </div>
     </nav>
     <div class="sidebar-footer">
@@ -283,8 +287,8 @@ async function doLogin() {
 
 function logout() { token = null; location.reload(); }
 
-const pages = { dashboard: renderDashboard, users: renderUsers, chats: renderChats };
-const pageTitles = { dashboard: 'Главная', users: 'Пользователи', chats: 'Чаты и комнаты' };
+const pages = { dashboard: renderDashboard, users: renderUsers, rooms: renderRooms, chats: renderChats };
+const pageTitles = { dashboard: 'Главная', users: 'Пользователи', rooms: 'Комнаты', chats: 'Личные чаты и группы' };
 
 function nav(page) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.page === page));
@@ -309,10 +313,110 @@ async function renderDashboard() {
   document.getElementById('page-body').innerHTML = `
     <div class="stats-grid">
       <div class="stat-card"><div class="stat-icon blue">👤</div><div><div class="stat-val">${s.users}</div><div class="stat-lbl">Пользователей</div></div></div>
-      <div class="stat-card"><div class="stat-icon green">💬</div><div><div class="stat-val">${s.chats}</div><div class="stat-lbl">Личных чатов</div></div></div>
-      <div class="stat-card"><div class="stat-icon purple">👥</div><div><div class="stat-val">${s.groups}</div><div class="stat-lbl">Комнат / групп</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">🏠</div><div><div class="stat-val">${s.rooms}</div><div class="stat-lbl">Комнат</div></div></div>
+      <div class="stat-card"><div class="stat-icon purple">👥</div><div><div class="stat-val">${s.groups}</div><div class="stat-lbl">Групп</div></div></div>
+      <div class="stat-card"><div class="stat-icon blue">💬</div><div><div class="stat-val">${s.chats}</div><div class="stat-lbl">Личных чатов</div></div></div>
       <div class="stat-card"><div class="stat-icon orange">✉️</div><div><div class="stat-val">${s.messages}</div><div class="stat-lbl">Сообщений</div></div></div>
     </div>`;
+}
+
+// ROOMS
+let allRooms = [], allUsersCache = [];
+async function renderRooms() {
+  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary btn-sm" onclick="openCreateRoom()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Создать комнату</button>`;
+  [allRooms, allUsersCache] = await Promise.all([api('GET','/api/admin/chats'), api('GET','/api/admin/users')]);
+  allRooms = allRooms.filter(c => c.type === 'room');
+  renderRoomsTable();
+}
+
+function renderRoomsTable() {
+  const rows = allRooms.length ? allRooms.map(r => `
+    <tr>
+      <td style="font-weight:600;color:var(--muted);font-size:12px">#${r.id}</td>
+      <td style="font-weight:700">${esc(r.name||'—')}</td>
+      <td>${r.member_count}</td>
+      <td>${r.message_count}</td>
+      <td style="color:var(--muted)">${fmtDate(r.created_at)}</td>
+      <td><div class="td-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openRoomMembers(${r.id},'${esc(r.name||'')}')">Участники</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearHistory(${r.id})">Очистить историю</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteRoom(${r.id})">Удалить</button>
+      </div></td>
+    </tr>`).join('') : '<tr class="empty-row"><td colspan="6">Комнат нет. Создайте первую!</td></tr>';
+  document.getElementById('page-body').innerHTML = `
+    <div class="card">
+      <div class="card-header"><h3>Комнаты (${allRooms.length})</h3></div>
+      <table><thead><tr><th>ID</th><th>Название</th><th>Участников</th><th>Сообщений</th><th>Создана</th><th>Действия</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+    </div>`;
+}
+
+// Create room modal state
+let createRoomSelectedIds = new Set();
+function openCreateRoom() {
+  createRoomSelectedIds = new Set();
+  const usersHtml = allUsersCache.map(u => `
+    <div class="checkbox-row" onclick="toggleRoomUser(this,${u.id})">
+      <input type="checkbox" onclick="event.stopPropagation();toggleRoomUser(this.parentElement,${u.id})">
+      <div class="av" style="width:28px;height:28px;font-size:11px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">${initials(u.display_name)}</div>
+      <div><div style="font-size:13px;font-weight:600">${esc(u.display_name)}</div><div style="font-size:11px;color:var(--muted)">@${esc(u.username)}</div></div>
+    </div>`).join('');
+  document.getElementById('members-title').textContent = 'Создать комнату';
+  document.getElementById('members-list').innerHTML = `
+    <div class="form-group" style="margin-bottom:12px"><label>Название комнаты</label><input id="room-name-input" placeholder="Например: Общий, Разработка…"></div>`;
+  document.getElementById('add-members-list').innerHTML = usersHtml;
+  document.getElementById('confirm-ok').style.display = 'none';
+  // Reuse members modal with custom footer
+  document.querySelector('#modal-members .modal-footer').innerHTML = `
+    <button class="btn btn-ghost" onclick="closeModal('modal-members')">Отмена</button>
+    <button class="btn btn-primary" onclick="submitCreateRoom()">Создать комнату</button>`;
+  openModal('modal-members');
+}
+
+function toggleRoomUser(el, id) {
+  el.classList.toggle('selected');
+  el.querySelector('input').checked = el.classList.contains('selected');
+  createRoomSelectedIds.has(id) ? createRoomSelectedIds.delete(id) : createRoomSelectedIds.add(id);
+}
+
+async function submitCreateRoom() {
+  const name = document.getElementById('room-name-input')?.value.trim();
+  if (!name) { toast('Введите название комнаты', 'error'); return; }
+  const data = await api('POST', '/api/admin/rooms', { name, member_ids: [...createRoomSelectedIds] });
+  if (data?.id) { closeModal('modal-members'); toast('Комната создана', 'success'); renderRooms(); }
+  else toast(data?.error || 'Ошибка', 'error');
+}
+
+async function openRoomMembers(chatId, name) {
+  membersForChatId = chatId;
+  selectedAddMembers = new Set();
+  document.getElementById('members-title').textContent = `Участники: ${name}`;
+  const [members, allU] = await Promise.all([api('GET', '/api/admin/chats/' + chatId + '/members'), api('GET', '/api/admin/users')]);
+  const memberIds = new Set(members.map(m => m.id));
+  document.getElementById('members-list').innerHTML = members.map(m => `
+    <div class="member-row">
+      <div class="av">${initials(m.display_name)}</div>
+      <div class="info"><div class="mname">${esc(m.display_name)}</div><div class="muname">@${esc(m.username)}</div></div>
+      <button class="btn btn-danger btn-sm" onclick="removeMember(${chatId},${m.id},this)">Удалить</button>
+    </div>`).join('') || '<p style="color:var(--muted);font-size:13px">Нет участников</p>';
+  document.getElementById('add-members-list').innerHTML = allU.filter(u => !memberIds.has(u.id)).map(u => `
+    <div class="checkbox-row" onclick="toggleAddMember(this,${u.id})">
+      <input type="checkbox" onclick="event.stopPropagation();toggleAddMember(this.parentElement,${u.id})">
+      <div class="av" style="width:28px;height:28px;font-size:11px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">${initials(u.display_name)}</div>
+      <div><div style="font-size:13px;font-weight:600">${esc(u.display_name)}</div><div style="font-size:11px;color:var(--muted)">@${esc(u.username)}</div></div>
+    </div>`).join('') || '<p style="color:var(--muted);font-size:13px">Все пользователи уже в комнате</p>';
+  document.querySelector('#modal-members .modal-footer').innerHTML = `
+    <button class="btn btn-ghost" onclick="closeModal('modal-members')">Закрыть</button>
+    <button class="btn btn-primary" onclick="addSelectedMembers()">Добавить выбранных</button>`;
+  openModal('modal-members');
+}
+
+function deleteRoom(id) {
+  confirm('Удалить комнату?', `Комната #${id} и все сообщения будут удалены безвозвратно.`, async () => {
+    await api('DELETE', '/api/chats/admin/' + id);
+    toast('Комната удалена');
+    renderRooms();
+  });
 }
 
 // USERS

@@ -90,8 +90,11 @@ router.delete('/:id/members/:userId', authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
-// Leave group
+// Leave group (not allowed for rooms)
 router.post('/:id/leave', authMiddleware, (req, res) => {
+  const chat = db.prepare('SELECT type FROM chats WHERE id = ?').get(req.params.id);
+  if (!chat) return res.status(404).json({ error: 'Not found' });
+  if (chat.type === 'room') return res.status(403).json({ error: 'Cannot leave a room' });
   db.prepare('DELETE FROM chat_members WHERE chat_id = ? AND user_id = ?').run(req.params.id, req.user.id);
   res.json({ ok: true });
 });

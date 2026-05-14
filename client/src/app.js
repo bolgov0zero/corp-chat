@@ -127,8 +127,20 @@ async function loadChats() {
 
 function chatName(chat) {
   if (chat.type==='group') return chat.name||'Группа';
+  if (chat.type==='room') return chat.name||'Комната';
   const other = chat.members?.find(m=>m.id!==S.user.id);
   return other?.display_name||'Чат';
+}
+
+function chatAvatarClass(chat) {
+  if (chat.type==='room') return 'av-orange';
+  if (chat.type==='group') return 'av-green';
+  return avatarColor(chat.id);
+}
+
+function chatIcon(chat) {
+  if (chat.type==='room') return '🏠';
+  return initials(chatName(chat));
 }
 
 function renderChatList() {
@@ -144,7 +156,7 @@ function renderChatList() {
     if (preview.length>40) preview = preview.slice(0,40)+'…';
     const time = lm ? fmtTime(lm.sent_at) : '';
     return `<div class="chat-item${c.id===S.activeChatId?' active':''}" onclick="openChat(${c.id})">
-      <div class="av av-md ${c.type==='group'?'av-green':avatarColor(c.id)}">${initials(name)}</div>
+      <div class="av av-md ${chatAvatarClass(c)}">${chatIcon(c)}</div>
       <div class="info">
         <div class="ci-name">${esc(name)}</div>
         <div class="ci-preview">${esc(preview)}</div>
@@ -168,14 +180,16 @@ async function openChat(chatId) {
   const chat = S.chats.find(c=>c.id===chatId);
   const name = chatName(chat);
   const isGroup = chat.type==='group';
+  const isRoom = chat.type==='room';
   const memberCount = chat.members?.length||0;
+  const sub = isRoom ? `🏠 Комната · ${memberCount} участников` : isGroup ? `${memberCount} участников` : 'Личный чат';
   const main = document.getElementById('chat-main');
   main.innerHTML = `
     <div class="chat-header">
-      <div class="av av-md ${isGroup?'av-green':avatarColor(chatId)}">${initials(name)}</div>
+      <div class="av av-md ${chatAvatarClass(chat)}">${chatIcon(chat)}</div>
       <div class="chat-header-info">
         <div class="ch-name">${esc(name)}</div>
-        <div class="ch-sub">${isGroup?`${memberCount} участников`:'Личный чат'}</div>
+        <div class="ch-sub">${sub}</div>
       </div>
       <div class="chat-header-actions">
         ${isGroup?`<button class="icon-btn light" title="Редактировать группу" onclick="openEditGroup(${chatId})">
@@ -184,9 +198,9 @@ async function openChat(chatId) {
         <button class="icon-btn light" title="Выйти из группы" onclick="leaveGroup(${chatId})">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         </button>`:''}
-        <button class="icon-btn light" title="Удалить чат" onclick="deleteChat(${chatId})">
+        ${!isRoom?`<button class="icon-btn light" title="Удалить чат" onclick="deleteChat(${chatId})">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-        </button>
+        </button>`:''}
       </div>
     </div>
     <div class="messages" id="messages"></div>
