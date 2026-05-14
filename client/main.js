@@ -4,10 +4,11 @@ const zlib = require('zlib');
 const fs = require('fs');
 
 // ── HIGH AVAILABILITY ──
-// Config is stored outside userData so it survives userData path changes.
-// On Windows: %APPDATA%\corp-chat-ha.json
-const HA_CONFIG_PATH = process.platform === 'win32' && process.env.APPDATA
-  ? path.join(process.env.APPDATA, 'corp-chat-ha.json')
+// Config stored in ProgramData — one config per machine, shared across all Windows users.
+// Each user mounts their own personal network drive (e.g. U:) so userData resolves
+// to their personal roaming storage automatically.
+const HA_CONFIG_PATH = process.platform === 'win32' && process.env.PROGRAMDATA
+  ? path.join(process.env.PROGRAMDATA, 'Corp-Chat', 'ha-config.json')
   : null;
 
 function readHAConfig() {
@@ -225,11 +226,12 @@ ipcMain.handle('ha-get-config', () => readHAConfig());
 ipcMain.handle('ha-set-config', (_, drive) => {
   if (!HA_CONFIG_PATH || !drive) return false;
   try {
+    fs.mkdirSync(path.dirname(HA_CONFIG_PATH), { recursive: true });
     fs.writeFileSync(HA_CONFIG_PATH, JSON.stringify({ drive }), 'utf8');
     app.relaunch();
     app.quit();
     return true;
-  } catch { return false; }
+  } catch (e) { return { error: e.message }; }
 });
 
 ipcMain.handle('ha-clear-config', () => {
