@@ -10,6 +10,7 @@ const S = {
   ctx: { messageId: null, canEdit: false },
   editingMessageId: null,
   egChatId: null, egRemovedIds: new Set(), egAddIds: new Set(),
+  presence: {}, // userId -> 'online'|'away'|'offline'
 };
 
 const SESSION_KEY = 'corp_chat_v2';
@@ -64,10 +65,15 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.addEventListener('keydown', e => { if(e.key==='Escape'){ hideCtxMenu(); closeSettings(); }});
   window.electron?.onOpenChat(chatId => { const chat = S.chats.find(c=>c.id===chatId); if(chat) openChat(chatId); });
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && S.activeChatId && S.ws?.readyState===1) {
-      S.ws.send(JSON.stringify({type:'read', chat_id: S.activeChatId}));
-      S.unread[S.activeChatId] = 0;
-      updateUnreadTotal();
+    if (!document.hidden) {
+      if (S.activeChatId && S.ws?.readyState===1) {
+        S.ws.send(JSON.stringify({type:'read', chat_id: S.activeChatId}));
+        S.unread[S.activeChatId] = 0;
+        updateUnreadTotal();
+      }
+      if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'set_status', status:'online'}));
+    } else {
+      if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'set_status', status:'away'}));
     }
   });
 });
@@ -111,6 +117,7 @@ function enterApp() {
   loadChats();
   loadUsers();
   connectWS();
+  loadPresence();
 }
 
 // ── SETTINGS ──
@@ -172,8 +179,13 @@ function renderChatList() {
     let preview = lm ? (lm.deleted?'Сообщение удалено':lm.text) : 'Нет сообщений';
     if (preview.length>40) preview = preview.slice(0,40)+'…';
     const time = lm ? fmtTime(lm.sent_at) : '';
+    const peerId = getPeerUserId(c);
+    const dot = peerId ? presenceDot(peerId) : '';
     return `<div class="chat-item${c.id===S.activeChatId?' active':''}" onclick="openChat(${c.id})">
-      <div class="av av-md ${chatAvatarClass(c)}">${chatIcon(c)}</div>
+      <div class="av-wrap">
+        <div class="av av-md ${chatAvatarClass(c)}">${chatIcon(c)}</div>
+        ${dot}
+      </div>
       <div class="info">
         <div class="ci-name">${esc(name)}</div>
         <div class="ci-preview">${esc(preview)}</div>
@@ -198,21 +210,28 @@ async function openChat(chatId) {
   const name = chatName(chat);
   const isGroup = chat.type==='group';
   const isRoom = chat.type==='room';
+  const isCreator = chat.created_by === S.user.id;
   const memberCount = chat.members?.length||0;
+  const peerId = getPeerUserId(chat);
+  const peerDot = peerId ? presenceDot(peerId) : '';
   const sub = isRoom ? `🏠 Комната · ${memberCount} участников` : isGroup ? `${memberCount} участников` : 'Личный чат';
+  const nameClickable = (isGroup || isRoom) ? `style="cursor:pointer" onclick="openGroupMembers(${chatId})"` : '';
   const main = document.getElementById('chat-main');
   main.innerHTML = `
     <div class="chat-header">
-      <div class="av av-md ${chatAvatarClass(chat)}">${chatIcon(chat)}</div>
-      <div class="chat-header-info">
+      <div class="av-wrap">
+        <div class="av av-md ${chatAvatarClass(chat)}">${chatIcon(chat)}</div>
+        ${peerDot}
+      </div>
+      <div class="chat-header-info" ${nameClickable}>
         <div class="ch-name">${esc(name)}</div>
         <div class="ch-sub">${sub}</div>
       </div>
       <div class="chat-header-actions">
-        ${isGroup?`<button class="icon-btn light" title="Редактировать группу" onclick="openEditGroup(${chatId})">
+        ${isGroup && isCreator ? `<button class="icon-btn light" title="Редактировать группу" onclick="openEditGroup(${chatId})">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        </button>
-        <button class="icon-btn light" title="Выйти из группы" onclick="leaveGroup(${chatId})">
+        </button>` : ''}
+        ${isGroup?`<button class="icon-btn light" title="Выйти из группы" onclick="leaveGroup(${chatId})">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         </button>`:''}
         ${!isRoom?`<button class="icon-btn light" title="Удалить чат" onclick="deleteChat(${chatId})">
@@ -428,6 +447,22 @@ async function deleteChat(chatId) {
   loadChats();
 }
 
+function openGroupMembers(chatId) {
+  const chat = S.chats.find(c=>c.id===chatId);
+  if (!chat) return;
+  document.getElementById('gm-title').textContent = chatName(chat);
+  document.getElementById('gm-list').innerHTML = (chat.members||[]).map(m => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border)">
+      <div class="av av-sm ${avatarColor(m.id)}">${initials(m.display_name)}</div>
+      <div>
+        <div style="font-size:14px;font-weight:500">${esc(m.display_name)}</div>
+        <div style="font-size:12px;color:var(--muted)">@${esc(m.username)}</div>
+      </div>
+      ${chat.created_by===m.id?'<span style="margin-left:auto;font-size:11px;color:var(--muted);background:var(--bg);padding:2px 8px;border-radius:10px">создатель</span>':''}
+    </div>`).join('') || '<div style="color:var(--muted);text-align:center;padding:20px">Нет участников</div>';
+  openModal('modal-group-members');
+}
+
 async function leaveGroup(chatId) {
   if (!confirm('Выйти из группы?')) return;
   await api('POST', `/chats/${chatId}/leave`);
@@ -491,6 +526,23 @@ function connectWS() {
       loadChats();
     }
 
+    if (data.type==='presence') {
+      S.presence[data.user_id] = data.status;
+      renderChatList();
+      // Update dot in chat header if this is the open direct chat
+      if (S.activeChatId) {
+        const chat = S.chats.find(c=>c.id===S.activeChatId);
+        if (chat && getPeerUserId(chat) === data.user_id) {
+          const dotEl = document.querySelector('.chat-header .presence-dot');
+          if (dotEl) {
+            const color = data.status==='online'?'#22c55e':data.status==='away'?'#f97316':'#ef4444';
+            dotEl.style.background = color;
+            dotEl.title = data.status;
+          }
+        }
+      }
+    }
+
     if (data.type==='status_update') {
       const m = data.message;
       if (S.activeChatId===m.chat_id && m.sender_id===S.user.id) {
@@ -518,6 +570,23 @@ function updateUnreadTotal() {
 async function loadUsers() {
   const users = await api('GET','/users');
   if (users) S.allUsers = users;
+}
+
+// ── PRESENCE ──
+async function loadPresence() {
+  const data = await api('GET', '/users/presence');
+  if (data) { S.presence = data; renderChatList(); }
+}
+
+function presenceDot(userId) {
+  const s = S.presence[userId] || 'offline';
+  const color = s === 'online' ? '#22c55e' : s === 'away' ? '#f97316' : '#ef4444';
+  return `<span class="presence-dot" style="background:${color}" title="${s}"></span>`;
+}
+
+function getPeerUserId(chat) {
+  if (chat.type !== 'direct') return null;
+  return chat.members?.find(m => m.id !== S.user.id)?.id || null;
 }
 
 // ── NEW CHAT MODAL ──

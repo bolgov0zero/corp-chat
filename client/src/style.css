@@ -101,6 +101,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .av-sm { width: 32px; height: 32px; font-size: 13px; }
 .av-md { width: 38px; height: 38px; font-size: 15px; }
 .av-lg { width: 44px; height: 44px; font-size: 17px; }
+.av-wrap { position: relative; flex-shrink: 0; }
+.presence-dot { position: absolute; bottom: 1px; right: 1px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--sidebar-bg); }
+.chat-header .presence-dot { border-color: var(--card); }
 .av-blue { background: #2563eb; }
 .av-green { background: #059669; }
 .av-purple { background: #7c3aed; }

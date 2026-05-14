@@ -4,6 +4,8 @@ const { wsAuth } = require('./auth');
 
 // userId -> Set<ws>
 const clients = new Map();
+// userId -> 'online'|'away'|'offline'
+const userStatus = new Map();
 
 function getConn(userId) { return clients.get(userId) || new Set(); }
 
@@ -17,6 +19,22 @@ function broadcast(chatId, payload, excludeUserId = null) {
 
 function sendTo(userId, payload) {
   getConn(userId).forEach(ws => { if (ws.readyState === 1) ws.send(JSON.stringify(payload)); });
+}
+
+function getStatus(userId) { return userStatus.get(userId) || 'offline'; }
+
+// Broadcast status change to all users who share a direct chat with this user
+function broadcastStatus(userId, status) {
+  userStatus.set(userId, status);
+  const peers = db.prepare(`
+    SELECT DISTINCT cm2.user_id FROM chat_members cm1
+    JOIN chat_members cm2 ON cm2.chat_id = cm1.chat_id AND cm2.user_id != cm1.user_id
+    JOIN chats c ON c.id = cm1.chat_id WHERE cm1.user_id = ? AND c.type = 'direct'
+  `).all(userId).map(r => r.user_id);
+  const payload = JSON.stringify({ type: 'presence', user_id: userId, status });
+  peers.forEach(peerId => {
+    getConn(peerId).forEach(ws => { if (ws.readyState === 1) ws.send(payload); });
+  });
 }
 
 function getMessageWithStatus(msgId, viewerId) {
@@ -45,6 +63,7 @@ function setup(server) {
 
     if (!clients.has(user.id)) clients.set(user.id, new Set());
     clients.get(user.id).add(ws);
+    broadcastStatus(user.id, 'online');
 
     ws.on('message', raw => {
       let data; try { data = JSON.parse(raw); } catch { return; }
@@ -102,16 +121,24 @@ function setup(server) {
         broadcast(msg.chat_id, { type: 'message_deleted', message_id, chat_id: msg.chat_id });
       }
 
+      if (data.type === 'set_status') {
+        const s = data.status;
+        if (s === 'online' || s === 'away') broadcastStatus(user.id, s);
+      }
+
       if (data.type === 'ping') ws.send(JSON.stringify({ type: 'pong' }));
     });
 
     ws.on('close', () => {
       const conns = clients.get(user.id);
-      if (conns) { conns.delete(ws); if (!conns.size) clients.delete(user.id); }
+      if (conns) {
+        conns.delete(ws);
+        if (!conns.size) { clients.delete(user.id); broadcastStatus(user.id, 'offline'); }
+      }
     });
 
     ws.send(JSON.stringify({ type: 'connected', user_id: user.id }));
   });
 }
 
-module.exports = { setup, broadcast, sendTo };
+module.exports = { setup, broadcast, sendTo, getStatus };

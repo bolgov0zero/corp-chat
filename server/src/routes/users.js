@@ -2,11 +2,25 @@ const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
+const { getStatus } = require('../ws');
 
 // List all users (for starting chats)
 router.get('/', authMiddleware, (req, res) => {
   const users = db.prepare('SELECT id, username, display_name FROM users WHERE id != ? ORDER BY display_name').all(req.user.id);
   res.json(users);
+});
+
+// Get presence statuses for direct chat peers
+router.get('/presence', authMiddleware, (req, res) => {
+  const peers = db.prepare(`
+    SELECT DISTINCT u.id FROM users u
+    JOIN chat_members cm1 ON cm1.user_id = u.id
+    JOIN chat_members cm2 ON cm2.chat_id = cm1.chat_id AND cm2.user_id = ?
+    JOIN chats c ON c.id = cm1.chat_id WHERE u.id != ? AND c.type = 'direct'
+  `).all(req.user.id, req.user.id);
+  const result = {};
+  peers.forEach(({ id }) => { result[id] = getStatus(id); });
+  res.json(result);
 });
 
 // Admin: create user
