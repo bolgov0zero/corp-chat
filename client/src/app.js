@@ -63,6 +63,13 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.addEventListener('click', hideCtxMenu);
   document.addEventListener('keydown', e => { if(e.key==='Escape'){ hideCtxMenu(); closeSettings(); }});
   window.electron?.onOpenChat(chatId => { const chat = S.chats.find(c=>c.id===chatId); if(chat) openChat(chatId); });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && S.activeChatId && S.ws?.readyState===1) {
+      S.ws.send(JSON.stringify({type:'read', chat_id: S.activeChatId}));
+      S.unread[S.activeChatId] = 0;
+      updateUnreadTotal();
+    }
+  });
 });
 
 // ── LOGIN ──
@@ -226,7 +233,7 @@ async function openChat(chatId) {
       </button>
     </div>`;
 
-  if (S.ws) S.ws.send(JSON.stringify({type:'read', chat_id: chatId}));
+  if (S.ws && !document.hidden) S.ws.send(JSON.stringify({type:'read', chat_id: chatId}));
   const msgs = await api('GET', `/messages/chat/${chatId}`);
   if (msgs) renderMessages(msgs);
   document.getElementById('msg-input')?.focus();
@@ -394,7 +401,7 @@ function connectWS() {
       const chatId = message.chat_id;
       const chat = S.chats.find(c=>c.id===chatId);
       if (chat) chat.last_message = message;
-      if (S.activeChatId===chatId) {
+      if (S.activeChatId===chatId && !document.hidden) {
         appendMsg(message);
         if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'read', chat_id:chatId}));
         if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'delivered', message_id:message.id}));

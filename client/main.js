@@ -34,55 +34,62 @@ function makePNGFromPixels(w, h, pixels) {
   return Buffer.concat([sig, ihdr, idat, iend]);
 }
 
-// Envelope icon for blinking (orange, 32x32)
+// Envelope icon for blinking: orange envelope on transparent background (44x44 @2x = 22pt)
 function makeEnvelopePNG() {
-  const W = 32, H = 32;
-  const px = Buffer.alloc(W * H * 4);
-  const O = [234, 88, 12, 255];   // orange bg
-  const L = [255, 255, 255, 255]; // white
+  const W = 44, H = 44;
+  const px = Buffer.alloc(W * H * 4); // all transparent by default
+  const E = [234, 88, 12, 255]; // orange
   function set(x, y, c) {
     if (x < 0 || x >= W || y < 0 || y >= H) return;
     const i = (y * W + x) * 4;
     px[i] = c[0]; px[i+1] = c[1]; px[i+2] = c[2]; px[i+3] = c[3];
   }
   function rect(x1, y1, x2, y2, c) { for (let y=y1;y<=y2;y++) for (let x=x1;x<=x2;x++) set(x,y,c); }
-  // Fill orange background
-  rect(0, 0, W-1, H-1, O);
-  // Envelope body (white rectangle)
-  rect(4, 9, 27, 22, L);
-  // Envelope flap (V-shape pointing down from top)
-  for (let i = 0; i <= 11; i++) {
-    set(4 + i, 9 + i, O);
-    set(27 - i, 9 + i, O);
+  // Envelope body outline (border only, 2px thick)
+  const [x1,y1,x2,y2] = [5, 12, 39, 32];
+  for (let t=0; t<2; t++) {
+    for (let x=x1+t; x<=x2-t; x++) { set(x, y1+t, E); set(x, y2-t, E); }
+    for (let y=y1+t; y<=y2-t; y++) { set(x1+t, y, E); set(x2-t, y, E); }
   }
-  // Bottom fold line (subtle V pointing up)
-  for (let i = 0; i <= 5; i++) {
-    set(4 + i, 22 - i, O);
-    set(27 - i, 22 - i, O);
+  // Envelope flap V (2px thick lines from top corners to center)
+  const mx = Math.floor((x1+x2)/2);
+  const my = Math.floor((y1+y2)/2) - 2;
+  for (let t=0; t<2; t++) {
+    for (let i=0; i<=(mx-x1); i++) {
+      const frac = i / (mx - x1);
+      const fy = Math.round(y1 + frac * (my - y1));
+      set(x1 + i + t, fy, E);
+      set(x2 - i - t, fy, E);
+    }
   }
   return makePNGFromPixels(W, H, px);
 }
 
-const ICON_BLINK = makeEnvelopePNG();
-
-function makeImage(buf) {
-  return nativeImage.createFromBuffer(buf, { scaleFactor: 1 });
+// Load normal tray icon: electron app icon, displayed as template on macOS
+function getNormalImage() {
+  const iconPath = path.join(__dirname, 'src', 'assets', 'tray-icon.png');
+  try {
+    const fs = require('fs');
+    const buf = fs.readFileSync(iconPath);
+    // scaleFactor:2 → 32px image displays as 16pt (proper menu bar size)
+    const img = nativeImage.createFromBuffer(buf, { scaleFactor: 2 });
+    if (!img.isEmpty() && process.platform === 'darwin') img.setTemplateImage(true);
+    return img;
+  } catch { return nativeImage.createEmpty(); }
 }
 
-const TRAY_ICON_PATH = path.join(__dirname, 'src', 'assets', 'tray-icon.png');
-const ICON_NORMAL_IMAGE = (() => {
-  try { return nativeImage.createFromPath(TRAY_ICON_PATH); } catch { return null; }
-})();
+const ICON_BLINK = makeEnvelopePNG();
 
-function getNormalImage() {
-  return (ICON_NORMAL_IMAGE && !ICON_NORMAL_IMAGE.isEmpty()) ? ICON_NORMAL_IMAGE : nativeImage.createEmpty();
+function getBlinkImage() {
+  // scaleFactor:2 → 44px image displays as 22pt
+  return nativeImage.createFromBuffer(ICON_BLINK, { scaleFactor: 2 });
 }
 
 function startBlink() {
   if (blinkInterval) return;
   blinkInterval = setInterval(() => {
     blinkState = !blinkState;
-    try { tray?.setImage(blinkState ? makeImage(ICON_BLINK) : getNormalImage()); } catch {}
+    try { tray?.setImage(blinkState ? getBlinkImage() : getNormalImage()); } catch {}
   }, 600);
 }
 
