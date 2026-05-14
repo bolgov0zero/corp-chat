@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
-const { sendTo } = require('../ws');
+const { sendTo, getStatus } = require('../ws');
 
 router.use(authMiddleware, adminMiddleware);
 
@@ -44,7 +44,8 @@ router.delete('/chats/:id/members/:userId', (req, res) => {
 });
 
 router.get('/users', (req, res) => {
-  res.json(db.prepare('SELECT id, username, display_name, is_admin, created_at FROM users ORDER BY created_at DESC').all());
+  const users = db.prepare('SELECT id, username, display_name, is_admin, created_at FROM users ORDER BY created_at DESC').all();
+  res.json(users.map(u => ({ ...u, status: getStatus(u.id) })));
 });
 
 router.get('/chats', (req, res) => {

@@ -107,10 +107,29 @@ tbody tr:hover td{background:#f8fafc}
 .badge-purple{background:#ede9fe;color:#6d28d9}
 
 /* ── AVATAR ── */
-.av-table{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;color:#fff}
+.av-wrap{position:relative;display:inline-flex;flex-shrink:0}
+.av-table{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;color:#fff;overflow:hidden}
+.av-table img{width:100%;height:100%;object-fit:cover;display:block}
+.av-table.av-30{width:30px;height:30px}
+.av-table.av-28{width:28px;height:28px;font-size:11px}
 .user-cell{display:flex;align-items:center;gap:10px}
 .user-cell-info .name{font-weight:600;font-size:13px;color:var(--text)}
 .user-cell-info .uname{font-size:11px;color:var(--muted)}
+/* ── STATUS DOT ── */
+.status-dot{position:absolute;bottom:-1px;right:-1px;width:9px;height:9px;border-radius:50%;border:2px solid #fff;flex-shrink:0}
+.status-dot.online{background:#22c55e}
+.status-dot.away{background:#f59e0b}
+.status-dot.offline{display:none}
+/* ── ONLINE USERS PANEL ── */
+.online-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.online-user-card{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow)}
+.online-user-card .av-wrap .av-table{width:36px;height:36px;font-size:13px;border-radius:9px}
+.online-user-card .av-wrap .status-dot{width:10px;height:10px}
+.online-user-name{font-size:13px;font-weight:600;color:var(--text)}
+.online-user-sub{font-size:11px;color:var(--muted)}
+.online-status-label{font-size:11px;font-weight:700;letter-spacing:.3px}
+.online-status-label.online{color:#16a34a}
+.online-status-label.away{color:#d97706}
 
 /* ── FILTER PILLS ── */
 .filter-pills{display:flex;gap:6px;margin-bottom:16px}
@@ -374,9 +393,18 @@ function avColor(name) { let h=0; for(let c of (name||'')) h=(h*31+c.charCodeAt(
 function initials(name) { return (name||'?').split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?'; }
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtDate(ts) { return ts ? new Date(ts*1000).toLocaleDateString('ru',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—'; }
-function avHtml(name, size=32, radius=8) {
-  const bg = avColor(name); const sz = `width:${size}px;height:${size}px;border-radius:${radius}px;font-size:${Math.round(size*0.38)}px`;
-  return `<div class="av-table" style="${sz};background:${bg}">${initials(name)}</div>`;
+
+// Build avatar HTML: tries real photo, falls back to initials
+// userId=null means it's a chat/room (no photo)
+function avHtml(name, size=32, radius=8, userId=null, status=null) {
+  const bg = avColor(name);
+  const sz = `width:${size}px;height:${size}px;border-radius:${radius}px;font-size:${Math.round(size*0.38)}px`;
+  const dotHtml = status && status !== 'offline'
+    ? `<div class="status-dot ${status}"></div>` : '';
+  const imgHtml = userId
+    ? `<img src="/api/users/${userId}/avatar?t=${Date.now()}" style="width:100%;height:100%;object-fit:cover;border-radius:${radius}px" onerror="this.style.display='none'" loading="lazy">`
+    : '';
+  return `<div class="av-wrap"><div class="av-table" style="${sz};background:${bg}">${imgHtml}${initials(name)}</div>${dotHtml}</div>`;
 }
 
 function toast(msg, type='') {
@@ -456,7 +484,21 @@ function confirm(title, text, onOk) {
 // ── DASHBOARD ──
 async function renderDashboard() {
   document.getElementById('topbar-actions').innerHTML='';
-  const s = await api('GET','/api/admin/stats');
+  const [s, users] = await Promise.all([api('GET','/api/admin/stats'), api('GET','/api/admin/users')]);
+  const active = users.filter(u => u.status === 'online' || u.status === 'away');
+  const online = active.filter(u => u.status === 'online');
+  const away = active.filter(u => u.status === 'away');
+
+  const onlineCards = active.length ? active.map(u => `
+    <div class="online-user-card">
+      ${avHtml(u.display_name, 36, 9, u.id, u.status)}
+      <div>
+        <div class="online-user-name">${esc(u.display_name)}</div>
+        <div class="online-status-label ${u.status}">${u.status === 'online' ? 'В сети' : 'Отошёл'}</div>
+      </div>
+    </div>`).join('')
+    : `<div style="color:var(--muted);font-size:13px;padding:8px 0">Нет активных пользователей</div>`;
+
   document.getElementById('page-body').innerHTML=`
     <div class="stats-grid">
       <div class="stat-card">
@@ -480,6 +522,22 @@ async function renderDashboard() {
         <div><div class="stat-val">${s.messages}</div><div class="stat-lbl">Сообщений</div></div>
       </div>
     </div>
+
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <h3>Активные пользователи</h3>
+          ${online.length ? `<span class="badge badge-green">${online.length} онлайн</span>` : ''}
+          ${away.length ? `<span class="badge" style="background:#fff7ed;color:#c2410c">${away.length} отошли</span>` : ''}
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="renderDashboard()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Обновить
+        </button>
+      </div>
+      <div style="padding:14px 18px"><div class="online-grid">${onlineCards}</div></div>
+    </div>
+
     <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">Быстрые действия</div>
     <div class="quick-grid">
       <div class="quick-card" onclick="nav('users')">
@@ -547,7 +605,7 @@ function openCreateRoom() {
   document.getElementById('room-create-users').innerHTML = allUsersCache.map(u=>`
     <div class="checkbox-row" id="cr-row-${u.id}" onclick="toggleRoomUser(${u.id})">
       <input type="checkbox" id="cr-chk-${u.id}" onclick="event.stopPropagation();toggleRoomUser(${u.id})">
-      ${avHtml(u.display_name,28,7)}
+      ${avHtml(u.display_name,28,7,u.id)}
       <div><div class="cname">${esc(u.display_name)}</div><div class="cuname">@${esc(u.username)}</div></div>
     </div>`).join('') || '<p style="color:var(--muted);font-size:13px">Нет пользователей</p>';
   openModal('modal-create-room');
@@ -581,14 +639,14 @@ async function openRoomMembers(chatId, name) {
   const memberIds = new Set(members.map(m=>m.id));
   document.getElementById('members-list').innerHTML = members.map(m=>`
     <div class="member-row" id="mr-${m.id}">
-      ${avHtml(m.display_name,30,7)}
+      ${avHtml(m.display_name,30,7,m.id)}
       <div class="info"><div class="mname">${esc(m.display_name)}</div><div class="muname">@${esc(m.username)}</div></div>
       <button class="btn btn-danger btn-xs" onclick="removeMember(${chatId},${m.id},this)">Удалить</button>
     </div>`).join('') || '<p style="color:var(--muted);font-size:13px;padding:8px 0">Нет участников</p>';
   document.getElementById('add-members-list').innerHTML = allU.filter(u=>!memberIds.has(u.id)).map(u=>`
     <div class="checkbox-row" id="am-row-${u.id}" onclick="toggleAddMember(${u.id})">
       <input type="checkbox" id="am-chk-${u.id}" onclick="event.stopPropagation();toggleAddMember(${u.id})">
-      ${avHtml(u.display_name,28,7)}
+      ${avHtml(u.display_name,28,7,u.id)}
       <div><div class="cname">${esc(u.display_name)}</div><div class="cuname">@${esc(u.username)}</div></div>
     </div>`).join('') || '<p style="color:var(--muted);font-size:13px;padding:8px 0">Все пользователи уже в комнате</p>';
   openModal('modal-members');
@@ -613,10 +671,17 @@ async function renderUsers() {
   renderUsersTable(allUsers);
 }
 
+function statusBadge(s) {
+  if (s === 'online') return '<span class="badge badge-green">В сети</span>';
+  if (s === 'away') return '<span class="badge" style="background:#fff7ed;color:#c2410c">Отошёл</span>';
+  return '<span class="badge badge-gray">Офлайн</span>';
+}
+
 function userRowHtml(u) {
   return `<tr>
-    <td><div class="user-cell">${avHtml(u.display_name)}<div class="user-cell-info"><div class="name">${esc(u.display_name)}</div><div class="uname">@${esc(u.username)}</div></div></div></td>
+    <td><div class="user-cell">${avHtml(u.display_name,32,8,u.id,u.status)}<div class="user-cell-info"><div class="name">${esc(u.display_name)}</div><div class="uname">@${esc(u.username)}</div></div></div></td>
     <td>${u.is_admin?'<span class="badge badge-blue">Администратор</span>':'<span class="badge badge-gray">Пользователь</span>'}</td>
+    <td>${statusBadge(u.status)}</td>
     <td style="color:var(--muted)">${fmtDate(u.created_at)}</td>
     <td><div class="td-actions">
       <button class="btn btn-ghost btn-sm" onclick="openEditUser(${u.id})">Изменить</button>
@@ -634,7 +699,7 @@ function renderUsersTable(users) {
         <div class="card-header-left"><h3>Пользователи (${allUsers.length})</h3></div>
         <div class="search-box"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Поиск по имени или логину…" oninput="filterUsers(this.value)"></div>
       </div>
-      <table><thead><tr><th>Пользователь</th><th>Роль</th><th>Создан</th><th>Действия</th></tr></thead><tbody id="users-tbody">${rows}</tbody></table>
+      <table><thead><tr><th>Пользователь</th><th>Роль</th><th>Статус</th><th>Создан</th><th>Действия</th></tr></thead><tbody id="users-tbody">${rows}</tbody></table>
     </div>`;
 }
 
@@ -780,9 +845,9 @@ async function openMembersReadonly(chatId, chatName) {
   const members=await api('GET','/api/admin/chats/'+chatId+'/members');
   document.getElementById('members-list').innerHTML=members.map(m=>`
     <div class="member-row">
-      ${avHtml(m.display_name,30,7)}
+      ${avHtml(m.display_name,30,7,m.id)}
       <div class="info"><div class="mname">${esc(m.display_name)}</div><div class="muname">@${esc(m.username)}</div></div>
-    </div>`).join()||`<div class="empty-state" style="padding:20px"><p>Нет участников</p></div>`;
+    </div>`).join('')||`<div class="empty-state" style="padding:20px"><p>Нет участников</p></div>`;
   openModal('modal-members');
 }
 
