@@ -164,22 +164,34 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 /* ── SETTINGS DRAWER ── */
 .drawer-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 100; }
 .drawer-bg.open { display: block; }
-.drawer { position: fixed; left: 0; top: 0; width: 300px; height: 100vh; background: var(--card); z-index: 101; transform: translateX(-100%); transition: transform .25s ease; box-shadow: 4px 0 24px rgba(0,0,0,.15); display: flex; flex-direction: column; }
+.drawer { position: fixed; left: 0; top: 0; width: 280px; height: 100vh; background: var(--card); z-index: 101; transform: translateX(-100%); transition: transform .25s ease; box-shadow: 4px 0 24px rgba(0,0,0,.15); display: flex; flex-direction: column; }
 .drawer.open { transform: translateX(0); }
-.drawer-header { padding: 18px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-size: 16px; font-weight: 700; }
-.drawer-body { padding: 16px; flex: 1; overflow-y: auto; }
-.setting-section { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px; margin-top: 4px; }
-.setting-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
-.toggle { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+.drawer-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-size: 15px; font-weight: 700; }
+.drawer-body { padding: 12px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.drawer-footer { padding: 10px 16px; font-size: 11px; color: var(--muted); text-align: center; border-top: 1px solid var(--border); }
+
+/* Profile card */
+.profile-card { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 16px 0 12px; }
+.av-xl { width: 64px; height: 64px; font-size: 22px; }
+.profile-card-name { font-size: 15px; font-weight: 700; color: var(--text); }
+.profile-card-login { font-size: 12px; color: var(--muted); }
+
+/* Settings groups */
+.settings-group { background: var(--bg); border-radius: 10px; overflow: hidden; }
+.settings-group-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; padding: 8px 12px 4px; }
+.settings-name-row { display: flex; align-items: center; gap: 6px; padding: 4px 10px 10px; }
+.settings-name-row .profile-name-input { flex: 1; }
+.setting-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border-top: 1px solid var(--border); font-size: 13px; }
+.toggle { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
 .toggle input { opacity: 0; width: 0; height: 0; }
 .toggle-slider { position: absolute; inset: 0; background: var(--border); border-radius: 22px; cursor: pointer; transition: background .2s; }
 .toggle-slider:before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform .2s; }
 .toggle input:checked + .toggle-slider { background: var(--primary); }
-.toggle input:checked + .toggle-slider:before { transform: translateX(18px); }
-.seg { display: flex; border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden; }
-.seg button { border: none; background: none; padding: 5px 12px; font-size: 13px; cursor: pointer; color: var(--muted); font-family: inherit; transition: background .15s; }
+.toggle input:checked + .toggle-slider:before { transform: translateX(16px); }
+.seg { display: flex; border: 1.5px solid var(--border); border-radius: 7px; overflow: hidden; }
+.seg button { border: none; background: none; padding: 4px 10px; font-size: 12px; cursor: pointer; color: var(--muted); font-family: inherit; transition: background .15s; }
 .seg button.active { background: var(--primary); color: #fff; }
-.setting-logout { margin-top: 20px; width: 100%; display: flex; align-items: center; gap: 10px; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 8px; background: none; font-size: 14px; color: var(--danger); cursor: pointer; font-family: inherit; transition: background .15s; }
+.setting-logout { margin-top: 4px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border: 1.5px solid var(--border); border-radius: 10px; background: none; font-size: 13px; color: var(--danger); cursor: pointer; font-family: inherit; transition: background .15s; }
 .setting-logout:hover { background: #fee2e2; }
 
 /* ── MODAL ── */
@@ -244,11 +256,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .ctx-reaction-btn:hover { border-color: var(--primary); background: var(--primary-light); }
 
 /* ── PROFILE EDIT ── */
-.profile-edit-row { display: flex; align-items: center; gap: 14px; padding: 8px 0 14px; }
 .profile-av-wrap { position: relative; cursor: pointer; flex-shrink: 0; }
-.profile-av-overlay { position: absolute; inset: 0; border-radius: 8px; background: rgba(0,0,0,.5); color: #fff; font-size: 16px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .15s; }
+.profile-av-overlay { position: absolute; inset: 0; border-radius: 10px; background: rgba(0,0,0,.5); color: #fff; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .15s; }
 .profile-av-wrap:hover .profile-av-overlay { opacity: 1; }
-.profile-name-input { width: 100%; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; outline: none; background: var(--input-bg); color: var(--text); transition: border-color .2s; }
+.profile-name-input { padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; font-family: inherit; outline: none; background: var(--input-bg); color: var(--text); transition: border-color .2s; }
 .profile-name-input:focus { border-color: var(--primary); }
-.profile-save-btn { padding: 7px 14px; border: none; border-radius: 8px; background: var(--primary); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background .15s; }
+.profile-save-btn { width: 34px; height: 34px; flex-shrink: 0; border: none; border-radius: 8px; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background .15s; }
 .profile-save-btn:hover { background: #1d4ed8; }

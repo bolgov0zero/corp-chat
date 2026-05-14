@@ -159,8 +159,11 @@ function setFontSize(f) { S.settings.fontSize=f; applySettings(); saveSession();
 async function openSettings() {
   document.getElementById('drawer-settings').classList.add('open');
   document.getElementById('drawer-bg').classList.add('open');
-  // Populate profile fields
   document.getElementById('profile-name-input').value = S.user.display_name;
+  const dn = document.getElementById('settings-display-name');
+  if (dn) dn.textContent = S.user.display_name;
+  const un = document.getElementById('settings-username');
+  if (un) un.textContent = '@' + S.user.username;
   updateSettingsAvatar();
   if (window.electron?.getAutostart) {
     const row = document.getElementById('autostart-row');
@@ -175,11 +178,13 @@ async function setAutostart(enabled) { await window.electron?.setAutostart(enabl
 function updateSettingsAvatar() {
   const el = document.getElementById('settings-av');
   if (!el) return;
+  el.className = `av av-xl ${avatarColor(S.user.id)}`;
   const url = `http://${S.server}/api/users/${S.user.id}/avatar?t=${Date.now()}`;
   const img = new Image();
   img.onload = () => {
     el.style.backgroundImage = `url('${url}')`;
     el.style.backgroundSize = 'cover';
+    el.style.backgroundPosition = 'center';
     el.textContent = '';
   };
   img.onerror = () => {
@@ -196,6 +201,8 @@ async function saveProfile() {
   if (res?.ok) {
     S.user.display_name = name;
     document.getElementById('me-name').textContent = name;
+    const dn = document.getElementById('settings-display-name');
+    if (dn) dn.textContent = name;
     saveSession();
     document.getElementById('profile-name-input').value = name;
   }

@@ -66,51 +66,71 @@
     </button>
   </div>
   <div class="drawer-body">
-    <!-- Profile section -->
-    <div class="setting-section">Профиль</div>
-    <div class="profile-edit-row">
+
+    <!-- Profile card -->
+    <div class="profile-card">
       <div class="profile-av-wrap" onclick="triggerAvatarUpload()" title="Сменить фото">
-        <div class="av av-lg" id="settings-av"></div>
-        <div class="profile-av-overlay">📷</div>
+        <div class="av av-xl" id="settings-av"></div>
+        <div class="profile-av-overlay">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </div>
       </div>
-      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
-        <input id="profile-name-input" class="profile-name-input" placeholder="Имя">
-        <button class="profile-save-btn" onclick="saveProfile()">Сохранить</button>
-      </div>
+      <div class="profile-card-name" id="settings-display-name"></div>
+      <div class="profile-card-login" id="settings-username"></div>
     </div>
     <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="onAvatarFileChange(this)">
 
-    <div class="setting-section" style="margin-top:24px">Внешний вид</div>
-    <div class="setting-row">
-      <span>Тема</span>
-      <div class="seg" id="theme-seg">
-        <button onclick="setTheme('light')" class="active">Светлая</button>
-        <button onclick="setTheme('dark')">Тёмная</button>
+    <!-- Name edit -->
+    <div class="settings-group">
+      <div class="settings-group-label">Имя</div>
+      <div class="settings-name-row">
+        <input id="profile-name-input" class="profile-name-input" placeholder="Отображаемое имя">
+        <button class="profile-save-btn" onclick="saveProfile()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
       </div>
     </div>
-    <div class="setting-row">
-      <span>Размер текста</span>
-      <div class="seg" id="font-seg">
-        <button onclick="setFontSize('small')">S</button>
-        <button onclick="setFontSize('medium')" class="active">M</button>
-        <button onclick="setFontSize('large')">L</button>
+
+    <!-- Appearance -->
+    <div class="settings-group">
+      <div class="settings-group-label">Внешний вид</div>
+      <div class="setting-row">
+        <span>Тема</span>
+        <div class="seg" id="theme-seg">
+          <button onclick="setTheme('light')" class="active">Светлая</button>
+          <button onclick="setTheme('dark')">Тёмная</button>
+        </div>
+      </div>
+      <div class="setting-row" style="border:none">
+        <span>Текст</span>
+        <div class="seg" id="font-seg">
+          <button onclick="setFontSize('small')">S</button>
+          <button onclick="setFontSize('medium')" class="active">M</button>
+          <button onclick="setFontSize('large')">L</button>
+        </div>
       </div>
     </div>
-    <div class="setting-section" style="margin-top:24px">Система</div>
-    <div class="setting-row" id="autostart-row" style="display:none">
-      <span>Автозапуск</span>
-      <label class="toggle">
-        <input type="checkbox" id="autostart-chk" onchange="setAutostart(this.checked)">
-        <span class="toggle-slider"></span>
-      </label>
+
+    <!-- System -->
+    <div class="settings-group" id="autostart-row" style="display:none">
+      <div class="settings-group-label">Система</div>
+      <div class="setting-row" style="border:none">
+        <span>Автозапуск</span>
+        <label class="toggle">
+          <input type="checkbox" id="autostart-chk" onchange="setAutostart(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
     </div>
-    <div class="setting-section" style="margin-top:24px">Аккаунт</div>
+
+    <!-- Logout -->
     <button class="setting-logout" onclick="logout()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-      Выйти из аккаунта
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Выйти
     </button>
+
   </div>
-  <div style="padding:16px 20px;font-size:11px;color:var(--muted);text-align:center;border-top:1px solid var(--border)">2026 © bolgov0zero</div>
+  <div class="drawer-footer">2026 © bolgov0zero</div>
 </div>
 
 <!-- New chat modal -->

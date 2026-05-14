@@ -45,7 +45,7 @@ router.post('/direct', authMiddleware, (req, res) => {
   if (existing) return res.json(enrichChat(existing, req.user.id));
   const result = db.prepare("INSERT INTO chats (type, created_by) VALUES ('direct', ?)").run(req.user.id);
   db.prepare('INSERT INTO chat_members (chat_id, user_id) VALUES (?, ?), (?, ?)').run(result.lastInsertRowid, req.user.id, result.lastInsertRowid, user_id);
-  // Do NOT sendTo(user_id, reload_chats) — recipient sees the chat when first message arrives
+  sendTo(user_id, { type: 'reload_chats' });
   const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(result.lastInsertRowid);
   res.json(enrichChat(chat, req.user.id));
 });
