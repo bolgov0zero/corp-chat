@@ -131,14 +131,31 @@
 
 <!-- Context menu -->
 <div class="ctx-menu" id="ctx-menu">
-  <button onclick="ctxEdit()">
+  <button id="ctx-edit-btn" onclick="ctxEdit()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
     Изменить
   </button>
-  <button onclick="ctxDelete()">
+  <button id="ctx-delete-btn" onclick="ctxDelete()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
     Удалить
   </button>
+  <button id="ctx-info-btn" onclick="ctxInfo()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Информация
+  </button>
+</div>
+
+<!-- Message info modal -->
+<div class="modal-bg" id="modal-msg-info" onclick="if(event.target===this)closeModal('modal-msg-info')">
+  <div class="modal" style="width:360px">
+    <div class="modal-hdr">
+      <span>Информация о сообщении</span>
+      <button class="icon-btn" onclick="closeModal('modal-msg-info')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="msg-info-body" style="padding:16px 18px;overflow-y:auto;max-height:60vh"></div>
+  </div>
 </div>
 
 <script src="app.js"></script>

@@ -265,7 +265,7 @@ function renderMsg(m, isGroup) {
   return `<div class="msg-group ${mine?'mine':'theirs'}" data-msg-id="${m.id}">
     ${isGroup&&!mine?`<div class="msg-sender">${esc(m.sender_name)}</div>`:''}
     <div class="msg-row">
-      <div class="bubble${isDeleted?' deleted':''}" oncontextmenu="${mine&&!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at})`:'event.preventDefault()'}"}>
+      <div class="bubble${isDeleted?' deleted':''}" oncontextmenu="${!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at},${mine})`:'event.preventDefault()'}">
         <div class="bubble-text">${bodyText}</div>
       </div>
     </div>
@@ -340,15 +340,15 @@ function cancelEdit() {
 }
 
 // ── CONTEXT MENU ──
-function showCtxMenu(e, msgId, sentAt) {
+function showCtxMenu(e, msgId, sentAt, isMine) {
   e.preventDefault(); e.stopPropagation();
   S.ctx.messageId = msgId;
-  S.ctx.canEdit = (Date.now()/1000 - sentAt) < 120;
+  S.ctx.canEdit = isMine && (Date.now()/1000 - sentAt) < 120;
   const menu = document.getElementById('ctx-menu');
-  const editBtn = menu.querySelector('button:first-child');
-  editBtn.style.display = S.ctx.canEdit ? '' : 'none';
-  menu.style.left = Math.min(e.clientX, window.innerWidth-160)+'px';
-  menu.style.top = Math.min(e.clientY, window.innerHeight-90)+'px';
+  document.getElementById('ctx-edit-btn').style.display = (isMine && S.ctx.canEdit) ? '' : 'none';
+  document.getElementById('ctx-delete-btn').style.display = isMine ? '' : 'none';
+  menu.style.left = Math.min(e.clientX, window.innerWidth-170)+'px';
+  menu.style.top = Math.min(e.clientY, window.innerHeight-110)+'px';
   menu.classList.add('open');
 }
 function hideCtxMenu() { document.getElementById('ctx-menu').classList.remove('open'); }
@@ -369,6 +369,53 @@ function ctxDelete() {
   hideCtxMenu();
   if (!S.ctx.messageId||!S.ws) return;
   S.ws.send(JSON.stringify({type:'delete_message', message_id:S.ctx.messageId}));
+}
+
+async function ctxInfo() {
+  hideCtxMenu();
+  const msgId = S.ctx.messageId;
+  if (!msgId) return;
+  const data = await api('GET', `/messages/${msgId}/info`);
+  if (!data) return;
+
+  function fmtDt(ts) {
+    if (!ts) return '—';
+    const d = new Date(ts * 1000);
+    return d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'});
+  }
+
+  let body = `<div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Отправлено</div>
+    <div style="font-size:14px">${fmtDt(data.sent_at)}</div>
+  </div>`;
+
+  if (data.chat_type === 'direct') {
+    const s = data.statuses[0];
+    body += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Доставлено</div>
+        <div style="font-size:14px">${fmtDt(s?.delivered_at)}</div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Прочитано</div>
+        <div style="font-size:14px">${fmtDt(s?.read_at)}</div>
+      </div>
+    </div>`;
+  } else {
+    body += `<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Прочитано участниками</div>`;
+    if (!data.statuses.length) {
+      body += `<div style="color:var(--muted);font-size:13px">Никто ещё не прочитал</div>`;
+    } else {
+      body += data.statuses.map(s => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
+          <div style="font-size:14px;font-weight:500">${esc(s.display_name)}</div>
+          <div style="font-size:12px;color:var(--muted)">${s.read_at ? fmtDt(s.read_at) : '<span style="color:#94a3b8">не прочитано</span>'}</div>
+        </div>`).join('');
+    }
+  }
+
+  document.getElementById('msg-info-body').innerHTML = body;
+  document.getElementById('modal-msg-info').classList.add('open');
 }
 
 // ── DELETE CHAT / LEAVE GROUP ──

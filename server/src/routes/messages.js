@@ -26,4 +26,21 @@ router.get('/chat/:chatId', authMiddleware, (req, res) => {
   res.json(result);
 });
 
+// Get detailed read/delivery info for a single message
+router.get('/:messageId/info', authMiddleware, (req, res) => {
+  const { messageId } = req.params;
+  const msg = db.prepare('SELECT m.*, c.type as chat_type FROM messages m JOIN chats c ON c.id = m.chat_id WHERE m.id = ?').get(messageId);
+  if (!msg) return res.status(404).json({ error: 'Not found' });
+  if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(msg.chat_id, req.user.id))
+    return res.status(403).json({ error: 'Forbidden' });
+
+  const statuses = db.prepare(`
+    SELECT u.display_name, ms.delivered_at, ms.read_at
+    FROM message_status ms JOIN users u ON u.id = ms.user_id
+    WHERE ms.message_id = ? ORDER BY ms.read_at ASC, ms.delivered_at ASC
+  `).all(messageId);
+
+  res.json({ chat_type: msg.chat_type, sent_at: msg.sent_at, statuses });
+});
+
 module.exports = router;
