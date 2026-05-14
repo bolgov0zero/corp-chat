@@ -389,7 +389,7 @@ async function openChat(chatId) {
           <span>Редактирование</span>
           <button onclick="cancelEdit()" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:18px">✕</button>
         </div>
-        <textarea id="msg-input" placeholder="Сообщение…" rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <textarea id="msg-input" placeholder="Сообщение…" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
       </div>
       <button class="icon-btn emoji-btn" title="Эмодзи" onclick="toggleEmojiPicker(event)">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -539,7 +539,12 @@ function ctxReact(reaction) {
 
 // ── SEND / EDIT ──
 function handleKey(e) { if (e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendOrEdit(); } }
-function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
+function autoResize(el) {
+  el.style.overflow = 'hidden';
+  el.style.height = '0';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  if (el.scrollHeight > 120) el.style.overflow = 'auto';
+}
 
 function sendOrEdit() {
   if (S.editingMessageId) { submitEdit(); return; }
@@ -547,7 +552,7 @@ function sendOrEdit() {
   const text = input?.value.trim();
   if (!text||!S.ws||S.ws.readyState!==1) return;
   S.ws.send(JSON.stringify({type:'message', chat_id:S.activeChatId, text}));
-  input.value=''; input.style.height='auto';
+  input.value=''; input.style.height=''; input.style.overflow='hidden';
 }
 
 function submitEdit() {
@@ -643,11 +648,30 @@ async function ctxInfo() {
   openModal('modal-msg-info');
 }
 
+// ── CUSTOM CONFIRM (replaces native confirm to avoid Electron focus bug on Windows) ──
+let _confirmCallback = null;
+function showConfirm(text, okLabel = 'Удалить') {
+  return new Promise(resolve => {
+    _confirmCallback = resolve;
+    document.getElementById('confirm-body').textContent = text;
+    document.getElementById('confirm-ok').textContent = okLabel;
+    document.getElementById('modal-confirm').classList.add('open');
+  });
+}
+function _confirmResolve() {
+  document.getElementById('modal-confirm').classList.remove('open');
+  if (_confirmCallback) { _confirmCallback(true); _confirmCallback = null; }
+}
+function _confirmReject() {
+  document.getElementById('modal-confirm').classList.remove('open');
+  if (_confirmCallback) { _confirmCallback(false); _confirmCallback = null; }
+}
+
 // ── DELETE CHAT / LEAVE GROUP ──
 async function deleteChat(chatId) {
-  if (!confirm('Удалить чат?')) return;
+  const ok = await showConfirm('Удалить чат? Для вас он исчезнет из списка.');
+  if (!ok) return;
   await api('DELETE', `/chats/${chatId}`);
-  // The WS chat_deleted event will handle the cleanup, but also handle locally if no WS
   removeChatLocally(chatId);
 }
 
@@ -677,7 +701,8 @@ function openGroupMembers(chatId) {
 }
 
 async function leaveGroup(chatId) {
-  if (!confirm('Выйти из группы?')) return;
+  const ok = await showConfirm('Выйти из группы?', 'Выйти');
+  if (!ok) return;
   await api('POST', `/chats/${chatId}/leave`);
   S.activeChatId = null;
   document.getElementById('chat-main').innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">Corp Chat</div><div class="empty-sub">Выберите чат или создайте новый</div></div>`;
