@@ -66,7 +66,21 @@
     </button>
   </div>
   <div class="drawer-body">
-    <div class="setting-section">Внешний вид</div>
+    <!-- Profile section -->
+    <div class="setting-section">Профиль</div>
+    <div class="profile-edit-row">
+      <div class="profile-av-wrap" onclick="triggerAvatarUpload()" title="Сменить фото">
+        <div class="av av-lg" id="settings-av"></div>
+        <div class="profile-av-overlay">📷</div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+        <input id="profile-name-input" class="profile-name-input" placeholder="Имя">
+        <button class="profile-save-btn" onclick="saveProfile()">Сохранить</button>
+      </div>
+    </div>
+    <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="onAvatarFileChange(this)">
+
+    <div class="setting-section" style="margin-top:24px">Внешний вид</div>
     <div class="setting-row">
       <span>Тема</span>
       <div class="seg" id="theme-seg">
@@ -112,7 +126,7 @@
       <div class="users-list" id="users-list-direct"></div>
     </div>
     <div id="tab-group" style="display:none">
-      <div class="field" style="padding:0 4px 8px"><input id="group-name" placeholder="Название группы / комнаты"></div>
+      <div class="field" style="padding:8px 14px"><input id="group-name" placeholder="Название группы / комнаты"></div>
       <div class="modal-search"><input placeholder="Добавить участников..." oninput="filterModalUsers(this.value,'users-list-group')"></div>
       <div class="users-list" id="users-list-group"></div>
       <button class="modal-create-btn" onclick="createGroup()">Создать</button>
@@ -148,6 +162,10 @@
 
 <!-- Context menu -->
 <div class="ctx-menu" id="ctx-menu">
+  <div class="ctx-reactions">
+    <button class="ctx-reaction-btn" onclick="ctxReact('👍')">👍</button>
+    <button class="ctx-reaction-btn" onclick="ctxReact('👎')">👎</button>
+  </div>
   <button id="ctx-edit-btn" onclick="ctxEdit()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
     Изменить

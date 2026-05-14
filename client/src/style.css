@@ -224,3 +224,31 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .date-divider { text-align: center; margin: 8px 0; }
 .date-divider span { background: rgba(0,0,0,.1); color: var(--muted); font-size: 11px; padding: 3px 10px; border-radius: 10px; }
 .dark .date-divider span { background: rgba(255,255,255,.08); }
+
+/* ── REACTIONS ── */
+.reactions { display: flex; flex-wrap: wrap; gap: 4px; margin: 3px 0 1px; padding: 0 4px; }
+.reaction-btn { background: var(--bg); border: 1.5px solid var(--border); border-radius: 12px; padding: 2px 8px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: background .12s, border-color .12s; font-family: inherit; }
+.reaction-btn:hover { border-color: var(--primary); background: var(--primary-light); }
+.reaction-btn span { font-size: 12px; color: var(--muted); font-weight: 600; }
+
+/* ── EMOJI PICKER ── */
+.emoji-picker { position: fixed; z-index: 400; background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,.18); padding: 8px; display: grid; grid-template-columns: repeat(6, 36px); gap: 2px; }
+.emoji-item { width: 36px; height: 36px; background: none; border: none; font-size: 20px; cursor: pointer; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: background .12s; }
+.emoji-item:hover { background: var(--bg); }
+.emoji-btn { color: var(--muted); }
+.emoji-btn:hover { color: var(--text); }
+
+/* ── CONTEXT MENU REACTIONS ROW ── */
+.ctx-reactions { display: flex; gap: 4px; padding: 6px 10px 4px; border-bottom: 1px solid var(--border); }
+.ctx-reaction-btn { background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; font-size: 18px; width: 36px; height: 36px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .12s, border-color .12s; }
+.ctx-reaction-btn:hover { border-color: var(--primary); background: var(--primary-light); }
+
+/* ── PROFILE EDIT ── */
+.profile-edit-row { display: flex; align-items: center; gap: 14px; padding: 8px 0 14px; }
+.profile-av-wrap { position: relative; cursor: pointer; flex-shrink: 0; }
+.profile-av-overlay { position: absolute; inset: 0; border-radius: 50%; background: rgba(0,0,0,.45); color: #fff; font-size: 16px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .15s; }
+.profile-av-wrap:hover .profile-av-overlay { opacity: 1; }
+.profile-name-input { width: 100%; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; outline: none; background: var(--input-bg); color: var(--text); transition: border-color .2s; }
+.profile-name-input:focus { border-color: var(--primary); }
+.profile-save-btn { padding: 7px 14px; border: none; border-radius: 8px; background: var(--primary); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background .15s; }
+.profile-save-btn:hover { background: #1d4ed8; }

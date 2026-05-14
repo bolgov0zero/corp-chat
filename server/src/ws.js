@@ -126,6 +126,22 @@ function setup(server) {
         if (s === 'online' || s === 'away') broadcastStatus(user.id, s);
       }
 
+      if (data.type === 'react') {
+        const { message_id, reaction } = data;
+        if (!['👍','👎'].includes(reaction)) return;
+        const msg = db.prepare('SELECT * FROM messages WHERE id = ? AND deleted = 0').get(message_id);
+        if (!msg) return;
+        if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(msg.chat_id, user.id)) return;
+        const existing = db.prepare('SELECT 1 FROM reactions WHERE message_id = ? AND user_id = ? AND reaction = ?').get(message_id, user.id, reaction);
+        if (existing) {
+          db.prepare('DELETE FROM reactions WHERE message_id = ? AND user_id = ? AND reaction = ?').run(message_id, user.id, reaction);
+        } else {
+          db.prepare('INSERT OR IGNORE INTO reactions (message_id, user_id, reaction) VALUES (?, ?, ?)').run(message_id, user.id, reaction);
+        }
+        const counts = db.prepare('SELECT reaction, COUNT(*) as count FROM reactions WHERE message_id = ? GROUP BY reaction').all(message_id);
+        broadcast(msg.chat_id, { type: 'reaction_update', message_id, counts });
+      }
+
       if (data.type === 'ping') ws.send(JSON.stringify({ type: 'pong' }));
     });
 

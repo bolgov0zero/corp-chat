@@ -52,7 +52,18 @@ db.exec(`
     read_at INTEGER,
     PRIMARY KEY (message_id, user_id)
   );
+
+  CREATE TABLE IF NOT EXISTS reactions (
+    message_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    reaction TEXT NOT NULL,
+    PRIMARY KEY (message_id, user_id, reaction),
+    FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
 `);
+
+fs.mkdirSync(path.join(path.dirname(DB_PATH), 'avatar'), { recursive: true });
 
 // Add columns if upgrading from old schema
 const tryAlter = (sql) => { try { db.exec(sql); } catch {} };

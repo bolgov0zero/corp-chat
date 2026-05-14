@@ -1,7 +1,12 @@
 const router = require('express').Router();
+const path2 = require('path');
+const fs = require('fs');
 const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
-const { sendTo } = require('../ws');
+const { sendTo, broadcast } = require('../ws');
+
+const DB_DIR = path2.join(__dirname, '..', '..', '..', 'chat_db');
+const AVATAR_DIR = path2.join(DB_DIR, 'avatar');
 
 function enrichChat(chat, userId) {
   const members = db.prepare(`
@@ -27,7 +32,7 @@ router.get('/', authMiddleware, (req, res) => {
   res.json(chats.map(c => enrichChat(c, req.user.id)));
 });
 
-// Create direct chat
+// Create direct chat — Fix 1: do NOT notify recipient (they'll see it when first message arrives)
 router.post('/direct', authMiddleware, (req, res) => {
   const { user_id } = req.body;
   if (!user_id) return res.status(400).json({ error: 'Missing user_id' });
@@ -40,12 +45,12 @@ router.post('/direct', authMiddleware, (req, res) => {
   if (existing) return res.json(enrichChat(existing, req.user.id));
   const result = db.prepare("INSERT INTO chats (type, created_by) VALUES ('direct', ?)").run(req.user.id);
   db.prepare('INSERT INTO chat_members (chat_id, user_id) VALUES (?, ?), (?, ?)').run(result.lastInsertRowid, req.user.id, result.lastInsertRowid, user_id);
-  sendTo(user_id, { type: 'reload_chats' });
+  // Do NOT sendTo(user_id, reload_chats) — recipient sees the chat when first message arrives
   const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(result.lastInsertRowid);
   res.json(enrichChat(chat, req.user.id));
 });
 
-// Create group / room
+// Create group / room — Fix 2: notify all members except creator
 router.post('/group', authMiddleware, (req, res) => {
   const { name, member_ids } = req.body;
   if (!name?.trim() || !Array.isArray(member_ids)) return res.status(400).json({ error: 'Missing fields' });
@@ -53,6 +58,8 @@ router.post('/group', authMiddleware, (req, res) => {
   const allMembers = [...new Set([req.user.id, ...member_ids])];
   const ins = db.prepare('INSERT INTO chat_members (chat_id, user_id) VALUES (?, ?)');
   allMembers.forEach(uid => ins.run(result.lastInsertRowid, uid));
+  // Notify all members except creator
+  allMembers.filter(uid => uid !== req.user.id).forEach(uid => sendTo(uid, { type: 'reload_chats' }));
   const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(result.lastInsertRowid);
   res.json(enrichChat(chat, req.user.id));
 });
@@ -101,24 +108,57 @@ router.post('/:id/leave', authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
-// Delete own direct chat (just removes you from it)
-router.delete('/:id', authMiddleware, (req, res) => {
+// Upload group/chat avatar
+router.post('/:id/avatar', authMiddleware, (req, res) => {
   const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(req.params.id);
   if (!chat) return res.status(404).json({ error: 'Not found' });
   if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(req.params.id, req.user.id))
+    return res.status(403).json({ error: 'Forbidden' });
+  const { data } = req.body;
+  if (!data) return res.status(400).json({ error: 'No data' });
+  try {
+    const buf = Buffer.from(data, 'base64');
+    fs.writeFileSync(path2.join(AVATAR_DIR, `chat_${req.params.id}.jpg`), buf);
+    res.json({ ok: true, url: `/api/chats/${req.params.id}/avatar` });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to save avatar' });
+  }
+});
+
+// Serve group avatar
+router.get('/:id/avatar', (req, res) => {
+  const file = path2.join(AVATAR_DIR, `chat_${req.params.id}.jpg`);
+  res.sendFile(file, err => { if (err) res.status(404).end(); });
+});
+
+// Delete own chat — Fix 3: get members before delete, notify after; Fix 8: group delete permission
+router.delete('/:id', authMiddleware, (req, res) => {
+  const id = Number(req.params.id);
+  const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(id);
+  if (!chat) return res.status(404).json({ error: 'Not found' });
+  if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(id, req.user.id))
     return res.status(403).json({ error: 'Not a member' });
   if (chat.type === 'direct') {
-    db.prepare('DELETE FROM chat_members WHERE chat_id = ? AND user_id = ?').run(req.params.id, req.user.id);
+    // Get the other member before removing
+    const otherMember = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ? AND user_id != ?').get(id, req.user.id);
+    db.prepare('DELETE FROM chat_members WHERE chat_id = ? AND user_id = ?').run(id, req.user.id);
+    // Also send chat_deleted to the other member so both sides remove it
+    if (otherMember) sendTo(otherMember.user_id, { type: 'chat_deleted', chat_id: id });
   } else {
     if (!req.user.is_admin && chat.created_by !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
-    db.prepare('DELETE FROM chats WHERE id = ?').run(req.params.id);
+    const members = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ?').all(id);
+    db.prepare('DELETE FROM chats WHERE id = ?').run(id);
+    members.forEach(({ user_id }) => sendTo(user_id, { type: 'chat_deleted', chat_id: id }));
   }
   res.json({ ok: true });
 });
 
-// Admin: delete any chat
+// Admin: delete any chat — Fix 3: notify all members
 router.delete('/admin/:id', authMiddleware, adminMiddleware, (req, res) => {
-  db.prepare('DELETE FROM chats WHERE id = ?').run(req.params.id);
+  const id = Number(req.params.id);
+  const members = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ?').all(id);
+  db.prepare('DELETE FROM chats WHERE id = ?').run(id);
+  members.forEach(({ user_id }) => sendTo(user_id, { type: 'chat_deleted', chat_id: id }));
   res.json({ ok: true });
 });
 

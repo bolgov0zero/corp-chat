@@ -1,8 +1,13 @@
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
+const path2 = require('path');
+const fs = require('fs');
 const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
 const { getStatus } = require('../ws');
+
+const DB_DIR = path2.join(__dirname, '..', '..', '..', 'chat_db');
+const AVATAR_DIR = path2.join(DB_DIR, 'avatar');
 
 // List all users (for starting chats)
 router.get('/', authMiddleware, (req, res) => {
@@ -21,6 +26,33 @@ router.get('/presence', authMiddleware, (req, res) => {
   const result = {};
   peers.forEach(({ id }) => { result[id] = getStatus(id); });
   res.json(result);
+});
+
+// Update own display_name
+router.patch('/me', authMiddleware, (req, res) => {
+  const { display_name } = req.body;
+  if (!display_name?.trim()) return res.status(400).json({ error: 'Missing display_name' });
+  db.prepare('UPDATE users SET display_name = ? WHERE id = ?').run(display_name.trim(), req.user.id);
+  res.json({ ok: true });
+});
+
+// Upload own avatar (base64 JSON body: { data: "base64..." })
+router.post('/me/avatar', authMiddleware, (req, res) => {
+  const { data } = req.body;
+  if (!data) return res.status(400).json({ error: 'No data' });
+  try {
+    const buf = Buffer.from(data, 'base64');
+    fs.writeFileSync(path2.join(AVATAR_DIR, `${req.user.id}.jpg`), buf);
+    res.json({ ok: true, url: `/api/users/${req.user.id}/avatar` });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to save avatar' });
+  }
+});
+
+// Serve user avatar
+router.get('/:id/avatar', (req, res) => {
+  const file = path2.join(AVATAR_DIR, `${req.params.id}.jpg`);
+  res.sendFile(file, err => { if (err) res.status(404).end(); });
 });
 
 // Admin: create user

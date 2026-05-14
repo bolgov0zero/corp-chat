@@ -7,10 +7,11 @@ const S = {
   ws: null, wsRetry: 0,
   unread: {}, allUsers: [],
   settings: { theme: 'light', fontSize: 'medium' },
-  ctx: { messageId: null, canEdit: false },
+  ctx: { messageId: null, canEdit: false, isMine: false },
   editingMessageId: null,
   egChatId: null, egRemovedIds: new Set(), egAddIds: new Set(),
   presence: {}, // userId -> 'online'|'away'|'offline'
+  reactions: {}, // messageId -> [{reaction, count}]
 };
 
 const SESSION_KEY = 'corp_chat_v2';
@@ -61,7 +62,14 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('l-password').addEventListener('keydown', e => e.key==='Enter' && doLogin());
   document.getElementById('l-server').addEventListener('keydown', e => e.key==='Enter' && document.getElementById('l-username').focus());
   document.getElementById('l-username').addEventListener('keydown', e => e.key==='Enter' && document.getElementById('l-password').focus());
-  document.addEventListener('click', hideCtxMenu);
+  document.addEventListener('click', e => {
+    hideCtxMenu();
+    // Close emoji picker if click outside
+    const picker = document.getElementById('emoji-picker');
+    if (picker && !picker.contains(e.target) && !e.target.closest('.emoji-btn')) {
+      picker.style.display = 'none';
+    }
+  });
   document.addEventListener('keydown', e => { if(e.key==='Escape'){ hideCtxMenu(); closeSettings(); }});
   window.electron?.onOpenChat(chatId => { const chat = S.chats.find(c=>c.id===chatId); if(chat) openChat(chatId); });
   document.addEventListener('visibilitychange', () => {
@@ -111,13 +119,30 @@ function logout() {
 function enterApp() {
   document.getElementById('screen-login').classList.remove('active');
   document.getElementById('screen-main').classList.add('active');
-  document.getElementById('me-av').textContent = initials(S.user.display_name);
-  document.getElementById('me-av').className = `av av-sm ${avatarColor(S.user.id)}`;
+  updateMeAvatar();
   document.getElementById('me-name').textContent = S.user.display_name;
   loadChats();
   loadUsers();
   connectWS();
   loadPresence();
+}
+
+function updateMeAvatar() {
+  const el = document.getElementById('me-av');
+  const url = `http://${S.server}/api/users/${S.user.id}/avatar?t=${Date.now()}`;
+  // Try loading avatar image
+  const img = new Image();
+  img.onload = () => {
+    el.style.backgroundImage = `url('${url}')`;
+    el.style.backgroundSize = 'cover';
+    el.textContent = '';
+  };
+  img.onerror = () => {
+    el.style.backgroundImage = '';
+    el.textContent = initials(S.user.display_name);
+  };
+  img.src = url;
+  el.className = `av av-sm ${avatarColor(S.user.id)}`;
 }
 
 // ── SETTINGS ──
@@ -133,6 +158,9 @@ function setFontSize(f) { S.settings.fontSize=f; applySettings(); saveSession();
 async function openSettings() {
   document.getElementById('drawer-settings').classList.add('open');
   document.getElementById('drawer-bg').classList.add('open');
+  // Populate profile fields
+  document.getElementById('profile-name-input').value = S.user.display_name;
+  updateSettingsAvatar();
   if (window.electron?.getAutostart) {
     const row = document.getElementById('autostart-row');
     row.style.display = '';
@@ -142,6 +170,54 @@ async function openSettings() {
 }
 function closeSettings() { document.getElementById('drawer-settings').classList.remove('open'); document.getElementById('drawer-bg').classList.remove('open'); }
 async function setAutostart(enabled) { await window.electron?.setAutostart(enabled); }
+
+function updateSettingsAvatar() {
+  const el = document.getElementById('settings-av');
+  if (!el) return;
+  const url = `http://${S.server}/api/users/${S.user.id}/avatar?t=${Date.now()}`;
+  const img = new Image();
+  img.onload = () => {
+    el.style.backgroundImage = `url('${url}')`;
+    el.style.backgroundSize = 'cover';
+    el.textContent = '';
+  };
+  img.onerror = () => {
+    el.style.backgroundImage = '';
+    el.textContent = initials(S.user.display_name);
+  };
+  img.src = url;
+}
+
+async function saveProfile() {
+  const name = document.getElementById('profile-name-input').value.trim();
+  if (!name) return;
+  const res = await api('PATCH', '/users/me', { display_name: name });
+  if (res?.ok) {
+    S.user.display_name = name;
+    document.getElementById('me-name').textContent = name;
+    saveSession();
+    document.getElementById('profile-name-input').value = name;
+  }
+}
+
+function triggerAvatarUpload() {
+  document.getElementById('avatar-file-input').click();
+}
+
+async function onAvatarFileChange(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const base64 = e.target.result.split(',')[1];
+    const res = await api('POST', '/users/me/avatar', { data: base64 });
+    if (res?.ok) {
+      updateMeAvatar();
+      updateSettingsAvatar();
+    }
+  };
+  reader.readAsDataURL(file);
+}
 
 // ── CHAT LIST ──
 async function loadChats() {
@@ -226,6 +302,10 @@ async function openChat(chatId) {
   const peerDot = peerId ? presenceDot(peerId) : '';
   const sub = isRoom ? `🏠 Комната · ${memberCount} участников` : isGroup ? `${memberCount} участников` : 'Личный чат';
   const nameClickable = (isGroup || isRoom) ? `style="cursor:pointer" onclick="openGroupMembers(${chatId})"` : '';
+
+  // Delete button: visible for direct chats and for group creator / admins
+  const canDelete = chat.type === 'direct' || S.user.is_admin || isCreator;
+
   const main = document.getElementById('chat-main');
   main.innerHTML = `
     <div class="chat-header">
@@ -244,7 +324,7 @@ async function openChat(chatId) {
         ${isGroup?`<button class="icon-btn light" title="Выйти из группы" onclick="leaveGroup(${chatId})">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         </button>`:''}
-        ${!isRoom?`<button class="icon-btn light" title="Удалить чат" onclick="deleteChat(${chatId})">
+        ${canDelete?`<button class="icon-btn light" title="Удалить чат" onclick="deleteChat(${chatId})">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
         </button>`:''}
       </div>
@@ -258,6 +338,9 @@ async function openChat(chatId) {
         </div>
         <textarea id="msg-input" placeholder="Сообщение…" rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
       </div>
+      <button class="icon-btn emoji-btn" title="Эмодзи" onclick="toggleEmojiPicker(event)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+      </button>
       <button class="send-btn" onclick="sendOrEdit()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       </button>
@@ -267,6 +350,41 @@ async function openChat(chatId) {
   const msgs = await api('GET', `/messages/chat/${chatId}`);
   if (msgs) renderMessages(msgs);
   document.getElementById('msg-input')?.focus();
+}
+
+// ── EMOJI PICKER ──
+const EMOJIS = ['😀','😂','😍','😎','🤔','😭','😡','👍','👎','❤️','🔥','🎉','👏','🙏','💪','🤝','😊','🥳','😴','🤣','💯','✅','❌','🚀','⭐','💡','📌','🎯','💬','📷'];
+
+function toggleEmojiPicker(e) {
+  e.stopPropagation();
+  let picker = document.getElementById('emoji-picker');
+  if (!picker) {
+    picker = document.createElement('div');
+    picker.id = 'emoji-picker';
+    picker.className = 'emoji-picker';
+    picker.innerHTML = EMOJIS.map(em => `<button class="emoji-item" onclick="insertEmoji('${em}')">${em}</button>`).join('');
+    document.body.appendChild(picker);
+  }
+  if (picker.style.display === 'grid') {
+    picker.style.display = 'none';
+    return;
+  }
+  const btn = e.currentTarget;
+  const rect = btn.getBoundingClientRect();
+  picker.style.display = 'grid';
+  picker.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+  picker.style.right = (window.innerWidth - rect.right) + 'px';
+}
+
+function insertEmoji(em) {
+  const input = document.getElementById('msg-input');
+  if (!input) return;
+  const start = input.selectionStart, end = input.selectionEnd;
+  input.value = input.value.slice(0, start) + em + input.value.slice(end);
+  input.selectionStart = input.selectionEnd = start + em.length;
+  input.focus();
+  autoResize(input);
+  document.getElementById('emoji-picker').style.display = 'none';
 }
 
 // ── RENDER MESSAGES ──
@@ -286,12 +404,21 @@ function renderMessages(msgs) {
   container.scrollTop = container.scrollHeight;
 }
 
+function renderReactions(msgId) {
+  const counts = S.reactions[msgId] || [];
+  if (!counts.length) return '';
+  return `<div class="reactions">${counts.map(r =>
+    `<button class="reaction-btn" onclick="sendReaction(${msgId},'${r.reaction}')">${r.reaction} <span>${r.count}</span></button>`
+  ).join('')}</div>`;
+}
+
 function renderMsg(m, isGroup) {
   const mine = m.sender_id===S.user.id;
   const time = fmtTime(m.sent_at);
   const isDeleted = m.deleted;
   const bodyText = isDeleted ? 'Сообщение удалено' : esc(m.text) + (m.edited_at?` <span class="edited-tag">изм.</span>`:'');
   const statusIcon = mine && !isDeleted ? renderStatus(m.status) : '';
+  const reactionsHtml = isDeleted ? '' : renderReactions(m.id);
   return `<div class="msg-group ${mine?'mine':'theirs'}" data-msg-id="${m.id}">
     ${isGroup&&!mine?`<div class="msg-sender">${esc(m.sender_name)}</div>`:''}
     <div class="msg-row">
@@ -299,6 +426,7 @@ function renderMsg(m, isGroup) {
         <div class="bubble-text">${bodyText}</div>
       </div>
     </div>
+    ${reactionsHtml}
     <div class="msg-meta">
       <span class="msg-time">${time}</span>
       ${statusIcon}
@@ -327,8 +455,6 @@ function appendMsg(m) {
   const container = document.getElementById('messages');
   if (!container) return;
   const chat = S.chats.find(c=>c.id===S.activeChatId);
-  const div = document.createElement('div');
-  div.outerHTML; // noop
   container.insertAdjacentHTML('beforeend', renderMsg(m, chat?.type==='group'));
   container.scrollTop = container.scrollHeight;
 }
@@ -338,6 +464,18 @@ function updateMsgInDOM(m) {
   if (!el) return;
   const chat = S.chats.find(c=>c.id===S.activeChatId);
   el.outerHTML = renderMsg(m, chat?.type==='group');
+}
+
+// ── REACTIONS ──
+function sendReaction(messageId, reaction) {
+  if (S.ws?.readyState === 1) {
+    S.ws.send(JSON.stringify({ type: 'react', message_id: messageId, reaction }));
+  }
+}
+
+function ctxReact(reaction) {
+  hideCtxMenu();
+  sendReaction(S.ctx.messageId, reaction);
 }
 
 // ── SEND / EDIT ──
@@ -374,11 +512,12 @@ function showCtxMenu(e, msgId, sentAt, isMine) {
   e.preventDefault(); e.stopPropagation();
   S.ctx.messageId = msgId;
   S.ctx.canEdit = isMine && (Date.now()/1000 - sentAt) < 120;
+  S.ctx.isMine = isMine;
   const menu = document.getElementById('ctx-menu');
   document.getElementById('ctx-edit-btn').style.display = (isMine && S.ctx.canEdit) ? '' : 'none';
   document.getElementById('ctx-delete-btn').style.display = isMine ? '' : 'none';
-  menu.style.left = Math.min(e.clientX, window.innerWidth-170)+'px';
-  menu.style.top = Math.min(e.clientY, window.innerHeight-110)+'px';
+  menu.style.left = Math.min(e.clientX, window.innerWidth-180)+'px';
+  menu.style.top = Math.min(e.clientY, window.innerHeight-140)+'px';
   menu.classList.add('open');
 }
 function hideCtxMenu() { document.getElementById('ctx-menu').classList.remove('open'); }
@@ -452,9 +591,17 @@ async function ctxInfo() {
 async function deleteChat(chatId) {
   if (!confirm('Удалить чат?')) return;
   await api('DELETE', `/chats/${chatId}`);
-  S.activeChatId = null;
-  document.getElementById('chat-main').innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">Corp Chat</div><div class="empty-sub">Выберите чат или создайте новый</div></div>`;
-  loadChats();
+  // The WS chat_deleted event will handle the cleanup, but also handle locally if no WS
+  removeChatLocally(chatId);
+}
+
+function removeChatLocally(chatId) {
+  S.chats = S.chats.filter(c=>c.id!==chatId);
+  if (S.activeChatId === chatId) {
+    S.activeChatId = null;
+    document.getElementById('chat-main').innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">Corp Chat</div><div class="empty-sub">Выберите чат или создайте новый</div></div>`;
+  }
+  renderChatList();
 }
 
 function openGroupMembers(chatId) {
@@ -536,10 +683,33 @@ function connectWS() {
       loadChats();
     }
 
+    // Fix 1: handle chat_deleted WS event
+    if (data.type==='chat_deleted') {
+      removeChatLocally(data.chat_id);
+    }
+
+    if (data.type==='reaction_update') {
+      const { message_id, counts } = data;
+      S.reactions[message_id] = counts;
+      // Update reactions in DOM if message is visible
+      if (S.activeChatId) {
+        const msgEl = document.querySelector(`[data-msg-id="${message_id}"]`);
+        if (msgEl) {
+          const existing = msgEl.querySelector('.reactions');
+          const reactionsHtml = renderReactions(message_id);
+          if (existing) {
+            existing.outerHTML = reactionsHtml || '';
+          } else if (reactionsHtml) {
+            const meta = msgEl.querySelector('.msg-meta');
+            if (meta) meta.insertAdjacentHTML('beforebegin', reactionsHtml);
+          }
+        }
+      }
+    }
+
     if (data.type==='presence') {
       S.presence[data.user_id] = data.status;
       renderChatList();
-      // Update dot in chat header if this is the open direct chat
       if (S.activeChatId) {
         const chat = S.chats.find(c=>c.id===S.activeChatId);
         if (chat && getPeerUserId(chat) === data.user_id) {
@@ -569,7 +739,6 @@ function connectWS() {
   };
   ws.onopen = () => {
     S.wsRetry = 0;
-    // Send actual visibility state — may be 'away' if started hidden
     ws.send(JSON.stringify({ type: 'set_status', status: document.hidden ? 'away' : 'online' }));
   };
   ws.onerror = () => ws.close();
