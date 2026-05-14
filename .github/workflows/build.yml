@@ -7,8 +7,26 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            name: macOS
+            cmd: build:mac
+            artifact: "client/dist/*.dmg"
+          - os: windows-latest
+            name: Windows
+            cmd: build:win
+            artifact: "client/dist/*.exe"
+          - os: ubuntu-latest
+            name: Linux
+            cmd: build:linux
+            artifact: "client/dist/*.AppImage"
+
+    runs-on: ${{ matrix.os }}
+    name: Build ${{ matrix.name }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -20,35 +38,12 @@ jobs:
         working-directory: client
         run: npm install
 
-      - name: Build Windows
+      - name: Build
         working-directory: client
-        run: npm run build:win
+        run: npm run ${{ matrix.cmd }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Corp-Chat-Windows
-          path: client/dist/*.exe
-
-  build-linux:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install dependencies
-        working-directory: client
-        run: npm install
-
-      - name: Build Linux
-        working-directory: client
-        run: npm run build:linux
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Corp-Chat-Linux
-          path: client/dist/*.AppImage
+          name: Corp-Chat-${{ matrix.name }}
+          path: ${{ matrix.artifact }}
