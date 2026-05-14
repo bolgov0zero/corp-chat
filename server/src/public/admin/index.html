@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Corp Chat — Администрирование</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #1a1a1a; }
+  #login { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .login-box { background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 2px 16px rgba(0,0,0,.1); width: 340px; }
+  .login-box h1 { font-size: 22px; margin-bottom: 24px; text-align: center; }
+  input, select { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 12px; }
+  button { width: 100%; padding: 10px; border: none; border-radius: 8px; background: #2563eb; color: #fff; font-size: 15px; cursor: pointer; font-weight: 600; }
+  button:hover { background: #1d4ed8; }
+  button.danger { background: #dc2626; } button.danger:hover { background: #b91c1c; }
+  button.sm { width: auto; padding: 5px 12px; font-size: 13px; margin-left: 6px; }
+  #app { display: none; }
+  nav { background: #1e293b; color: #fff; padding: 0 24px; display: flex; align-items: center; gap: 4px; }
+  nav span { font-weight: 700; font-size: 17px; margin-right: 20px; padding: 16px 0; }
+  nav a { color: #94a3b8; text-decoration: none; padding: 16px 12px; cursor: pointer; font-size: 14px; }
+  nav a.active, nav a:hover { color: #fff; }
+  nav .user-info { margin-left: auto; font-size: 13px; color: #94a3b8; }
+  nav .user-info button { width: auto; padding: 6px 14px; font-size: 13px; background: #374151; margin-left: 12px; }
+  .page { display: none; padding: 28px 32px; }
+  .page.active { display: block; }
+  h2 { font-size: 20px; margin-bottom: 20px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
+  .stat { background: #fff; border-radius: 10px; padding: 20px 24px; box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+  .stat .val { font-size: 36px; font-weight: 700; color: #2563eb; }
+  .stat .lbl { font-size: 13px; color: #64748b; margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+  th { background: #f8fafc; text-align: left; padding: 12px 16px; font-size: 13px; color: #64748b; font-weight: 600; }
+  td { padding: 12px 16px; border-top: 1px solid #f1f5f9; font-size: 14px; }
+  tr:hover td { background: #f8fafc; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .badge-admin { background: #dbeafe; color: #2563eb; }
+  .badge-group { background: #d1fae5; color: #059669; }
+  .badge-direct { background: #fef3c7; color: #d97706; }
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 100; align-items: center; justify-content: center; }
+  .modal-bg.open { display: flex; }
+  .modal { background: #fff; border-radius: 12px; padding: 32px; width: 400px; }
+  .modal h3 { margin-bottom: 20px; font-size: 18px; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
+  .modal-actions button { width: auto; padding: 8px 20px; }
+  .err { color: #dc2626; font-size: 13px; margin-top: 8px; }
+  .toolbar { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+  .toolbar button { width: auto; padding: 8px 18px; }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="login-box">
+    <h1>Corp Chat</h1>
+    <input id="l-server" placeholder="Адрес сервера (уже открыт)" value="" readonly style="background:#f8fafc">
+    <input id="l-user" placeholder="Логин" value="admin">
+    <input id="l-pass" placeholder="Пароль" type="password">
+    <button onclick="doLogin()">Войти</button>
+    <div class="err" id="l-err"></div>
+  </div>
+</div>
+
+<div id="app">
+  <nav>
+    <span>Corp Chat Admin</span>
+    <a onclick="showPage('dashboard')" data-page="dashboard" class="active">Главная</a>
+    <a onclick="showPage('users')" data-page="users">Пользователи</a>
+    <a onclick="showPage('chats')" data-page="chats">Чаты</a>
+    <div class="user-info">
+      <span id="nav-username"></span>
+      <button onclick="logout()">Выйти</button>
+    </div>
+  </nav>
+
+  <div class="page active" id="page-dashboard">
+    <h2>Обзор</h2>
+    <div class="stats">
+      <div class="stat"><div class="val" id="s-users">—</div><div class="lbl">Пользователей</div></div>
+      <div class="stat"><div class="val" id="s-chats">—</div><div class="lbl">Чатов</div></div>
+      <div class="stat"><div class="val" id="s-messages">—</div><div class="lbl">Сообщений</div></div>
+    </div>
+  </div>
+
+  <div class="page" id="page-users">
+    <h2>Пользователи</h2>
+    <div class="toolbar"><button onclick="openCreateUser()">+ Создать пользователя</button></div>
+    <table>
+      <thead><tr><th>ID</th><th>Логин</th><th>Имя</th><th>Роль</th><th>Дата создания</th><th>Действия</th></tr></thead>
+      <tbody id="users-table"></tbody>
+    </table>
+  </div>
+
+  <div class="page" id="page-chats">
+    <h2>Чаты</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Тип</th><th>Название</th><th>Участники</th><th>Сообщений</th><th>Создан</th><th>Действия</th></tr></thead>
+      <tbody id="chats-table"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Create user modal -->
+<div class="modal-bg" id="modal-create-user">
+  <div class="modal">
+    <h3>Создать пользователя</h3>
+    <input id="cu-username" placeholder="Логин">
+    <input id="cu-display" placeholder="Отображаемое имя">
+    <input id="cu-password" placeholder="Пароль" type="password">
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:14px">
+      <input type="checkbox" id="cu-admin"> Администратор
+    </label>
+    <div class="err" id="cu-err"></div>
+    <div class="modal-actions">
+      <button onclick="closeModal('modal-create-user')" style="background:#6b7280">Отмена</button>
+      <button onclick="createUser()">Создать</button>
+    </div>
+  </div>
+</div>
+
+<!-- Change password modal -->
+<div class="modal-bg" id="modal-change-pass">
+  <div class="modal">
+    <h3>Сменить пароль</h3>
+    <input id="cp-password" placeholder="Новый пароль" type="password">
+    <div class="err" id="cp-err"></div>
+    <div class="modal-actions">
+      <button onclick="closeModal('modal-change-pass')" style="background:#6b7280">Отмена</button>
+      <button onclick="changePassword()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm modal -->
+<div class="modal-bg" id="modal-confirm">
+  <div class="modal">
+    <h3 id="confirm-title">Подтверждение</h3>
+    <p id="confirm-text" style="font-size:14px;color:#64748b;margin-bottom:16px"></p>
+    <div class="modal-actions">
+      <button onclick="closeModal('modal-confirm')" style="background:#6b7280">Отмена</button>
+      <button class="danger" id="confirm-btn">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let token = null;
+let selectedUserId = null;
+
+const api = async (method, path, body) => {
+  const res = await fetch(path, {
+    method,
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  return res.json();
+};
+
+document.getElementById('l-server').value = location.origin;
+
+document.getElementById('l-pass').addEventListener('keydown', e => e.key === 'Enter' && doLogin());
+
+async function doLogin() {
+  const username = document.getElementById('l-user').value;
+  const password = document.getElementById('l-pass').value;
+  const data = await api('POST', '/api/auth/login', { username, password });
+  if (data.token) {
+    if (!data.user.is_admin) { document.getElementById('l-err').textContent = 'Нет прав администратора'; return; }
+    token = data.token;
+    document.getElementById('nav-username').textContent = data.user.display_name;
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadDashboard();
+  } else {
+    document.getElementById('l-err').textContent = data.error || 'Ошибка входа';
+  }
+}
+
+function logout() { token = null; location.reload(); }
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelector(`nav a[data-page="${name}"]`).classList.add('active');
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'users') loadUsers();
+  if (name === 'chats') loadChats();
+}
+
+async function loadDashboard() {
+  const s = await api('GET', '/api/admin/stats');
+  document.getElementById('s-users').textContent = s.users;
+  document.getElementById('s-chats').textContent = s.chats;
+  document.getElementById('s-messages').textContent = s.messages;
+}
+
+async function loadUsers() {
+  const users = await api('GET', '/api/admin/users');
+  const tbody = document.getElementById('users-table');
+  tbody.innerHTML = users.map(u => `
+    <tr>
+      <td>${u.id}</td>
+      <td>${esc(u.username)}</td>
+      <td>${esc(u.display_name)}</td>
+      <td>${u.is_admin ? '<span class="badge badge-admin">Администратор</span>' : 'Пользователь'}</td>
+      <td>${new Date(u.created_at * 1000).toLocaleDateString('ru')}</td>
+      <td>
+        <button class="sm" onclick="openChangePass(${u.id})">Пароль</button>
+        <button class="sm danger" onclick="confirmDelete('user', ${u.id}, '${esc(u.username)}')">Удалить</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function loadChats() {
+  const chats = await api('GET', '/api/admin/chats');
+  const tbody = document.getElementById('chats-table');
+  tbody.innerHTML = chats.map(c => `
+    <tr>
+      <td>${c.id}</td>
+      <td><span class="badge badge-${c.type}">${c.type === 'group' ? 'Группа' : 'Личный'}</span></td>
+      <td>${esc(c.name || '—')}</td>
+      <td>${c.member_count}</td>
+      <td>${c.message_count}</td>
+      <td>${new Date(c.created_at * 1000).toLocaleDateString('ru')}</td>
+      <td>
+        <button class="sm danger" onclick="confirmClearHistory(${c.id})">Очистить историю</button>
+        <button class="sm danger" onclick="confirmDelete('chat', ${c.id}, '#${c.id}')">Удалить</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openCreateUser() { document.getElementById('modal-create-user').classList.add('open'); }
+function openChangePass(id) { selectedUserId = id; document.getElementById('modal-change-pass').classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+async function createUser() {
+  const username = document.getElementById('cu-username').value;
+  const display_name = document.getElementById('cu-display').value;
+  const password = document.getElementById('cu-password').value;
+  const is_admin = document.getElementById('cu-admin').checked;
+  const data = await api('POST', '/api/users', { username, display_name, password, is_admin });
+  if (data.id) { closeModal('modal-create-user'); loadUsers(); }
+  else document.getElementById('cu-err').textContent = data.error || 'Ошибка';
+}
+
+async function changePassword() {
+  const password = document.getElementById('cp-password').value;
+  const data = await api('PATCH', '/api/users/' + selectedUserId + '/password', { password });
+  if (data.ok) closeModal('modal-change-pass');
+  else document.getElementById('cp-err').textContent = data.error || 'Ошибка';
+}
+
+function confirmDelete(type, id, label) {
+  document.getElementById('confirm-title').textContent = type === 'user' ? 'Удалить пользователя?' : 'Удалить чат?';
+  document.getElementById('confirm-text').textContent = `Это действие необратимо: ${label}`;
+  document.getElementById('confirm-btn').onclick = async () => {
+    await api('DELETE', type === 'user' ? '/api/users/' + id : '/api/chats/' + id);
+    closeModal('modal-confirm');
+    type === 'user' ? loadUsers() : loadChats();
+  };
+  document.getElementById('modal-confirm').classList.add('open');
+}
+
+function confirmClearHistory(chatId) {
+  document.getElementById('confirm-title').textContent = 'Очистить историю?';
+  document.getElementById('confirm-text').textContent = `Все сообщения чата #${chatId} будут удалены.`;
+  document.getElementById('confirm-btn').onclick = async () => {
+    await api('DELETE', '/api/chats/' + chatId + '/messages');
+    closeModal('modal-confirm');
+    loadChats();
+  };
+  document.getElementById('modal-confirm').classList.add('open');
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>

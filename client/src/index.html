@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Corp Chat</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Login screen -->
+<div id="screen-login" class="screen active">
+  <div class="login-box">
+    <div class="login-logo">💬</div>
+    <h1>Corp Chat</h1>
+    <input id="l-server" placeholder="Адрес сервера (например: 192.168.1.10:3000)">
+    <input id="l-username" placeholder="Логин">
+    <input id="l-password" type="password" placeholder="Пароль">
+    <button id="l-btn" onclick="doLogin()">Войти</button>
+    <div class="err" id="l-err"></div>
+  </div>
+</div>
+
+<!-- Main chat screen -->
+<div id="screen-main" class="screen">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="avatar" id="my-avatar"></div>
+      <div class="my-name" id="my-name"></div>
+      <button class="icon-btn" title="Новый чат" onclick="openNewChat()">✏️</button>
+    </div>
+    <div class="search-wrap"><input id="search" placeholder="Поиск..." oninput="filterChats()"></div>
+    <div class="chats-list" id="chats-list"></div>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="logout()">Выйти</button>
+    </div>
+  </aside>
+
+  <main class="chat-area" id="chat-area">
+    <div class="empty-state">Выберите чат</div>
+  </main>
+</div>
+
+<!-- New chat modal -->
+<div class="modal-bg" id="modal-new-chat">
+  <div class="modal">
+    <h3>Новый чат</h3>
+    <div class="tab-bar">
+      <button class="tab active" onclick="switchTab('direct')">Личный</button>
+      <button class="tab" onclick="switchTab('group')">Группа</button>
+    </div>
+    <div id="tab-direct">
+      <p style="font-size:13px;color:#64748b;margin-bottom:12px">Выберите пользователя:</p>
+      <div id="users-list" class="users-list"></div>
+    </div>
+    <div id="tab-group" style="display:none">
+      <input id="group-name" placeholder="Название группы">
+      <p style="font-size:13px;color:#64748b;margin-bottom:8px">Участники (можно выбрать несколько):</p>
+      <div id="users-list-group" class="users-list"></div>
+      <button onclick="createGroup()" style="margin-top:12px">Создать группу</button>
+    </div>
+    <button onclick="closeModal('modal-new-chat')" style="background:#6b7280;margin-top:8px">Отмена</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
