@@ -8,59 +8,137 @@
 </head>
 <body>
 
-<!-- Login screen -->
+<!-- Login -->
 <div id="screen-login" class="screen active">
-  <div class="login-box">
-    <div class="login-logo">💬</div>
+  <div class="login-wrap">
+    <div class="login-icon">💬</div>
     <h1>Corp Chat</h1>
-    <input id="l-server" placeholder="Адрес сервера (например: 192.168.1.10:3000)">
-    <input id="l-username" placeholder="Логин">
-    <input id="l-password" type="password" placeholder="Пароль">
-    <button id="l-btn" onclick="doLogin()">Войти</button>
-    <div class="err" id="l-err"></div>
+    <p class="login-sub">Корпоративный мессенджер</p>
+    <div class="field"><label>Адрес сервера</label><input id="l-server" placeholder="192.168.1.10:3000" autocomplete="off" spellcheck="false"></div>
+    <div class="field"><label>Логин</label><input id="l-username" placeholder="username" autocomplete="username"></div>
+    <div class="field"><label>Пароль</label><input id="l-password" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+    <button class="btn-login" id="l-btn" onclick="doLogin()">Войти</button>
+    <div class="login-err" id="l-err"></div>
   </div>
 </div>
 
-<!-- Main chat screen -->
+<!-- Main -->
 <div id="screen-main" class="screen">
+
+  <!-- Sidebar -->
   <aside class="sidebar">
-    <div class="sidebar-header">
-      <div class="avatar" id="my-avatar"></div>
-      <div class="my-name" id="my-name"></div>
-      <button class="icon-btn" title="Новый чат" onclick="openNewChat()">✏️</button>
+    <div class="sidebar-top">
+      <div class="sidebar-me" id="sidebar-me">
+        <div class="av av-sm" id="me-av"></div>
+        <div class="me-name" id="me-name"></div>
+        <button class="icon-btn" id="settings-btn" title="Настройки" onclick="openSettings()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <button class="icon-btn" title="Новый чат" onclick="openNewChat()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+      </div>
+      <div class="search-wrap">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="search" placeholder="Поиск" oninput="filterChats()">
+      </div>
     </div>
-    <div class="search-wrap"><input id="search" placeholder="Поиск..." oninput="filterChats()"></div>
     <div class="chats-list" id="chats-list"></div>
-    <div class="sidebar-footer">
-      <button class="logout-btn" onclick="logout()">Выйти</button>
-    </div>
   </aside>
 
-  <main class="chat-area" id="chat-area">
-    <div class="empty-state">Выберите чат</div>
+  <!-- Chat area -->
+  <main class="chat-main" id="chat-main">
+    <div class="empty-state">
+      <div class="empty-icon">💬</div>
+      <div class="empty-title">Corp Chat</div>
+      <div class="empty-sub">Выберите чат или создайте новый</div>
+    </div>
   </main>
+</div>
+
+<!-- Settings drawer -->
+<div class="drawer-bg" id="drawer-bg" onclick="closeSettings()"></div>
+<div class="drawer" id="drawer-settings">
+  <div class="drawer-header">
+    <span>Настройки</span>
+    <button class="icon-btn" onclick="closeSettings()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body">
+    <div class="setting-section">Внешний вид</div>
+    <div class="setting-row">
+      <span>Тема</span>
+      <div class="seg" id="theme-seg">
+        <button onclick="setTheme('light')" class="active">Светлая</button>
+        <button onclick="setTheme('dark')">Тёмная</button>
+      </div>
+    </div>
+    <div class="setting-row">
+      <span>Размер текста</span>
+      <div class="seg" id="font-seg">
+        <button onclick="setFontSize('small')">S</button>
+        <button onclick="setFontSize('medium')" class="active">M</button>
+        <button onclick="setFontSize('large')">L</button>
+      </div>
+    </div>
+    <div class="setting-section" style="margin-top:24px">Аккаунт</div>
+    <button class="setting-logout" onclick="logout()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Выйти из аккаунта
+    </button>
+  </div>
 </div>
 
 <!-- New chat modal -->
 <div class="modal-bg" id="modal-new-chat">
   <div class="modal">
-    <h3>Новый чат</h3>
-    <div class="tab-bar">
+    <div class="modal-hdr"><span id="nc-title">Новый чат</span><button class="icon-btn" onclick="closeModal('modal-new-chat')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="tab-row">
       <button class="tab active" onclick="switchTab('direct')">Личный</button>
-      <button class="tab" onclick="switchTab('group')">Группа</button>
+      <button class="tab" onclick="switchTab('group')">Группа / комната</button>
     </div>
     <div id="tab-direct">
-      <p style="font-size:13px;color:#64748b;margin-bottom:12px">Выберите пользователя:</p>
-      <div id="users-list" class="users-list"></div>
+      <div class="modal-search"><input placeholder="Поиск пользователей..." oninput="filterModalUsers(this.value,'users-list-direct')"></div>
+      <div class="users-list" id="users-list-direct"></div>
     </div>
     <div id="tab-group" style="display:none">
-      <input id="group-name" placeholder="Название группы">
-      <p style="font-size:13px;color:#64748b;margin-bottom:8px">Участники (можно выбрать несколько):</p>
-      <div id="users-list-group" class="users-list"></div>
-      <button onclick="createGroup()" style="margin-top:12px">Создать группу</button>
+      <div class="field" style="padding:0 4px 8px"><input id="group-name" placeholder="Название группы / комнаты"></div>
+      <div class="modal-search"><input placeholder="Добавить участников..." oninput="filterModalUsers(this.value,'users-list-group')"></div>
+      <div class="users-list" id="users-list-group"></div>
+      <button class="modal-create-btn" onclick="createGroup()">Создать</button>
     </div>
-    <button onclick="closeModal('modal-new-chat')" style="background:#6b7280;margin-top:8px">Отмена</button>
   </div>
+</div>
+
+<!-- Edit group modal -->
+<div class="modal-bg" id="modal-edit-group">
+  <div class="modal">
+    <div class="modal-hdr"><span>Редактировать группу</span><button class="icon-btn" onclick="closeModal('modal-edit-group')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="modal-body-pad">
+      <div class="field"><label>Название</label><input id="eg-name"></div>
+      <div style="margin-top:12px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Участники</div>
+      <div id="eg-members" class="users-list"></div>
+      <div style="margin-top:12px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Добавить</div>
+      <div id="eg-add" class="users-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn-ghost" onclick="closeModal('modal-edit-group')">Отмена</button>
+      <button class="modal-btn-primary" onclick="saveGroupEdit()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Context menu -->
+<div class="ctx-menu" id="ctx-menu">
+  <button onclick="ctxEdit()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    Изменить
+  </button>
+  <button onclick="ctxDelete()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+    Удалить
+  </button>
 </div>
 
 <script src="app.js"></script>

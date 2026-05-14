@@ -11,6 +11,7 @@ app.use('/admin', express.static(path.join(__dirname, 'public/admin')));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/chats', require('./routes/chats'));
+app.use('/api/messages', require('./routes/messages'));
 app.use('/api/admin', require('./routes/admin'));
 
 require('./ws').setup(server);
