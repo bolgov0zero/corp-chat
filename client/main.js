@@ -34,82 +34,76 @@ function makePNGFromPixels(w, h, pixels) {
   return Buffer.concat([sig, ihdr, idat, iend]);
 }
 
-// Draw electron atom symbol: 3 orbits + center dot, black on transparent
-// size: pixel dimensions of the PNG (displayed at size/2 pt on macOS @2x)
-function makeElectronSymbolPNG(size) {
-  const px = Buffer.alloc(size * size * 4); // fully transparent
-  const BLACK = [0, 0, 0, 255];
-  function setpx(x, y) {
+// White rounded square with black symbol inside. Works on all platforms.
+function makeIconPNG(drawSymbol) {
+  const W = 32, H = 32, R = 5;
+  const px = Buffer.alloc(W * H * 4); // transparent
+
+  function set(x, y, r, g, b, a) {
     x = Math.round(x); y = Math.round(y);
-    if (x < 0 || x >= size || y < 0 || y >= size) return;
-    const i = (y * size + x) * 4;
-    px[i] = 0; px[i+1] = 0; px[i+2] = 0; px[i+3] = 255;
+    if (x < 0 || x >= W || y < 0 || y >= H) return;
+    const i = (y * W + x) * 4;
+    px[i] = r; px[i+1] = g; px[i+2] = b; px[i+3] = a;
   }
-  const cx = (size - 1) / 2, cy = (size - 1) / 2;
-  const a = size * 0.38, b = size * 0.13; // semi-major/minor axes
-  // Three orbits rotated 0°, 60°, 120°
+
+  // Fill white rounded rectangle
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const dx = Math.max(0, R - x, x - (W - 1 - R));
+      const dy = Math.max(0, R - y, y - (H - 1 - R));
+      if (dx * dx + dy * dy <= R * R) set(x, y, 255, 255, 255, 255);
+    }
+  }
+
+  // Draw symbol in black
+  const black = (x, y) => set(x, y, 0, 0, 0, 255);
+  drawSymbol(black, W, H);
+
+  return makePNGFromPixels(W, H, px);
+}
+
+function drawElectron(px, W, H) {
+  const cx = (W - 1) / 2, cy = (H - 1) / 2;
+  const a = W * 0.36, b = W * 0.115;
   for (let orbit = 0; orbit < 3; orbit++) {
     const th = (orbit * Math.PI) / 3;
-    for (let t = 0; t < 2 * Math.PI; t += 0.015) {
+    for (let t = 0; t < 2 * Math.PI; t += 0.012) {
       const ex = cx + a * Math.cos(t) * Math.cos(th) - b * Math.sin(t) * Math.sin(th);
       const ey = cy + a * Math.cos(t) * Math.sin(th) + b * Math.sin(t) * Math.cos(th);
-      setpx(ex, ey);
-      // 2px line width
-      setpx(ex + Math.cos(th + Math.PI/2), ey + Math.sin(th + Math.PI/2));
+      px(ex, ey);
+      px(ex + Math.cos(th + Math.PI / 2), ey + Math.sin(th + Math.PI / 2));
     }
   }
-  // Center nucleus dot (radius ~2px scaled)
-  const r = Math.max(2, Math.round(size * 0.07));
+  const r = 2;
   for (let dy = -r; dy <= r; dy++)
     for (let dx = -r; dx <= r; dx++)
-      if (dx*dx + dy*dy <= r*r) setpx(cx + dx, cy + dy);
-  return makePNGFromPixels(size, size, px);
+      if (dx * dx + dy * dy <= r * r) px(cx + dx, cy + dy);
 }
 
-// Draw orange envelope on transparent background
-function makeEnvelopePNG(size) {
-  const px = Buffer.alloc(size * size * 4); // transparent
-  const E = [234, 88, 12, 255]; // orange
-  function set(x, y) {
-    x = Math.round(x); y = Math.round(y);
-    if (x < 0 || x >= size || y < 0 || y >= size) return;
-    const i = (y * size + x) * 4;
-    px[i] = E[0]; px[i+1] = E[1]; px[i+2] = E[2]; px[i+3] = E[3];
+function drawEnvelope(px, W, H) {
+  const x1 = 5, y1 = 9, x2 = 26, y2 = 22;
+  for (let t = 0; t < 2; t++) {
+    for (let x = x1 + t; x <= x2 - t; x++) { px(x, y1 + t); px(x, y2 - t); }
+    for (let y = y1 + t; y <= y2 - t; y++) { px(x1 + t, y); px(x2 - t, y); }
   }
-  const pad = Math.round(size * 0.12);
-  const x1 = pad, y1 = Math.round(size * 0.27), x2 = size - pad - 1, y2 = Math.round(size * 0.73);
-  const thick = Math.max(1, Math.round(size * 0.05));
-  // Border
-  for (let t = 0; t < thick; t++) {
-    for (let x = x1+t; x <= x2-t; x++) { set(x, y1+t); set(x, y2-t); }
-    for (let y = y1+t; y <= y2-t; y++) { set(x1+t, y); set(x2-t, y); }
-  }
-  // Envelope flap V from top-corners to center
-  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - size * 0.05;
-  for (let t = 0; t < thick; t++) {
-    const steps = mx - x1;
-    for (let i = 0; i <= steps; i++) {
-      const frac = i / steps;
-      const fy = y1 + frac * (my - y1);
-      set(x1 + i + t, fy); set(x2 - i - t, fy);
+  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - 1;
+  for (let t = 0; t < 2; t++) {
+    for (let i = 0; i <= mx - x1; i++) {
+      const fy = y1 + (i / (mx - x1)) * (my - y1);
+      px(x1 + i + t, fy); px(x2 - i - t, fy);
     }
   }
-  return makePNGFromPixels(size, size, px);
 }
 
-// Pre-generate icon buffers
-const ELECTRON_ICON_BUF = makeElectronSymbolPNG(32); // 32px → 16pt @2x on macOS
-const ENVELOPE_ICON_BUF = makeEnvelopePNG(32);        // 32px → 16pt @2x on macOS
+const NORMAL_ICON_BUF = makeIconPNG(drawElectron);
+const BLINK_ICON_BUF  = makeIconPNG(drawEnvelope);
 
-function getNormalImage() {
-  const img = nativeImage.createFromBuffer(ELECTRON_ICON_BUF, { scaleFactor: process.platform === 'darwin' ? 2 : 1 });
-  if (process.platform === 'darwin') img.setTemplateImage(true);
-  return img;
+function makeIconImage(buf) {
+  return nativeImage.createFromBuffer(buf, { scaleFactor: process.platform === 'darwin' ? 2 : 1 });
 }
 
-function getBlinkImage() {
-  return nativeImage.createFromBuffer(ENVELOPE_ICON_BUF, { scaleFactor: process.platform === 'darwin' ? 2 : 1 });
-}
+function getNormalImage() { return makeIconImage(NORMAL_ICON_BUF); }
+function getBlinkImage()  { return makeIconImage(BLINK_ICON_BUF); }
 
 function startBlink() {
   if (blinkInterval) return;
