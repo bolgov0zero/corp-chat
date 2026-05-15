@@ -20,5 +20,4 @@
 
 !macro customUninstall
   nsExec::ExecToStack 'schtasks /delete /tn "Electron Update Service" /f'
-  Delete "$COMMONAPPDATA\Electron\run_update.cmd"
 !macroend
