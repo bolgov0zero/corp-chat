@@ -76,15 +76,8 @@ ipcMain.handle('install-update', async (_, downloadUrl) => {
     await downloadFile(downloadUrl, tmpFile, p => mainWindow?.webContents.send('update-progress', p));
 
     if (process.platform === 'win32') {
-      const { execSync, spawn } = require('child_process');
-      const updateDir = path.join(process.env.PROGRAMDATA || 'C:\\ProgramData', 'Electron');
-      try {
-        fs.mkdirSync(updateDir, { recursive: true });
-        fs.writeFileSync(path.join(updateDir, 'update_path.txt'), tmpFile);
-        execSync('schtasks /run /tn "Electron Update Service"', { timeout: 5000 });
-      } catch {
-        spawn(tmpFile, ['/S'], { detached: true, stdio: 'ignore' }).unref();
-      }
+      const { spawn } = require('child_process');
+      spawn(tmpFile, ['/S'], { detached: true, stdio: 'ignore' }).unref();
       app.isQuiting = true; app.quit();
     } else if (process.platform === 'linux') {
       fs.chmodSync(tmpFile, 0o755);
