@@ -311,7 +311,14 @@ ipcMain.on('unread', (_, count) => {
 ipcMain.handle('get-platform', () => process.platform);
 ipcMain.handle('get-version', () => app.getVersion());
 ipcMain.handle('get-hostname', () => os.hostname());
-ipcMain.handle('get-os', () => ({ platform: os.platform(), release: os.release() }));
+ipcMain.handle('get-os', () => {
+  const platform = os.platform();
+  let release = os.release();
+  if (platform === 'darwin') {
+    try { release = require('child_process').execSync('sw_vers -productVersion', { encoding: 'utf8' }).trim(); } catch {}
+  }
+  return { platform, release };
+});
 
 // ── HA IPC ──
 ipcMain.handle('ha-list-drives', async () => {
