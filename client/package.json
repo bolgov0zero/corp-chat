@@ -1,6 +1,6 @@
 {
   "name": "electron",
-  "version": "1.4.5",
+  "version": "1.4.6",
   "description": "Corporate Chat Client",
   "author": "bolgov@me.com",
   "homepage": "https://github.com/bolgov0zero/corp-chat",
@@ -24,7 +24,6 @@
       "main.js",
       "preload.js",
       "src/**/*",
-      "ElectronUpdateService.exe"
     ],
     "mac": {
       "category": "public.app-category.business",
