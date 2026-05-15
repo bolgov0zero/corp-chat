@@ -916,7 +916,7 @@ async function addSelectedMembers() {
 async function renderClients() {
   document.getElementById('topbar-actions').innerHTML = `
     <span class="clients-refresh" id="clients-refresh-time"></span>
-    <button class="btn btn-ghost btn-sm" onclick="loadClients()">
+    <button class="btn btn-ghost btn-sm" onclick="loadClients(true)">
       <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       Обновить
     </button>`;
@@ -938,8 +938,8 @@ async function renderClients() {
   window._clientsInterval = setInterval(loadClients, 10000);
 }
 
-async function loadClients() {
-  const { clients, latestVersion } = await api('GET', '/api/admin/clients');
+async function loadClients(force = false) {
+  const { clients, latestVersion } = await api('GET', `/api/admin/clients${force ? '?force=true' : ''}`);
   document.getElementById('clients-count').textContent = clients.length;
   const now = new Date().toLocaleTimeString('ru');
   const el = document.getElementById('clients-refresh-time');

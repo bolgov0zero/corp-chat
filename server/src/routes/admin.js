@@ -79,9 +79,9 @@ router.get('/chats/:id/members', (req, res) => {
 let _versionCache = { version: null, fetchedAt: 0 };
 const VERSION_CACHE_TTL = 15 * 60 * 1000;
 
-async function fetchLatestVersion() {
+async function fetchLatestVersion(force = false) {
   const now = Date.now();
-  if (_versionCache.version && now - _versionCache.fetchedAt < VERSION_CACHE_TTL) {
+  if (!force && _versionCache.version && now - _versionCache.fetchedAt < VERSION_CACHE_TTL) {
     return _versionCache.version;
   }
   const https = require('https');
@@ -105,7 +105,7 @@ async function fetchLatestVersion() {
 // Список подключённых клиентов + последняя версия с GitHub
 router.get('/clients', async (req, res) => {
   const clients = getClients();
-  const latestVersion = await fetchLatestVersion();
+  const latestVersion = await fetchLatestVersion(req.query.force === 'true');
   res.json({ clients, latestVersion });
 });
 
