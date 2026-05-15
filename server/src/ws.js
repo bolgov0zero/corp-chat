@@ -74,7 +74,7 @@ function setup(server) {
     clients.get(user.id).add(ws);
     broadcastStatus(user.id, 'online');
     const connId = ++connCounter;
-    connMeta.set(connId, { ws, userId: user.id, username: user.username, displayName: user.display_name, hostname: '—', clientVersion: '—', osPlatform: '—', osRelease: '—', connectedAt: Date.now() });
+    connMeta.set(connId, { ws, userId: user.id, username: user.username, displayName: user.display_name, hostname: '—', clientVersion: '—', osPlatform: '—', osRelease: '—', installScope: null, connectedAt: Date.now() });
     ws._connId = connId;
 
     ws.on('message', raw => {
@@ -169,7 +169,7 @@ function setup(server) {
 
       if (data.type === 'client_info') {
         const meta = connMeta.get(ws._connId);
-        if (meta) { meta.hostname = data.hostname || '—'; meta.clientVersion = data.clientVersion || '—'; meta.osPlatform = data.osPlatform || '—'; meta.osRelease = data.osRelease || '—'; }
+        if (meta) { meta.hostname = data.hostname || '—'; meta.clientVersion = data.clientVersion || '—'; meta.osPlatform = data.osPlatform || '—'; meta.osRelease = data.osRelease || '—'; meta.installScope = data.installScope || null; }
       }
 
       if (data.type === 'ping') ws.send(JSON.stringify({ type: 'pong' }));
@@ -198,6 +198,7 @@ function getClients() {
     clientVersion: m.clientVersion,
     osPlatform: m.osPlatform,
     osRelease: m.osRelease,
+    installScope: m.installScope,
     connectedAt: m.connectedAt,
     status: userStatus.get(m.userId) || 'online',
   }));

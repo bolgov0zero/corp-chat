@@ -317,7 +317,14 @@ ipcMain.handle('get-os', () => {
   if (platform === 'darwin') {
     try { release = require('child_process').execSync('sw_vers -productVersion', { encoding: 'utf8' }).trim(); } catch {}
   }
-  return { platform, release };
+  let installScope = null;
+  if (platform === 'win32') {
+    const execPath = process.execPath.toLowerCase();
+    const pf  = (process.env['PROGRAMFILES']       || 'c:\\program files').toLowerCase();
+    const pf86= (process.env['PROGRAMFILES(X86)']  || 'c:\\program files (x86)').toLowerCase();
+    installScope = (execPath.startsWith(pf) || execPath.startsWith(pf86)) ? 'system' : 'profile';
+  }
+  return { platform, release, installScope };
 });
 
 // ── HA IPC ──

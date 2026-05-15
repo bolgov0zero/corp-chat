@@ -405,12 +405,19 @@ const AVcolors = ['#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f59e0b','#ef4444','#
 function avColor(name) { let h=0; for(let c of (name||'')) h=(h*31+c.charCodeAt(0))&0xffff; return AVcolors[h%AVcolors.length]; }
 function initials(name) { return (name||'?').split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?'; }
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function fmtOS(platform, release) {
+function fmtOS(platform, release, installScope) {
   if (!platform || platform === '—') return '<span style="color:var(--muted-light)">—</span>';
   const names = { win32: 'Windows', darwin: 'macOS', linux: 'Linux' };
   const name = names[platform] || platform;
   const ver = release && release !== '—' ? `<span style="color:var(--muted);font-size:11px;margin-left:4px">${release}</span>` : '';
-  return `<span style="font-size:12px">${name}</span>${ver}`;
+  let scopeTag = '';
+  if (platform === 'win32' && installScope) {
+    const isSystem = installScope === 'system';
+    const color = isSystem ? '#4caf50' : '#ff9800';
+    const label = isSystem ? 'system' : 'profile';
+    scopeTag = `<span style="margin-left:6px;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;background:${color}22;color:${color};border:1px solid ${color}55">${label}</span>`;
+  }
+  return `<span style="font-size:12px">${name}</span>${ver}${scopeTag}`;
 }
 function fmtDate(ts) { return ts ? new Date(ts*1000).toLocaleDateString('ru',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—'; }
 
@@ -1004,7 +1011,7 @@ async function loadClients(force = false) {
           </div>
         </td>
         <td style="font-family:monospace;font-size:12px">${esc(c.hostname)}</td>
-        <td>${fmtOS(c.osPlatform, c.osRelease)}</td>
+        <td>${fmtOS(c.osPlatform, c.osRelease, c.installScope)}</td>
         <td>${statusLabel}</td>
         <td>${verBadge}</td>
         <td>${latestBadge}</td>

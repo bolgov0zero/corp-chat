@@ -1094,7 +1094,7 @@ function connectWS() {
       const version = await window.electron?.getVersion?.() || '';
       const hostname = await window.electron?.getHostname?.() || '';
       const osInfo = await window.electron?.getOS?.() || {};
-      if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'client_info', clientVersion: version, hostname, osPlatform: osInfo.platform || '', osRelease: osInfo.release || '' }));
+      if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'client_info', clientVersion: version, hostname, osPlatform: osInfo.platform || '', osRelease: osInfo.release || '', installScope: osInfo.installScope || null }));
     } catch {}
   };
   ws.onerror = () => ws.close();
