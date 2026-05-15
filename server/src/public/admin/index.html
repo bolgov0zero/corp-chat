@@ -407,12 +407,10 @@ function initials(name) { return (name||'?').split(' ').slice(0,2).map(w=>w[0]||
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtOS(platform, release) {
   if (!platform || platform === '—') return '<span style="color:var(--muted-light)">—</span>';
-  const icons = { win32: '🪟', darwin: '🍎', linux: '🐧' };
   const names = { win32: 'Windows', darwin: 'macOS', linux: 'Linux' };
-  const icon = icons[platform] || '💻';
   const name = names[platform] || platform;
   const ver = release && release !== '—' ? `<span style="color:var(--muted);font-size:11px;margin-left:4px">${release}</span>` : '';
-  return `<span style="font-size:13px">${icon}</span> <span style="font-size:12px">${name}</span>${ver}`;
+  return `<span style="font-size:12px">${name}</span>${ver}`;
 }
 function fmtDate(ts) { return ts ? new Date(ts*1000).toLocaleDateString('ru',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—'; }
 
