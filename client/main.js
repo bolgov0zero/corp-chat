@@ -77,7 +77,11 @@ ipcMain.handle('install-update', async (_, downloadUrl) => {
 
     if (process.platform === 'win32') {
       const { spawn } = require('child_process');
+      const exePath = app.getPath('exe');
+      const batFile = path.join(os.tmpdir(), 'electron-relaunch.bat');
+      fs.writeFileSync(batFile, `@echo off\ntimeout /t 6 /nobreak > nul\nstart "" "${exePath}"\ndel "%~f0"`);
       spawn(tmpFile, ['/S'], { detached: true, stdio: 'ignore' }).unref();
+      spawn('cmd', ['/c', batFile], { detached: true, stdio: 'ignore' }).unref();
       app.isQuiting = true; app.quit();
     } else if (process.platform === 'linux') {
       fs.chmodSync(tmpFile, 0o755);
@@ -85,12 +89,16 @@ ipcMain.handle('install-update', async (_, downloadUrl) => {
       app.relaunch(); app.isQuiting = true; app.quit();
     } else if (process.platform === 'darwin') {
       const { execSync } = require('child_process');
-      const out = execSync(`hdiutil attach "${tmpFile}" -nobrowse -quiet -agree`).toString();
-      const mountPoint = out.split('\n').map(l => l.match(/\/Volumes\/.+/)?.[0]).filter(Boolean)[0]?.trim();
+      const out = execSync(`hdiutil attach "${tmpFile}" -nobrowse -agree`, { encoding: 'utf8' });
+      const mountPoint = out.split('\n').reduce((found, line) => {
+        const m = line.match(/\t(\/Volumes\/.+)/); return m ? m[1].trim() : found;
+      }, null);
+      if (!mountPoint) throw new Error('Не удалось смонтировать DMG');
       const appFile = fs.readdirSync(mountPoint).find(f => f.endsWith('.app'));
+      if (!appFile) throw new Error('Приложение не найдено в DMG');
       execSync(`cp -rf "${mountPoint}/${appFile}" /Applications/`);
-      execSync(`xattr -d com.apple.quarantine "/Applications/${appFile}" 2>/dev/null; true`, { shell: true });
-      execSync(`hdiutil detach "${mountPoint}" -quiet`);
+      execSync(`xattr -dr com.apple.quarantine "/Applications/${appFile}"`, { stdio: 'ignore' });
+      try { execSync(`hdiutil detach "${mountPoint}" -quiet`); } catch {}
       const execPath = `/Applications/${appFile}/Contents/MacOS/${appFile.replace('.app', '')}`;
       app.relaunch({ execPath }); app.isQuiting = true; app.quit();
     }
