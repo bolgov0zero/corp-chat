@@ -181,7 +181,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .mine .msg-bubble-row { flex-direction: row-reverse; }
 .theirs .msg-bubble-row { flex-direction: row; }
 .msg-bubble-row .reactions { margin: 0; padding: 0 2px; flex-shrink: 0; }
-.msg-row { display: flex; align-items: flex-end; gap: 6px; max-width: 68vw; }
+.msg-row { display: flex; align-items: flex-end; gap: 6px; max-width: 75%; }
 .msg-group.mine .msg-row { flex-direction: row-reverse; }
 
 .bubble { padding: 8px 12px; border-radius: 16px; position: relative; word-break: break-word; line-height: 1.5; }
@@ -292,6 +292,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .reaction-btn { background: var(--bg); border: 1.5px solid var(--border); border-radius: 12px; padding: 2px 8px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: background .12s, border-color .12s; font-family: inherit; }
 .reaction-btn:hover { border-color: var(--primary); background: var(--primary-light); }
 .reaction-btn span { font-size: 12px; color: var(--muted); font-weight: 600; }
+
+/* ── IRC VIEW ── */
+.irc-msg { max-width: 80%; }
+.irc-msg.mine, .irc-msg.theirs { align-self: flex-start; }
+.irc-row { display: flex; align-items: baseline; gap: 8px; padding: 3px 6px; border-radius: 6px; cursor: default; user-select: text; flex-wrap: wrap; }
+.irc-row:hover { background: var(--hover); }
+.irc-name { font-size: 13px; font-weight: 700; color: var(--primary); white-space: nowrap; flex-shrink: 0; }
+.irc-name.irc-mine { color: #10b981; }
+.irc-time { font-size: 11px; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+.irc-body { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.irc-text { font-size: 1rem; white-space: pre-wrap; word-break: break-word; color: var(--text); line-height: 1.5; }
+.irc-deleted { opacity: .5; font-style: italic; }
+.irc-reply-quote { width: 100%; margin-bottom: 3px; }
+.irc-msg .reactions { padding: 0; flex-shrink: 0; }
 
 /* ── EMOJI PICKER ── */
 .emoji-picker { position: fixed; z-index: 400; background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,.18); padding: 8px; display: grid; grid-template-columns: repeat(6, 36px); gap: 2px; }

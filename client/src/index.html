@@ -157,12 +157,19 @@
           <button onclick="setTheme('dark')">Тёмная</button>
         </div>
       </div>
-      <div class="setting-row" style="border:none">
+      <div class="setting-row">
         <span>Текст</span>
         <div class="seg" id="font-seg">
           <button onclick="setFontSize('small')">S</button>
           <button onclick="setFontSize('medium')" class="active">M</button>
           <button onclick="setFontSize('large')">L</button>
+        </div>
+      </div>
+      <div class="setting-row" style="border:none">
+        <span>Вид чата</span>
+        <div class="seg" id="chatview-seg">
+          <button data-view="bubbles" onclick="setChatView('bubbles')" class="active">Пузыри</button>
+          <button data-view="irc" onclick="setChatView('irc')">IRC</button>
         </div>
       </div>
     </div>

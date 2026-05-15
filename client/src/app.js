@@ -6,7 +6,7 @@ const S = {
   chats: [], activeChatId: null,
   ws: null, wsRetry: 0,
   unread: {}, allUsers: [],
-  settings: { theme: 'light', fontSize: 'medium' },
+  settings: { theme: 'light', fontSize: 'medium', chatView: 'bubbles' },
   ctx: { messageId: null, canEdit: false, isMine: false, replyText: '', replySenderName: '' },
   editingMessageId: null,
   replyTo: null, // { id, text, senderName }
@@ -175,9 +175,11 @@ function applySettings() {
   document.documentElement.classList.add('font-'+S.settings.fontSize);
   document.querySelectorAll('#theme-seg button').forEach(b => b.classList.toggle('active', b.textContent.trim()===(S.settings.theme==='light'?'Светлая':'Тёмная')));
   document.querySelectorAll('#font-seg button').forEach(b => b.classList.toggle('active', b.textContent.trim()===S.settings.fontSize[0].toUpperCase()));
+  document.querySelectorAll('#chatview-seg button').forEach(b => b.classList.toggle('active', b.dataset.view===(S.settings.chatView||'bubbles')));
 }
 function setTheme(t) { S.settings.theme=t; applySettings(); saveSession(); }
 function setFontSize(f) { S.settings.fontSize=f; applySettings(); saveSession(); }
+function setChatView(v) { S.settings.chatView=v; applySettings(); saveSession(); if (S.activeChatId) openChat(S.activeChatId); }
 async function openSettings() {
   document.getElementById('drawer-settings').classList.add('open');
   document.getElementById('drawer-bg').classList.add('open');
@@ -512,6 +514,7 @@ function renderReactions(msgId) {
 }
 
 function renderMsg(m, isGroup, hideTime = false) {
+  if ((S.settings.chatView||'bubbles') === 'irc') return renderMsgIRC(m, isGroup);
   const mine = m.sender_id===S.user.id;
   const time = fmtTime(m.sent_at);
   const isDeleted = m.deleted;
@@ -537,6 +540,33 @@ function renderMsg(m, isGroup, hideTime = false) {
     <div class="msg-meta${hideTime?' msg-meta-hidden':''}">
       <span class="msg-time">${time}</span>
       ${statusIcon}
+    </div>
+  </div>`;
+}
+
+function renderMsgIRC(m, isGroup) {
+  const mine = m.sender_id===S.user.id;
+  const time = fmtTime(m.sent_at);
+  const isDeleted = m.deleted;
+  const bodyText = isDeleted ? '<span class="irc-deleted">Сообщение удалено</span>' : esc(m.text) + (m.edited_at?` <span class="edited-tag">изм.</span>`:'');
+  const statusIcon = mine && !isDeleted ? renderStatus(m.status) : '';
+  const reactionsHtml = isDeleted ? '' : renderReactions(m.id);
+  const senderName = (isGroup || !mine) ? esc(m.sender_name) : 'Вы';
+  const replyHtml = m.reply_to_id ? `
+    <div class="reply-quote irc-reply-quote" onclick="scrollToMsg(${m.reply_to_id})">
+      <div class="reply-quote-name">${esc(m.reply_sender_name || '')}</div>
+      <div class="reply-quote-text">${m.reply_deleted ? 'Сообщение удалено' : esc((m.reply_text||'').slice(0,80))}</div>
+    </div>` : '';
+  return `<div class="msg-group irc-msg ${mine?'mine':'theirs'}" data-msg-id="${m.id}" data-sender-id="${m.sender_id}" data-sent-at="${m.sent_at}">
+    <div class="irc-row" oncontextmenu="${!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at},${mine})`:'event.preventDefault()'}" ondblclick="${!isDeleted?`dblReply(${m.id})`:''}">
+      <span class="irc-name${mine?' irc-mine':''}">${senderName}</span>
+      <span class="irc-time">${time}</span>
+      <div class="irc-body">
+        ${replyHtml}
+        <span class="irc-text">${bodyText}</span>
+        ${statusIcon}
+      </div>
+      ${reactionsHtml}
     </div>
   </div>`;
 }
