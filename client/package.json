@@ -1,6 +1,6 @@
 {
   "name": "electron",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Corporate Chat Client",
   "author": "bolgov@me.com",
   "homepage": "https://github.com/bolgov0zero/corp-chat",
@@ -20,19 +20,44 @@
   "build": {
     "appId": "com.corpchat.client",
     "productName": "Electron",
-    "files": ["main.js", "preload.js", "src/**/*"],
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*"
+    ],
     "mac": {
       "category": "public.app-category.business",
-      "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }],
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
       "icon": "src/assets/icon.icns"
     },
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "src/assets/icon.ico"
     },
     "linux": {
       "target": [
-        { "target": "AppImage", "arch": ["x64", "arm64"] }
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ],
       "icon": "src/assets/icon.png",
       "category": "Network",

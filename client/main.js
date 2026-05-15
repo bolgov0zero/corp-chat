@@ -208,6 +208,7 @@ ipcMain.on('unread', (_, count) => {
 });
 
 ipcMain.handle('get-platform', () => process.platform);
+ipcMain.handle('get-version', () => app.getVersion());
 
 // ── HA IPC ──
 ipcMain.handle('ha-list-drives', async () => {

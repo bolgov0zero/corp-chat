@@ -84,6 +84,10 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // Show HA button on Windows only
   if (window.electron) {
+    window.electron.getVersion?.().then(v => {
+      const el = document.getElementById('app-version');
+      if (el && v) el.textContent = `v${v}`;
+    });
     const platform = await window.electron.getPlatform();
     if (platform === 'win32') {
       const btn = document.getElementById('ha-toggle-btn');
