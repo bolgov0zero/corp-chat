@@ -1059,10 +1059,10 @@ function connectWS() {
 
     if (data.type === 'force_update') {
       if (_updateDownloadUrl) {
-        installUpdate();
+        forceInstallUpdate();
       } else {
-        checkUpdate(false).then(() => {
-          if (_updateDownloadUrl) installUpdate();
+        checkUpdate(true).then(() => {
+          if (_updateDownloadUrl) forceInstallUpdate();
         });
       }
     }
@@ -1436,5 +1436,23 @@ async function installUpdate() {
     document.getElementById('update-progress-text').textContent = 'Ошибка: ' + result.error;
     btn.disabled = false;
     btn.style.opacity = '';
+  }
+}
+
+async function forceInstallUpdate() {
+  if (!_updateDownloadUrl) return;
+  closeModal('modal-update');
+  document.getElementById('force-update-fill').style.width = '0%';
+  document.getElementById('force-update-pct').textContent = '0%';
+  document.getElementById('force-update-sub').textContent = 'Загрузка обновления…';
+  openModal('modal-force-update');
+  window.electron.onUpdateProgress(p => {
+    document.getElementById('force-update-fill').style.width = p + '%';
+    document.getElementById('force-update-pct').textContent = p + '%';
+    if (p >= 100) document.getElementById('force-update-sub').textContent = 'Установка…';
+  });
+  const result = await window.electron.installUpdate(_updateDownloadUrl);
+  if (result?.error) {
+    document.getElementById('force-update-sub').textContent = 'Ошибка: ' + result.error;
   }
 }

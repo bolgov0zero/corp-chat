@@ -414,3 +414,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .drawer-body::-webkit-scrollbar-track { background: transparent; }
 .drawer-body::-webkit-scrollbar-thumb { background: rgba(0,0,0,.25); border-radius: 4px; }
 .drawer-body::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,.4); }
+.force-update-modal { width: 340px; padding: 32px 28px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.force-update-icon { width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; display: flex; align-items: center; justify-content: center; margin-bottom: 4px; }
+.force-update-title { font-size: 16px; font-weight: 700; color: var(--text); }
+.force-update-sub { font-size: 13px; color: var(--muted); }
+.force-update-bar-wrap { width: 100%; display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.force-update-bar { height: 6px; background: var(--border); border-radius: 6px; overflow: hidden; width: 100%; }
+.force-update-fill { height: 100%; background: linear-gradient(90deg, #10b981, #059669); border-radius: 6px; width: 0%; transition: width .3s; }
+.force-update-pct { font-size: 12px; color: var(--muted); text-align: right; }
