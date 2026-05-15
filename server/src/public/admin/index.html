@@ -250,6 +250,11 @@ tbody tr:hover td{background:#f8fafc}
         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
         Клиенты
       </div>
+      <div class="nav-section">Система</div>
+      <div class="nav-item" onclick="nav('settings')" data-page="settings">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Настройки
+      </div>
     </nav>
     <div class="sidebar-footer">
       <div class="sidebar-user">
@@ -473,8 +478,8 @@ function logout() {
   }
 })();
 
-const pageTitles = {dashboard:'Главная',users:'Пользователи',rooms:'Комнаты',chats:'Чаты и группы',clients:'Клиенты'};
-const pageRenders = {dashboard:renderDashboard,users:renderUsers,rooms:renderRooms,chats:renderChats,clients:renderClients};
+const pageTitles = {dashboard:'Главная',users:'Пользователи',rooms:'Комнаты',chats:'Чаты и группы',clients:'Клиенты',settings:'Настройки'};
+const pageRenders = {dashboard:renderDashboard,users:renderUsers,rooms:renderRooms,chats:renderChats,clients:renderClients,settings:renderSettings};
 
 function nav(page) {
   if (window._clientsInterval) { clearInterval(window._clientsInterval); window._clientsInterval = null; }
@@ -1029,6 +1034,65 @@ async function forceLogout(connId, name, hostname) {
       toast('Сессия завершена', 'success');
       setTimeout(loadClients, 1500);
     });
+}
+
+async function renderSettings() {
+  document.getElementById('topbar-actions').innerHTML = '';
+  const settings = await api('GET', '/api/admin/settings');
+
+  document.getElementById('page-body').innerHTML = `
+    <div style="max-width:560px;display:flex;flex-direction:column;gap:18px">
+
+      <div class="card">
+        <div class="card-header">
+          <h3>GitHub API</h3>
+        </div>
+        <div style="padding:18px 20px;display:flex;flex-direction:column;gap:14px">
+          <p style="font-size:13px;color:var(--muted);line-height:1.6">
+            GitHub Personal Access Token используется для авторизованных запросов к API.<br>
+            Без токена лимит — <b>60 запросов/час</b>, с токеном — <b>5000 запросов/час</b>.<br>
+            Версия клиентов кэшируется на 15 минут.
+          </p>
+          <div class="form-group" style="margin:0">
+            <label>Personal Access Token</label>
+            <div style="display:flex;gap:8px">
+              <input id="github-token-input" type="password" placeholder="${settings.github_token_set ? '••••••••••••••••••••' : 'ghp_xxxxxxxxxxxxxxxxxxxx'}"
+                style="flex:1;padding:9px 13px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;outline:none;font-family:monospace"
+                onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'">
+              <button class="btn btn-primary" onclick="saveGithubToken()">Сохранить</button>
+              ${settings.github_token_set ? `<button class="btn btn-ghost" onclick="clearGithubToken()">Удалить</button>` : ''}
+            </div>
+            ${settings.github_token_set
+              ? `<div style="margin-top:6px;font-size:12px;color:var(--success);display:flex;align-items:center;gap:5px">
+                  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                  Токен установлен
+                </div>`
+              : `<div style="margin-top:6px;font-size:12px;color:var(--warn);display:flex;align-items:center;gap:5px">
+                  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  Токен не установлен — используется анонимный доступ
+                </div>`}
+          </div>
+          <p style="font-size:12px;color:var(--muted-light)">
+            Создать токен: <a href="https://github.com/settings/tokens/new?scopes=public_repo&description=Electron+Admin" target="_blank" style="color:var(--primary)">github.com/settings/tokens</a> — достаточно scope <code style="background:#f1f5f9;padding:1px 5px;border-radius:4px">public_repo</code>
+          </p>
+        </div>
+      </div>
+
+    </div>`;
+}
+
+async function saveGithubToken() {
+  const val = document.getElementById('github-token-input').value.trim();
+  if (!val) { toast('Введите токен', 'error'); return; }
+  await api('PUT', '/api/admin/settings', { github_token: val });
+  toast('Токен сохранён', 'success');
+  renderSettings();
+}
+
+async function clearGithubToken() {
+  await api('PUT', '/api/admin/settings', { github_token: '' });
+  toast('Токен удалён', 'success');
+  renderSettings();
 }
 </script>
 </body>

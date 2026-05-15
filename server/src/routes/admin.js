@@ -75,27 +75,63 @@ router.get('/chats/:id/members', (req, res) => {
   res.json(members);
 });
 
-// Список подключённых клиентов + последняя версия с GitHub
-router.get('/clients', async (req, res) => {
-  const https = require('https');
-  const clients = getClients();
+// ── Кэш версии с GitHub (обновляется раз в 15 минут) ──
+let _versionCache = { version: null, fetchedAt: 0 };
+const VERSION_CACHE_TTL = 15 * 60 * 1000;
 
-  let latestVersion = null;
+async function fetchLatestVersion() {
+  const now = Date.now();
+  if (_versionCache.version && now - _versionCache.fetchedAt < VERSION_CACHE_TTL) {
+    return _versionCache.version;
+  }
+  const https = require('https');
   try {
+    const token = db.prepare("SELECT value FROM settings WHERE key = 'github_token'").get()?.value;
+    const headers = { 'User-Agent': 'Electron-Admin' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     const data = await new Promise((resolve, reject) => {
       https.get('https://api.github.com/repos/bolgov0zero/corp-chat/releases/latest',
-        { headers: { 'User-Agent': 'Electron-Admin' } },
-        r => {
-          let body = '';
-          r.on('data', c => body += c);
-          r.on('end', () => resolve(JSON.parse(body)));
-          r.on('error', reject);
-        }).on('error', reject);
+        { headers },
+        r => { let body = ''; r.on('data', c => body += c); r.on('end', () => resolve(JSON.parse(body))); r.on('error', reject); }
+      ).on('error', reject);
     });
-    if (data.tag_name) latestVersion = data.tag_name.replace(/^v/, '');
+    if (data.tag_name) {
+      _versionCache = { version: data.tag_name.replace(/^v/, ''), fetchedAt: now };
+    }
   } catch {}
+  return _versionCache.version;
+}
 
+// Список подключённых клиентов + последняя версия с GitHub
+router.get('/clients', async (req, res) => {
+  const clients = getClients();
+  const latestVersion = await fetchLatestVersion();
   res.json({ clients, latestVersion });
+});
+
+// ── Настройки ──
+router.get('/settings', (req, res) => {
+  const rows = db.prepare('SELECT key, value FROM settings').all();
+  const settings = Object.fromEntries(rows.map(r => [r.key, r.value]));
+  // Маскируем токен
+  if (settings.github_token) settings.github_token_set = true;
+  delete settings.github_token;
+  res.json(settings);
+});
+
+router.put('/settings', (req, res) => {
+  const allowed = ['github_token'];
+  const upsert = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
+  const del = db.prepare('DELETE FROM settings WHERE key = ?');
+  for (const key of allowed) {
+    if (key in req.body) {
+      const val = req.body[key]?.trim();
+      if (val) upsert.run(key, val);
+      else del.run(key);
+    }
+  }
+  _versionCache = { version: null, fetchedAt: 0 }; // сбросить кэш
+  res.json({ ok: true });
 });
 
 // Принудительное обновление
