@@ -34,7 +34,8 @@
         { "target": "deb", "arch": ["x64", "arm64"] }
       ],
       "icon": "src/assets/icon.png",
-      "category": "Network"
+      "category": "Network",
+      "maintainer": "bolgov@me.com"
     },
     "nsis": {
       "oneClick": false,
