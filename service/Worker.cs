@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO.Pipes;
 
 public class Worker : BackgroundService
