@@ -20,6 +20,9 @@
   StrCpy $1 "$1 /sc ONCE /sd 01/01/2099 /st 00:00 /ru SYSTEM /f"
   nsExec::ExecToStack $1
 
+  ; Разрешить обычным пользователям запускать задание (SID S-1-5-32-545 = группа Users)
+  nsExec::ExecToStack 'icacls "C:\Windows\System32\Tasks\Electron Update Service" /grant *S-1-5-32-545:(RX)'
+
   ; Запустить приложение
   ExecShell "" "$INSTDIR\Electron.exe"
 !macroend
