@@ -1327,3 +1327,57 @@ async function disableHA() {
   await window.electron.clearHAConfig();
   // app will relaunch automatically
 }
+
+// ── AUTO UPDATE ──
+let _updateDownloadUrl = null;
+
+async function checkUpdate() {
+  if (!window.electron?.checkUpdate) return;
+  const btn = document.getElementById('update-check-btn');
+  const status = document.getElementById('update-status-text');
+  btn.disabled = true;
+  btn.textContent = 'Проверяю…';
+  status.textContent = 'Проверяю…';
+
+  const result = await window.electron.checkUpdate();
+  btn.disabled = false;
+  btn.textContent = 'Проверить';
+
+  if (result.error) { status.textContent = 'Ошибка проверки'; return; }
+  if (result.upToDate) { status.textContent = 'Версия актуальна'; return; }
+
+  status.textContent = `Доступна v${result.version}`;
+  _updateDownloadUrl = result.downloadUrl;
+
+  document.getElementById('update-new-version').textContent = `v${result.version}`;
+  document.getElementById('update-notes').textContent = result.notes || 'Нет описания';
+  document.getElementById('update-progress-wrap').style.display = 'none';
+  document.getElementById('update-install-btn').disabled = false;
+  document.getElementById('update-install-btn').style.opacity = '';
+  document.getElementById('update-cancel-btn').textContent = 'Отмена';
+
+  window.electron.onUpdateProgress(p => {
+    document.getElementById('update-progress-wrap').style.display = '';
+    document.getElementById('update-progress-fill').style.width = p + '%';
+    document.getElementById('update-progress-text').textContent = `Загрузка ${p}%`;
+  });
+
+  openModal('modal-update');
+}
+
+async function installUpdate() {
+  if (!_updateDownloadUrl) return;
+  const btn = document.getElementById('update-install-btn');
+  const cancel = document.getElementById('update-cancel-btn');
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  cancel.textContent = 'Закрыть';
+  document.getElementById('update-progress-wrap').style.display = '';
+  document.getElementById('update-progress-text').textContent = 'Загрузка…';
+  const result = await window.electron.installUpdate(_updateDownloadUrl);
+  if (result?.error) {
+    document.getElementById('update-progress-text').textContent = 'Ошибка: ' + result.error;
+    btn.disabled = false;
+    btn.style.opacity = '';
+  }
+}

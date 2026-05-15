@@ -4,6 +4,96 @@ if (process.platform === 'linux') app.commandLine.appendSwitch('no-sandbox');
 const path = require('path');
 const zlib = require('zlib');
 const fs = require('fs');
+const https = require('https');
+const os = require('os');
+
+// ── AUTO UPDATE ──
+const GITHUB_REPO = 'bolgov0zero/corp-chat';
+
+function httpsGet(url) {
+  return new Promise((resolve, reject) => {
+    const request = (u) => {
+      https.get(u, { headers: { 'User-Agent': 'Electron' } }, res => {
+        if (res.statusCode === 301 || res.statusCode === 302) { request(res.headers.location); return; }
+        let data = '';
+        res.on('data', c => data += c);
+        res.on('end', () => resolve(data));
+        res.on('error', reject);
+      }).on('error', reject);
+    };
+    request(url);
+  });
+}
+
+function downloadFile(url, dest, onProgress) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(dest);
+    const request = (u) => {
+      https.get(u, { headers: { 'User-Agent': 'Electron' } }, res => {
+        if (res.statusCode === 301 || res.statusCode === 302) { request(res.headers.location); return; }
+        const total = parseInt(res.headers['content-length'] || '0');
+        let received = 0;
+        res.on('data', chunk => { received += chunk.length; file.write(chunk); if (total) onProgress?.(Math.round(received / total * 100)); });
+        res.on('end', () => { file.end(); resolve(); });
+        res.on('error', reject);
+      }).on('error', reject);
+    };
+    request(url);
+  });
+}
+
+function semverGt(a, b) {
+  const n = v => v.split('.').map(Number);
+  const [am, an, ap] = n(a), [bm, bn, bp] = n(b);
+  return am !== bm ? am > bm : an !== bn ? an > bn : ap > bp;
+}
+
+function getAssetPattern() {
+  if (process.platform === 'win32') return /\.exe$/i;
+  if (process.platform === 'darwin') return /\.dmg$/i;
+  return process.arch === 'arm64' ? /arm64\.AppImage$/i : /x86_64\.AppImage$/i;
+}
+
+ipcMain.handle('check-update', async () => {
+  try {
+    const data = JSON.parse(await httpsGet(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`));
+    if (data.message) return { error: 'Не удалось проверить обновления' };
+    const latest = data.tag_name.replace(/^v/, '');
+    const current = app.getVersion();
+    if (!semverGt(latest, current)) return { upToDate: true, version: current };
+    const asset = data.assets?.find(a => getAssetPattern().test(a.name));
+    return { upToDate: false, version: latest, notes: data.body || '', downloadUrl: asset?.browser_download_url || null };
+  } catch(e) { return { error: e.message }; }
+});
+
+ipcMain.handle('install-update', async (_, downloadUrl) => {
+  const ext = process.platform === 'win32' ? '.exe' : process.platform === 'darwin' ? '.dmg' : '.AppImage';
+  const tmpFile = path.join(os.tmpdir(), `electron-update${ext}`);
+  try {
+    await downloadFile(downloadUrl, tmpFile, p => mainWindow?.webContents.send('update-progress', p));
+
+    if (process.platform === 'win32') {
+      const { spawn } = require('child_process');
+      spawn(tmpFile, ['/S'], { detached: true, stdio: 'ignore' }).unref();
+      app.isQuiting = true; app.quit();
+    } else if (process.platform === 'linux') {
+      fs.chmodSync(tmpFile, 0o755);
+      fs.copyFileSync(tmpFile, process.execPath);
+      app.relaunch(); app.isQuiting = true; app.quit();
+    } else if (process.platform === 'darwin') {
+      const { execSync } = require('child_process');
+      const out = execSync(`hdiutil attach "${tmpFile}" -nobrowse -quiet`).toString();
+      const mountPoint = out.split('\n').map(l => l.match(/\/Volumes\/.+/)?.[0]).filter(Boolean)[0]?.trim();
+      const appFile = fs.readdirSync(mountPoint).find(f => f.endsWith('.app'));
+      execSync(`cp -rf "${mountPoint}/${appFile}" /Applications/`);
+      execSync(`xattr -d com.apple.quarantine "/Applications/${appFile}" 2>/dev/null; true`, { shell: true });
+      execSync(`hdiutil detach "${mountPoint}" -quiet`);
+      const execPath = `/Applications/${appFile}/Contents/MacOS/${appFile.replace('.app', '')}`;
+      app.relaunch({ execPath }); app.isQuiting = true; app.quit();
+    }
+    return { ok: true };
+  } catch(e) { return { error: e.message }; }
+});
 
 // ── HIGH AVAILABILITY ──
 // Config stored in ProgramData — one config per machine, shared across all Windows users.
