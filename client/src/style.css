@@ -57,23 +57,39 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 #ha-toggle-btn.ha-active { background: rgba(34,197,94,.15); border-color: rgba(34,197,94,.4); color: #4ade80; }
 
 /* ── HA MODAL ── */
-.ha-modal { width: 400px; }
-.ha-modal-title { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: var(--text); }
-.ha-modal-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
-.ha-desc { font-size: 13px; color: var(--muted); line-height: 1.65; }
-.ha-active-badge { display: flex; align-items: center; gap: 7px; padding: 10px 13px; background: rgba(34,197,94,.1); border: 1.5px solid rgba(34,197,94,.25); border-radius: 8px; font-size: 13px; color: var(--text); }
-.dark .ha-active-badge { background: rgba(34,197,94,.08); border-color: rgba(34,197,94,.2); }
-.ha-active-badge svg { color: #22c55e; flex-shrink: 0; }
-.ha-field { display: flex; flex-direction: column; gap: 6px; }
-.ha-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
-.ha-select { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; background: var(--input-bg); color: var(--text); transition: border-color .15s; font-family: inherit; }
+.ha-modal { width: 440px; padding: 0; overflow: hidden; }
+
+.ha-header { display: flex; align-items: center; gap: 14px; padding: 22px 22px 18px; border-bottom: 1px solid var(--border); }
+.ha-header-icon { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, var(--primary), #6366f1); display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; }
+.ha-header-text { flex: 1; min-width: 0; }
+.ha-title { font-size: 15px; font-weight: 700; color: var(--text); }
+.ha-subtitle { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.ha-close { width: 30px; height: 30px; border-radius: 8px; border: none; background: transparent; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .15s, color .15s; }
+.ha-close:hover { background: var(--hover); color: var(--text); }
+
+.ha-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 16px; }
+.ha-desc { font-size: 13px; color: var(--muted); line-height: 1.7; margin: 0; }
+
+.ha-status-active { display: flex; align-items: center; gap: 9px; padding: 11px 14px; background: rgba(34,197,94,.1); border: 1.5px solid rgba(34,197,94,.25); border-radius: 10px; font-size: 13px; color: var(--text); }
+.dark .ha-status-active { background: rgba(34,197,94,.07); border-color: rgba(34,197,94,.18); }
+.ha-status-active svg { color: #22c55e; flex-shrink: 0; }
+
+.ha-section { display: flex; flex-direction: column; gap: 8px; }
+.ha-section-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
+.ha-select { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; outline: none; background: var(--input-bg); color: var(--text); transition: border-color .15s; font-family: inherit; cursor: pointer; }
 .ha-select:focus { border-color: var(--primary); }
-.ha-path-hint { font-size: 12px; color: var(--muted); }
-.ha-code { background: var(--bg); padding: 1px 6px; border-radius: 4px; font-family: monospace; font-size: 12px; color: var(--text); }
-.ha-modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.ha-footer-right { display: flex; gap: 8px; }
-.ha-disable-btn { color: var(--danger) !important; border-color: var(--danger) !important; }
-.ha-disable-btn:hover { background: rgba(239,68,68,.08) !important; }
+.ha-path-row { display: flex; align-items: center; gap: 7px; padding: 8px 11px; background: var(--bg); border-radius: 8px; }
+.ha-path-row svg { color: var(--muted); flex-shrink: 0; }
+.ha-path-row code { font-family: monospace; font-size: 12.5px; color: var(--text); }
+
+.ha-footer { padding: 16px 22px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ha-footer-actions { display: flex; align-items: center; gap: 8px; }
+.ha-btn-danger { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 9px; border: 1.5px solid var(--danger); background: transparent; color: var(--danger); font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s; font-family: inherit; }
+.ha-btn-danger:hover { background: rgba(239,68,68,.08); }
+.ha-btn-cancel { padding: 8px 16px; border-radius: 9px; border: 1.5px solid var(--border); background: transparent; color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer; transition: background .15s; font-family: inherit; }
+.ha-btn-cancel:hover { background: var(--hover); }
+.ha-btn-apply { display: flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 9px; border: none; background: var(--primary); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity .15s; font-family: inherit; }
+.ha-btn-apply:hover { opacity: .88; }
 
 /* ── SERVER TOAST ── */
 #server-toast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%) translateY(-80px); display: flex; align-items: center; gap: 10px; padding: 10px 18px; background: var(--card); border: 1.5px solid var(--border); border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,.15); font-size: 13px; font-weight: 500; color: var(--text); z-index: 9999; opacity: 0; transition: transform .3s cubic-bezier(.34,1.56,.64,1), opacity .3s ease; pointer-events: none; white-space: nowrap; }

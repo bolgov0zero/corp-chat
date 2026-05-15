@@ -71,7 +71,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         const cfg = await window.electron.getHAConfig();
         if (cfg?.drive) {
           btn.classList.add('ha-active');
-          document.getElementById('ha-toggle-label').textContent = `HA: ${cfg.drive}:\\`;
+          document.getElementById('ha-toggle-label').textContent = `Высокая доступность: ${cfg.drive}:\\`;
         }
       }
     }
