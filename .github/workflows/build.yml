@@ -48,6 +48,11 @@ jobs:
         if: matrix.name == 'Windows'
         run: dotnet publish service/ElectronUpdateService.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o client/
 
+      - name: Verify service exe
+        if: matrix.name == 'Windows'
+        shell: cmd
+        run: if not exist "client\ElectronUpdateService.exe" (echo ElectronUpdateService.exe not found && exit 1) else (echo ElectronUpdateService.exe OK)
+
       - name: Install dependencies
         working-directory: client
         run: npm install
