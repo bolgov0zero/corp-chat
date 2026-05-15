@@ -24,11 +24,11 @@ jobs:
           - os: ubuntu-latest
             name: Linux
             cmd: build:linux
-            artifact: "client/dist/*x86_64.AppImage"
+            artifact: "client/dist/*{x86_64.AppImage,amd64.deb}"
           - os: ubuntu-latest
             name: Linux-ARM
             cmd: build:linux-arm
-            artifact: "client/dist/*arm64.AppImage"
+            artifact: "client/dist/*{arm64.AppImage,arm64.deb}"
 
     runs-on: ${{ matrix.os }}
     name: Build ${{ matrix.name }}
