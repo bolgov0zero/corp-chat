@@ -28,23 +28,19 @@
 
 <!-- Link confirm modal -->
 <div class="modal-bg" id="modal-link">
-  <div class="modal" style="width:420px">
-    <div class="modal-header">
-      <span style="font-weight:700">Внешняя ссылка</span>
-      <button class="modal-x" onclick="closeModal('modal-link')">✕</button>
+  <div class="modal link-modal">
+    <div class="link-modal-icon">
+      <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
     </div>
-    <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
-      <div style="display:flex;gap:10px;align-items:flex-start">
-        <svg width="20" height="20" fill="none" stroke="#f59e0b" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:2px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        <div>
-          <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">Эта страница может быть потенциально опасной. Вы уверены, что хотите её открыть?</div>
-          <div id="link-modal-url" style="font-size:12px;color:var(--muted);word-break:break-all;background:var(--bg);padding:6px 10px;border-radius:6px;font-family:monospace"></div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal('modal-link')">Отмена</button>
-      <button class="btn btn-primary" onclick="confirmLink()">Открыть</button>
+    <div class="link-modal-title">Внешняя ссылка</div>
+    <div class="link-modal-desc">Эта страница может быть потенциально опасной. Вы уверены, что хотите её открыть?</div>
+    <div id="link-modal-url" class="link-modal-url"></div>
+    <div class="link-modal-footer">
+      <button class="ha-btn-cancel" onclick="closeModal('modal-link')">Отмена</button>
+      <button class="ha-btn-apply" onclick="confirmLink()">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Открыть
+      </button>
     </div>
   </div>
 </div>

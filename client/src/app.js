@@ -672,7 +672,7 @@ function onMsgInput(el) {
     S.ws.send(JSON.stringify({ type: 'typing', chat_id: S.activeChatId }));
   }
   clearTimeout(typingSendTimer);
-  typingSendTimer = setTimeout(() => { typingSendTimer = null; }, 2000);
+  typingSendTimer = setTimeout(() => { typingSendTimer = null; }, 1000);
 }
 
 function showTyping(chatId, senderName) {
@@ -687,7 +687,7 @@ function showTyping(chatId, senderName) {
 
   typingTimers[chatId] = setTimeout(() => {
     clearTyping(chatId);
-  }, 3000);
+  }, 5000);
 }
 
 function clearTyping(chatId) {
