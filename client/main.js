@@ -57,7 +57,8 @@ function getAssetPattern() {
 ipcMain.handle('check-update', async () => {
   try {
     const data = JSON.parse(await httpsGet(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`));
-    if (data.message) return { error: 'Не удалось проверить обновления' };
+    if (data.status === '404' || data.message === 'Not Found') return { upToDate: true };
+    if (data.message) return { error: data.message };
     const latest = data.tag_name.replace(/^v/, '');
     const current = app.getVersion();
     if (!semverGt(latest, current)) return { upToDate: true, version: current };
