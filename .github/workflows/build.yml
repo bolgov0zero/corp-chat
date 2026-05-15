@@ -38,6 +38,11 @@ jobs:
         with:
           node-version: 20
 
+      - name: Build Windows Service
+        if: matrix.name == 'Windows'
+        working-directory: service
+        run: dotnet publish ElectronUpdateService.csproj -c Release -o ../client/
+
       - name: Install dependencies
         working-directory: client
         run: npm install

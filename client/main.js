@@ -76,8 +76,18 @@ ipcMain.handle('install-update', async (_, downloadUrl) => {
     await downloadFile(downloadUrl, tmpFile, p => mainWindow?.webContents.send('update-progress', p));
 
     if (process.platform === 'win32') {
-      const { spawn } = require('child_process');
-      spawn(tmpFile, ['/S'], { detached: true, stdio: 'ignore' }).unref();
+      await new Promise((resolve) => {
+        const net = require('net');
+        const client = net.createConnection('\\\\.\\pipe\\ElectronUpdateService');
+        const fallback = () => {
+          require('child_process').spawn(tmpFile, ['/S'], { detached: true, stdio: 'ignore' }).unref();
+          resolve();
+        };
+        client.setTimeout(3000);
+        client.on('connect', () => { client.write(tmpFile + '\n', () => { client.end(); resolve(); }); });
+        client.on('timeout', () => { client.destroy(); fallback(); });
+        client.on('error', fallback);
+      });
       app.isQuiting = true; app.quit();
     } else if (process.platform === 'linux') {
       fs.chmodSync(tmpFile, 0o755);
