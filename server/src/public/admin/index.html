@@ -489,7 +489,7 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 
 function confirm(title, text, onOk) {
   document.getElementById('confirm-title').textContent=title;
-  document.getElementById('confirm-text').textContent=text;
+  document.getElementById('confirm-text').innerHTML=text.replace(/\n/g,'<br>');
   document.getElementById('confirm-ok').onclick=()=>{ closeModal('modal-confirm'); onOk(); };
   openModal('modal-confirm');
 }
@@ -996,11 +996,11 @@ async function loadClients() {
         <td style="color:var(--muted);font-size:12px">${connTime}</td>
         <td>
           <div class="td-actions">
-            ${hasUpdate ? `<button class="btn btn-primary btn-xs" title="Принудительное обновление" onclick="forceUpdate(${c.connId})">
+            ${hasUpdate ? `<button class="btn btn-primary btn-xs" title="Принудительное обновление" onclick="forceUpdate(${c.connId}, '${esc(c.displayName||c.username)}', '${esc(c.hostname)}', '${esc(c.clientVersion)}', '${esc(latestVersion||'')}')">
               <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
               Обновить
             </button>` : ''}
-            <button class="btn btn-danger btn-xs" title="Разлогинить" onclick="forceLogout(${c.connId})">
+            <button class="btn btn-danger btn-xs" title="Принудительный выход" onclick="forceLogout(${c.connId}, '${esc(c.displayName||c.username)}', '${esc(c.hostname)}')">
               <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
               Выйти
             </button>
@@ -1012,16 +1012,23 @@ async function loadClients() {
   </table>`;
 }
 
-async function forceUpdate(connId) {
-  await api('POST', `/api/admin/clients/${connId}/force-update`);
-  toast('Команда обновления отправлена', 'success');
+async function forceUpdate(connId, name, hostname, curVer, newVer) {
+  confirm('Принудительное обновление',
+    `Пользователь: ${name}\nКомпьютер: ${hostname}\nТекущая версия: ${curVer} → ${newVer}\n\nКлиент получит команду обновления и перезапустится автоматически.`,
+    async () => {
+      await api('POST', `/api/admin/clients/${connId}/force-update`);
+      toast('Команда обновления отправлена', 'success');
+    });
 }
 
-async function forceLogout(connId) {
-  if (!window.confirm('Разлогинить пользователя?')) return;
-  await api('POST', `/api/admin/clients/${connId}/force-logout`);
-  toast('Пользователь разлогинен', 'success');
-  setTimeout(loadClients, 1000);
+async function forceLogout(connId, name, hostname) {
+  confirm('Принудительный выход',
+    `Пользователь: ${name}\nКомпьютер: ${hostname}\n\nСессия будет завершена, пользователь будет разлогинен.`,
+    async () => {
+      await api('POST', `/api/admin/clients/${connId}/force-logout`);
+      toast('Сессия завершена', 'success');
+      setTimeout(loadClients, 1500);
+    });
 }
 </script>
 </body>
