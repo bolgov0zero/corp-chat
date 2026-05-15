@@ -1088,7 +1088,8 @@ function connectWS() {
     try {
       const version = await window.electron?.getVersion?.() || '';
       const hostname = await window.electron?.getHostname?.() || '';
-      if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'client_info', clientVersion: version, hostname }));
+      const osInfo = await window.electron?.getOS?.() || {};
+      if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'client_info', clientVersion: version, hostname, osPlatform: osInfo.platform || '', osRelease: osInfo.release || '' }));
     } catch {}
   };
   ws.onerror = () => ws.close();

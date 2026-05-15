@@ -396,7 +396,8 @@ let createRoomSelectedIds = new Set(), selectedAddMembers = new Set();
 let chatFilter = '';
 
 const api = async (method, path, body) => {
-  const res = await fetch(path, { method, headers: {'Content-Type':'application/json', ...(token?{Authorization:'Bearer '+token}:{})}, body: body ? JSON.stringify(body) : undefined });
+  const url = method === 'GET' ? `${path}${path.includes('?')?'&':'?'}_t=${Date.now()}` : path;
+  const res = await fetch(url, { method, headers: {'Content-Type':'application/json','Cache-Control':'no-cache', ...(token?{Authorization:'Bearer '+token}:{})}, body: body ? JSON.stringify(body) : undefined });
   return res.json();
 };
 
@@ -404,6 +405,15 @@ const AVcolors = ['#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f59e0b','#ef4444','#
 function avColor(name) { let h=0; for(let c of (name||'')) h=(h*31+c.charCodeAt(0))&0xffff; return AVcolors[h%AVcolors.length]; }
 function initials(name) { return (name||'?').split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?'; }
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtOS(platform, release) {
+  if (!platform || platform === '—') return '<span style="color:var(--muted-light)">—</span>';
+  const icons = { win32: '🪟', darwin: '🍎', linux: '🐧' };
+  const names = { win32: 'Windows', darwin: 'macOS', linux: 'Linux' };
+  const icon = icons[platform] || '💻';
+  const name = names[platform] || platform;
+  const ver = release && release !== '—' ? `<span style="color:var(--muted);font-size:11px;margin-left:4px">${release}</span>` : '';
+  return `<span style="font-size:13px">${icon}</span> <span style="font-size:12px">${name}</span>${ver}`;
+}
 function fmtDate(ts) { return ts ? new Date(ts*1000).toLocaleDateString('ru',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—'; }
 
 // Build avatar HTML.
@@ -964,6 +974,7 @@ async function loadClients(force = false) {
     <thead><tr>
       <th>Пользователь</th>
       <th>Компьютер</th>
+      <th>ОС</th>
       <th>Статус</th>
       <th>Версия</th>
       <th>Доступна</th>
@@ -995,6 +1006,7 @@ async function loadClients(force = false) {
           </div>
         </td>
         <td style="font-family:monospace;font-size:12px">${esc(c.hostname)}</td>
+        <td>${fmtOS(c.osPlatform, c.osRelease)}</td>
         <td>${statusLabel}</td>
         <td>${verBadge}</td>
         <td>${latestBadge}</td>

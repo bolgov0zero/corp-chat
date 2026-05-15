@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('electron', {
   onWindowFocus: (cb) => ipcRenderer.on('window-focus', (_, focused) => cb(focused)),
   onOpenChat: (cb) => ipcRenderer.on('open-chat', (_, chatId) => cb(chatId)),
   getHostname: () => ipcRenderer.invoke('get-hostname'),
+  getOS: () => ipcRenderer.invoke('get-os'),
   getAutostart: () => ipcRenderer.invoke('get-autostart'),
   setAutostart: (enabled) => ipcRenderer.invoke('set-autostart', enabled),
   // High Availability
