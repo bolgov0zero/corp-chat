@@ -1,5 +1,5 @@
 {
-  "name": "corp-chat",
+  "name": "electron",
   "version": "1.0.0",
   "description": "Corporate Chat Client",
   "main": "main.js",
@@ -16,7 +16,7 @@
   },
   "build": {
     "appId": "com.corpchat.client",
-    "productName": "Corp Chat",
+    "productName": "Electron",
     "files": ["main.js", "preload.js", "src/**/*"],
     "mac": {
       "category": "public.app-category.business",

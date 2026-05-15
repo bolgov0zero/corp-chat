@@ -16,7 +16,7 @@ const S = {
   reactions: {}, // messageId -> [{reaction, count}]
 };
 
-const SESSION_KEY = 'corp_chat_v2';
+const SESSION_KEY = 'electron_v2';
 
 // ── UTILS ──
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -804,7 +804,7 @@ function removeChatLocally(chatId) {
   S.chats = S.chats.filter(c=>c.id!==chatId);
   if (S.activeChatId === chatId) {
     S.activeChatId = null;
-    document.getElementById('chat-main').innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">Corp Chat</div><div class="empty-sub">Выберите чат или создайте новый</div></div>`;
+    document.getElementById('chat-main').innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">Electron</div><div class="empty-sub">Выберите чат или создайте новый</div></div>`;
   }
   renderChatList();
 }
@@ -830,7 +830,7 @@ async function leaveGroup(chatId) {
   if (!ok) return;
   await api('POST', `/chats/${chatId}/leave`);
   S.activeChatId = null;
-  document.getElementById('chat-main').innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">Corp Chat</div><div class="empty-sub">Выберите чат или создайте новый</div></div>`;
+  document.getElementById('chat-main').innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">Electron</div><div class="empty-sub">Выберите чат или создайте новый</div></div>`;
   loadChats();
 }
 
@@ -855,7 +855,7 @@ function connectWS() {
         S.unread[chatId] = (S.unread[chatId]||0)+1;
         if (message.sender_id!==S.user.id) {
           const chat2 = S.chats.find(c=>c.id===chatId);
-          const title = chatName(chat2) || 'Corp Chat';
+          const title = chatName(chat2) || 'Electron';
           const body = `${message.sender_name}: ${message.text}`;
           window.electron?.notify(title, body, chatId);
         }
@@ -1188,7 +1188,7 @@ async function openHAModal() {
 
   if (cfg?.drive) {
     activeInfo.style.display = 'block';
-    document.getElementById('ha-active-path').textContent = `${cfg.drive}:\\Corp-Chat`;
+    document.getElementById('ha-active-path').textContent = `${cfg.drive}:\\Electron`;
     disableBtn.style.display = 'inline-flex';
   } else {
     activeInfo.style.display = 'none';
@@ -1200,7 +1200,7 @@ async function openHAModal() {
 
   const updatePreview = () => {
     const v = select.value;
-    pathPreview.textContent = v ? `${v}:\\Corp-Chat` : '…\\Corp-Chat';
+    pathPreview.textContent = v ? `${v}:\\Electron` : '…\\Electron';
   };
   select.onchange = updatePreview;
   updatePreview();

@@ -1,7 +1,7 @@
 {
-  "name": "corp-chat-server",
+  "name": "electron-server",
   "version": "1.0.0",
-  "description": "Corporate chat server",
+  "description": "Electron chat server",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",

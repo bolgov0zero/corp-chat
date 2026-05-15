@@ -18,6 +18,6 @@ require('./ws').setup(server);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Corp Chat server running on http://0.0.0.0:${PORT}`);
+  console.log(`Electron server running on http://0.0.0.0:${PORT}`);
   console.log(`Admin panel: http://localhost:${PORT}/admin`);
 });

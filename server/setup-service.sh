@@ -1,14 +1,14 @@
 #!/bin/bash
-# Настройка автозапуска Corp Chat через systemd
+# Настройка автозапуска Electron через systemd
 set -e
 
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
-SERVICE_FILE="/etc/systemd/system/corp-chat.service"
+SERVICE_FILE="/etc/systemd/system/electron.service"
 PORT="${PORT:-3000}"
 
 cat > "$SERVICE_FILE" <<EOF
 [Unit]
-Description=Corp Chat Server
+Description=Electron Server
 After=network.target
 
 [Service]
@@ -27,10 +27,10 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable corp-chat
-systemctl restart corp-chat
+systemctl enable electron
+systemctl restart electron
 
 echo "✓ Сервис запущен. Управление:"
-echo "  systemctl status corp-chat"
-echo "  systemctl stop corp-chat"
-echo "  journalctl -u corp-chat -f"
+echo "  systemctl status electron"
+echo "  systemctl stop electron"
+echo "  journalctl -u electron -f"

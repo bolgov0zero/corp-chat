@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "=== Corp Chat Server — установка ==="
+echo "=== Electron Server — установка ==="
 
 # Detect OS
 if [ -f /etc/debian_version ]; then

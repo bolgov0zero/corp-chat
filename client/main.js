@@ -8,7 +8,7 @@ const fs = require('fs');
 // Each user mounts their own personal network drive (e.g. U:) so userData resolves
 // to their personal roaming storage automatically.
 const HA_CONFIG_PATH = process.platform === 'win32' && process.env.PROGRAMDATA
-  ? path.join(process.env.PROGRAMDATA, 'Corp-Chat', 'ha-config.json')
+  ? path.join(process.env.PROGRAMDATA, 'Electron', 'ha-config.json')
   : null;
 
 function readHAConfig() {
@@ -19,7 +19,7 @@ function readHAConfig() {
 // Apply BEFORE app.ready so Electron uses the correct userData path
 const haConfig = readHAConfig();
 if (haConfig?.drive) {
-  app.setPath('userData', path.join(haConfig.drive + ':\\Corp-Chat'));
+  app.setPath('userData', path.join(haConfig.drive + ':\\Electron'));
 }
 
 let mainWindow = null;
@@ -140,7 +140,7 @@ function stopBlink() {
 
 function updateTray() {
   if (!tray) return;
-  const label = unreadCount > 0 ? `Corp Chat (${unreadCount})` : 'Corp Chat';
+  const label = unreadCount > 0 ? `Electron (${unreadCount})` : 'Electron';
   tray.setToolTip(label);
   tray.setContextMenu(Menu.buildFromTemplate([
     { label, enabled: false },
@@ -157,7 +157,7 @@ function updateTray() {
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1100, height: 720, minWidth: 820, minHeight: 540,
-    title: 'Corp Chat',
+    title: 'Electron',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false },
     show: false,
   });
@@ -264,7 +264,7 @@ function shouldStartHidden() {
   return process.argv.includes('--hidden');
 }
 
-if (process.platform === 'win32') app.setAppUserModelId('Corp Chat');
+if (process.platform === 'win32') app.setAppUserModelId('Electron');
 
 app.whenReady().then(() => {
   createWindow();
