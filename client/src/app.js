@@ -1388,23 +1388,26 @@ async function checkUpdate(silent = false) {
   const skipped = localStorage.getItem('skippedVersion');
   if (silent && skipped === result.version) return;
 
-  status.textContent = `Доступна v${result.version}`;
   _updateDownloadUrl = result.downloadUrl;
   setUpdateBadge(true);
+  if (!silent) status.textContent = `Доступна v${result.version}`;
 
-  document.getElementById('update-new-version').textContent = `v${result.version}`;
-  document.getElementById('update-notes').textContent = result.notes || 'Нет описания';
-  document.getElementById('update-progress-wrap').style.display = 'none';
-  document.getElementById('update-install-btn').disabled = false;
-  document.getElementById('update-install-btn').style.opacity = '';
+  try {
+    document.getElementById('update-new-version').textContent = `v${result.version}`;
+    document.getElementById('update-notes').textContent = result.notes || 'Нет описания';
+    document.getElementById('update-progress-wrap').style.display = 'none';
+    document.getElementById('update-install-btn').disabled = false;
+    document.getElementById('update-install-btn').style.opacity = '';
+  } catch {}
 
-  window.electron.onUpdateProgress(p => {
+  window.electron?.onUpdateProgress?.(p => {
     document.getElementById('update-progress-wrap').style.display = '';
     document.getElementById('update-progress-fill').style.width = p + '%';
     document.getElementById('update-progress-text').textContent = `Загрузка ${p}%`;
   });
 
-  if (!document.getElementById('modal-update').classList.contains('open')) openModal('modal-update');
+  const modal = document.getElementById('modal-update');
+  if (modal && !modal.classList.contains('open')) openModal('modal-update');
 }
 
 // Автопроверка обновлений раз в минуту
