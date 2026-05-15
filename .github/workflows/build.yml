@@ -38,10 +38,15 @@ jobs:
         with:
           node-version: 20
 
+      - name: Setup .NET
+        if: matrix.name == 'Windows'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
       - name: Build Windows Service
         if: matrix.name == 'Windows'
-        working-directory: service
-        run: dotnet publish ElectronUpdateService.csproj -c Release -o ../client/
+        run: dotnet publish service/ElectronUpdateService.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o client/
 
       - name: Install dependencies
         working-directory: client

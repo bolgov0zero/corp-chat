@@ -1,9 +1,10 @@
-using System.ServiceProcess;
+using Microsoft.Extensions.Hosting;
 
-static class Program
+var builder = Host.CreateApplicationBuilder(args);
+builder.Services.AddWindowsService(options =>
 {
-    static void Main()
-    {
-        ServiceBase.Run(new ElectronUpdateService());
-    }
-}
+    options.ServiceName = "Electron Update Service";
+});
+builder.Services.AddHostedService<Worker>();
+
+builder.Build().Run();
