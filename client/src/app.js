@@ -1413,7 +1413,7 @@ async function checkUpdate(silent = false) {
 // Автопроверка обновлений раз в минуту
 setTimeout(() => {
   checkUpdate(true);
-  setInterval(() => checkUpdate(true), 60 * 1000);
+  setInterval(() => checkUpdate(true), 2 * 60 * 60 * 1000);
 }, 10 * 1000);
 
 async function installUpdate() {
