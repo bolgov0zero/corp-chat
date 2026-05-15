@@ -172,8 +172,8 @@ function createWindow() {
     }
   });
   mainWindow.on('focus', () => {
-    // Stop blinking when window is focused
     if (unreadCount === 0) stopBlink();
+    if (process.platform === 'win32') mainWindow.flashFrame(false);
   });
 }
 
@@ -198,8 +198,13 @@ ipcMain.on('notify', (_, { title, body, chatId }) => {
 });
 
 ipcMain.on('unread', (_, count) => {
+  const prev = unreadCount;
   unreadCount = count;
   updateTray();
+  if (process.platform === 'win32' && count > prev && mainWindow && !mainWindow.isFocused()) {
+    mainWindow.flashFrame(true);
+  }
+  if (count === 0 && mainWindow) mainWindow.flashFrame(false);
 });
 
 ipcMain.handle('get-platform', () => process.platform);
