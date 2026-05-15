@@ -24,11 +24,11 @@ jobs:
           - os: ubuntu-latest
             name: Linux
             cmd: build:linux
-            artifact: "client/dist/*{x86_64.AppImage,amd64.deb}"
+            artifact: "client/dist/*x86_64.AppImage"
           - os: ubuntu-latest
             name: Linux-ARM
             cmd: build:linux-arm
-            artifact: "client/dist/*{arm64.AppImage,arm64.deb}"
+            artifact: "client/dist/*arm64.AppImage"
 
     runs-on: ${{ matrix.os }}
     name: Build ${{ matrix.name }}
@@ -39,12 +39,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Install fpm (Linux only)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get install -y ruby ruby-dev build-essential
-          sudo gem install fpm --no-document
 
       - name: Install dependencies
         working-directory: client
