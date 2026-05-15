@@ -554,13 +554,14 @@ function renderMsgIRC(m, isGroup) {
   const senderName = esc(m.sender_name);
   const avColor = avatarColor(m.sender_id);
   const avLetter = initials(m.sender_name).slice(0,1);
+  const avImg = `<img src="http://${S.server}/api/users/${m.sender_id}/avatar" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:10px" onerror="this.style.display='none'">`;
   const replyHtml = m.reply_to_id ? `
     <div class="reply-quote" onclick="scrollToMsg(${m.reply_to_id})">
       <div class="reply-quote-name">${esc(m.reply_sender_name || '')}</div>
       <div class="reply-quote-text">${m.reply_deleted ? 'Сообщение удалено' : esc((m.reply_text||'').slice(0,80))}</div>
     </div>` : '';
   return `<div class="msg-group irc-msg ${mine?'mine':'theirs'}" data-msg-id="${m.id}" data-sender-id="${m.sender_id}" data-sent-at="${m.sent_at}">
-    <div class="irc-av av ${avColor}">${avLetter}</div>
+    <div class="irc-av av ${avColor}" style="position:relative">${avLetter}${avImg}</div>
     <div class="irc-content" oncontextmenu="${!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at},${mine})`:'event.preventDefault()'}" ondblclick="${!isDeleted?`dblReply(${m.id})`:''}">
       <div class="irc-header">
         <span class="irc-name ${avColor}-text">${senderName}</span>
@@ -938,8 +939,8 @@ function connectWS() {
           if (existing) {
             existing.outerHTML = reactionsHtml || '';
           } else if (reactionsHtml) {
-            const bubbleRow = msgEl.querySelector('.msg-bubble-row');
-            if (bubbleRow) bubbleRow.insertAdjacentHTML('beforeend', reactionsHtml);
+            const target = msgEl.querySelector('.msg-bubble-row') || msgEl.querySelector('.irc-content');
+            if (target) target.insertAdjacentHTML('beforeend', reactionsHtml);
           }
         }
       }
