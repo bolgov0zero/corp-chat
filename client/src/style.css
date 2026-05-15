@@ -202,6 +202,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
 /* ── INPUT ── */
 .chat-input-wrap { background: var(--card); border-top: 1px solid var(--border); padding: 10px 14px; display: flex; align-items: flex-end; gap: 8px; flex-shrink: 0; }
+.typing-indicator { display: flex; align-items: center; gap: 8px; padding: 4px 18px 2px; min-height: 20px; }
+.typing-name { font-size: 12px; font-weight: 600; color: var(--primary); }
+.typing-label { font-size: 12px; color: var(--muted); }
+.typing-dots { display: flex; align-items: center; gap: 3px; }
+.typing-dots span { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); animation: typing-bounce 1.2s infinite ease-in-out; }
+.typing-dots span:nth-child(2) { animation-delay: .2s; }
+.typing-dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes typing-bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
+.typing-preview { color: var(--primary) !important; font-style: italic; }
+.msg-link { color: var(--primary); text-decoration: underline; cursor: pointer; word-break: break-all; }
+.msg-link:hover { opacity: .8; }
 .input-edit-bar { background: var(--primary-light); border-left: 3px solid var(--primary); padding: 6px 10px; border-radius: 6px; margin-bottom: 6px; font-size: 12px; color: var(--primary); display: flex; align-items: center; justify-content: space-between; }
 .chat-input-area { flex: 1; display: flex; flex-direction: column; }
 .chat-input-area textarea { width: 100%; height: 40px; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 1rem; font-family: inherit; resize: none; outline: none; overflow: hidden; max-height: 120px; line-height: 1.5; background: var(--input-bg); color: var(--text); transition: border-color .2s; display: block; }

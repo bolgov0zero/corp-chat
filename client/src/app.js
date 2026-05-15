@@ -20,6 +20,27 @@ const SESSION_KEY = 'electron_v2';
 
 // ── UTILS ──
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function linkifyText(text) {
+  const urlRe = /(https?:\/\/[^\s]+)/g;
+  return text.split(urlRe).map((part, i) => {
+    if (i % 2 !== 1) return esc(part);
+    return `<a class="msg-link" href="#" onclick="openExternalLink(event,this)" data-url="${esc(part)}">${esc(part)}</a>`;
+  }).join('');
+}
+
+function openExternalLink(e, el) {
+  e.preventDefault();
+  document.getElementById('modal-link').dataset.url = el.dataset.url;
+  document.getElementById('link-modal-url').textContent = el.dataset.url;
+  openModal('modal-link');
+}
+
+function confirmLink() {
+  const url = document.getElementById('modal-link').dataset.url;
+  closeModal('modal-link');
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
 function initials(n) { return (n||'?').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
 function fmtTime(ts) { return new Date(ts*1000).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'}); }
 function fmtDate(ts) {
@@ -342,14 +363,14 @@ function renderChatList() {
     const time = lm ? fmtTime(lm.sent_at) : '';
     const peerId = getPeerUserId(c);
     const dot = peerId ? presenceDot(peerId) : '';
-    return `<div class="chat-item${c.id===S.activeChatId?' active':''}" onclick="openChat(${c.id})" oncontextmenu="showChatCtx(event,${c.id})">
+    return `<div class="chat-item${c.id===S.activeChatId?' active':''}" data-chat-id="${c.id}" onclick="openChat(${c.id})" oncontextmenu="showChatCtx(event,${c.id})">
       <div class="av-wrap">
         <div class="av av-md ${chatAvatarClass(c)}" data-av-chat="${c.id}">${chatIcon(c)}</div>
         ${dot}
       </div>
       <div class="info">
         <div class="ci-name">${esc(name)}</div>
-        <div class="ci-preview">${esc(preview)}</div>
+        <div class="ci-preview ci-last">${esc(preview)}</div>
       </div>
       <div class="ci-right">
         <div class="ci-time">${time}</div>
@@ -406,7 +427,19 @@ async function openChat(chatId) {
       </div>
     </div>
     <div class="messages" id="messages"></div>
+    <div id="typing-indicator" class="typing-indicator" style="display:none">
+      <span class="typing-dots"><span></span><span></span><span></span></span>
+      <span class="typing-name"></span><span class="typing-label"> печатает…</span>
+    </div>
     <div class="chat-input-wrap" id="input-wrap">
+      <button class="icon-btn emoji-btn" title="Эмодзи" onclick="toggleEmojiPicker(event)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M8 13s1.5 3 4 3 4-3 4-3"/>
+          <circle cx="9" cy="9" r="1" fill="currentColor"/>
+          <circle cx="15" cy="9" r="1" fill="currentColor"/>
+        </svg>
+      </button>
       <div class="chat-input-area">
         <div id="reply-bar" style="display:none" class="input-reply-bar">
           <div class="reply-bar-content">
@@ -419,16 +452,8 @@ async function openChat(chatId) {
           <span>Редактирование</span>
           <button onclick="cancelEdit()" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:18px">✕</button>
         </div>
-        <textarea id="msg-input" placeholder="Сообщение…" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <textarea id="msg-input" placeholder="Сообщение…" onkeydown="handleKey(event)" oninput="onMsgInput(this)"></textarea>
       </div>
-      <button class="icon-btn emoji-btn" title="Эмодзи" onclick="toggleEmojiPicker(event)">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M8 13s1.5 3 4 3 4-3 4-3"/>
-          <circle cx="9" cy="9" r="1" fill="currentColor"/>
-          <circle cx="15" cy="9" r="1" fill="currentColor"/>
-        </svg>
-      </button>
       <button class="send-btn" onclick="sendOrEdit()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       </button>
@@ -518,7 +543,7 @@ function renderMsg(m, isGroup, hideTime = false) {
   const mine = m.sender_id===S.user.id;
   const time = fmtTime(m.sent_at);
   const isDeleted = m.deleted;
-  const bodyText = isDeleted ? 'Сообщение удалено' : esc(m.text) + (m.edited_at?` <span class="edited-tag">изм.</span>`:'');
+  const bodyText = isDeleted ? 'Сообщение удалено' : linkifyText(m.text) + (m.edited_at?` <span class="edited-tag">изм.</span>`:'');
   const statusIcon = mine && !isDeleted ? renderStatus(m.status) : '';
   const reactionsHtml = isDeleted ? '' : renderReactions(m.id);
   const replyHtml = m.reply_to_id ? `
@@ -548,7 +573,7 @@ function renderMsgIRC(m, isGroup) {
   const mine = m.sender_id===S.user.id;
   const time = fmtTime(m.sent_at);
   const isDeleted = m.deleted;
-  const bodyText = isDeleted ? '<em class="irc-deleted">Сообщение удалено</em>' : esc(m.text) + (m.edited_at?` <span class="edited-tag">изм.</span>`:'');
+  const bodyText = isDeleted ? '<em class="irc-deleted">Сообщение удалено</em>' : linkifyText(m.text) + (m.edited_at?` <span class="edited-tag">изм.</span>`:'');
   const statusIcon = mine && !isDeleted ? renderStatus(m.status) : '';
   const reactionsHtml = isDeleted ? '' : renderReactions(m.id);
   const senderName = esc(m.sender_name);
@@ -635,6 +660,49 @@ function ctxReact(reaction) {
 
 // ── SEND / EDIT ──
 function handleKey(e) { if (e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendOrEdit(); } }
+
+// ── TYPING ──
+const typingTimers = {}; // chatId -> clearTimeout handle
+let typingSendTimer = null;
+
+function onMsgInput(el) {
+  autoResize(el);
+  if (!S.activeChatId || S.ws?.readyState !== 1) return;
+  if (!typingSendTimer) {
+    S.ws.send(JSON.stringify({ type: 'typing', chat_id: S.activeChatId }));
+  }
+  clearTimeout(typingSendTimer);
+  typingSendTimer = setTimeout(() => { typingSendTimer = null; }, 2000);
+}
+
+function showTyping(chatId, senderName) {
+  if (typingTimers[chatId]) clearTimeout(typingTimers[chatId]);
+  if (chatId === S.activeChatId) {
+    const el = document.getElementById('typing-indicator');
+    if (el) { el.style.display = 'flex'; el.querySelector('.typing-name').textContent = senderName; }
+  }
+  // Show in chat list
+  const item = document.querySelector(`.chat-item[data-chat-id="${chatId}"] .ci-last`);
+  if (item) { item.dataset.origText = item.dataset.origText || item.textContent; item.textContent = `${senderName} печатает…`; item.classList.add('typing-preview'); }
+
+  typingTimers[chatId] = setTimeout(() => {
+    clearTyping(chatId);
+  }, 3000);
+}
+
+function clearTyping(chatId) {
+  delete typingTimers[chatId];
+  if (chatId === S.activeChatId) {
+    const el = document.getElementById('typing-indicator');
+    if (el) el.style.display = 'none';
+  }
+  const item = document.querySelector(`.chat-item[data-chat-id="${chatId}"] .ci-last`);
+  if (item && item.dataset.origText !== undefined) {
+    item.textContent = item.dataset.origText;
+    delete item.dataset.origText;
+    item.classList.remove('typing-preview');
+  }
+}
 function autoResize(el) {
   el.style.overflow = 'hidden';
   el.style.height = '0';
@@ -944,6 +1012,10 @@ function connectWS() {
           }
         }
       }
+    }
+
+    if (data.type==='typing') {
+      showTyping(data.chat_id, data.sender_name);
     }
 
     if (data.type==='presence') {

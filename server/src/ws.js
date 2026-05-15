@@ -154,6 +154,12 @@ function setup(server) {
         broadcast(msg.chat_id, { type: 'reaction_update', message_id, counts });
       }
 
+      if (data.type === 'typing') {
+        const { chat_id } = data;
+        if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chat_id, user.id)) return;
+        broadcast(chat_id, { type: 'typing', chat_id, user_id: user.id, sender_name: user.display_name }, user.id);
+      }
+
       if (data.type === 'ping') ws.send(JSON.stringify({ type: 'pong' }));
     });
 
