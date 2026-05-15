@@ -1331,23 +1331,34 @@ async function disableHA() {
 // ── AUTO UPDATE ──
 let _updateDownloadUrl = null;
 
-async function checkUpdate() {
+function setUpdateBadge(visible) {
+  const badge = document.getElementById('update-badge');
+  if (badge) badge.style.display = visible ? '' : 'none';
+}
+
+async function checkUpdate(silent = false) {
   if (!window.electron?.checkUpdate) return;
   const btn = document.getElementById('update-check-btn');
   const status = document.getElementById('update-status-text');
-  btn.disabled = true;
-  btn.textContent = 'Проверяю…';
-  status.textContent = 'Проверяю…';
+  if (!silent) {
+    btn.disabled = true;
+    btn.textContent = 'Проверяю…';
+    status.textContent = 'Проверяю…';
+  }
 
   const result = await window.electron.checkUpdate();
-  btn.disabled = false;
-  btn.textContent = 'Проверить';
 
-  if (result.error) { status.textContent = 'Ошибка проверки'; return; }
-  if (result.upToDate) { status.textContent = 'Версия актуальна'; return; }
+  if (!silent) {
+    btn.disabled = false;
+    btn.textContent = 'Проверить';
+  }
+
+  if (result.error) { if (!silent) status.textContent = 'Ошибка проверки'; return; }
+  if (result.upToDate) { if (!silent) status.textContent = 'Версия актуальна'; setUpdateBadge(false); return; }
 
   status.textContent = `Доступна v${result.version}`;
   _updateDownloadUrl = result.downloadUrl;
+  setUpdateBadge(true);
 
   document.getElementById('update-new-version').textContent = `v${result.version}`;
   document.getElementById('update-notes').textContent = result.notes || 'Нет описания';
@@ -1362,8 +1373,15 @@ async function checkUpdate() {
     document.getElementById('update-progress-text').textContent = `Загрузка ${p}%`;
   });
 
-  openModal('modal-update');
+  if (!silent) openModal('modal-update');
+  else if (!document.getElementById('modal-update').classList.contains('open')) openModal('modal-update');
 }
+
+// Автопроверка обновлений раз в минуту
+setTimeout(() => {
+  checkUpdate(true);
+  setInterval(() => checkUpdate(true), 60 * 1000);
+}, 10 * 1000);
 
 async function installUpdate() {
   if (!_updateDownloadUrl) return;
