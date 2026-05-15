@@ -7,7 +7,8 @@
     "start": "electron .",
     "build:mac": "electron-builder --mac",
     "build:win": "electron-builder --win",
-    "build:linux": "electron-builder --linux"
+    "build:linux": "electron-builder --linux",
+    "build:linux-arm": "electron-builder --linux --arm64"
   },
   "dependencies": {},
   "devDependencies": {
@@ -28,7 +29,7 @@
       "icon": "src/assets/icon.ico"
     },
     "linux": {
-      "target": [{ "target": "AppImage", "arch": ["x64"] }],
+      "target": [{ "target": "AppImage", "arch": ["x64", "arm64"] }],
       "icon": "src/assets/icon.png",
       "category": "Network"
     },
