@@ -92,7 +92,7 @@ ipcMain.handle('install-update', async (_, downloadUrl) => {
       if (!mountPoint) throw new Error('Не удалось смонтировать DMG');
       const appFile = fs.readdirSync(mountPoint).find(f => f.endsWith('.app'));
       if (!appFile) throw new Error('Приложение не найдено в DMG');
-      execSync(`cp -rf "${mountPoint}/${appFile}" /Applications/`);
+      execSync(`ditto "${mountPoint}/${appFile}" "/Applications/${appFile}"`);
       execSync(`xattr -dr com.apple.quarantine "/Applications/${appFile}"`, { stdio: 'ignore' });
       try { execSync(`hdiutil detach "${mountPoint}" -quiet`); } catch {}
       const execPath = `/Applications/${appFile}/Contents/MacOS/${appFile.replace('.app', '')}`;
