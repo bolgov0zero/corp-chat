@@ -527,7 +527,7 @@ function renderMsg(m, isGroup, hideTime = false) {
     ${isGroup&&!mine?`<div class="msg-sender">${esc(m.sender_name)}</div>`:''}
     <div class="msg-bubble-row">
       <div class="msg-row">
-        <div class="bubble${isDeleted?' deleted':''}" oncontextmenu="${!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at},${mine})`:'event.preventDefault()'}">
+        <div class="bubble${isDeleted?' deleted':''}" oncontextmenu="${!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at},${mine})`:'event.preventDefault()'}" ondblclick="${!isDeleted?`dblReply(${m.id})`:''}">
           ${replyHtml}
           <div class="bubble-text">${bodyText}</div>
         </div>
@@ -646,11 +646,26 @@ function showCtxMenu(e, msgId, sentAt, isMine) {
   S.ctx.isMine = isMine;
   const menu = document.getElementById('ctx-menu');
   document.getElementById('ctx-reply-btn').style.display = '';
+  document.getElementById('ctx-copy-btn').style.display = '';
   document.getElementById('ctx-edit-btn').style.display = (isMine && S.ctx.canEdit) ? '' : 'none';
   document.getElementById('ctx-delete-btn').style.display = isMine ? '' : 'none';
   menu.style.left = Math.min(e.clientX, window.innerWidth-180)+'px';
   menu.style.top = Math.min(e.clientY, window.innerHeight-160)+'px';
   menu.classList.add('open');
+}
+
+function dblReply(msgId) {
+  S.ctx.messageId = msgId;
+  ctxReply();
+}
+
+function ctxCopy() {
+  hideCtxMenu();
+  const msgId = S.ctx.messageId;
+  if (!msgId) return;
+  const el = document.querySelector(`[data-msg-id="${msgId}"] .bubble-text`);
+  if (!el) return;
+  navigator.clipboard.writeText(el.innerText).catch(() => {});
 }
 
 function ctxReply() {
@@ -932,10 +947,14 @@ function connectWS() {
   ws.onclose = () => {
     S.wsRetry++;
     const delay = Math.min(1000*S.wsRetry, 10000);
-    if (S.token) setTimeout(connectWS, delay);
+    if (S.token) {
+      showServerToast();
+      setTimeout(connectWS, delay);
+    }
   };
   ws.onopen = () => {
     S.wsRetry = 0;
+    hideServerToast();
     loadChats();
     // Delay status send: at launch document.hidden may still be true while window is appearing
     setTimeout(() => {
@@ -1135,6 +1154,22 @@ async function ctxChatDelete() {
 // ── MODAL HELPERS ──
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ── SERVER UNAVAILABLE TOAST ──
+function showServerToast() {
+  let el = document.getElementById('server-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'server-toast';
+    el.innerHTML = `<div class="server-toast-spinner"></div><span>Нет соединения с сервером. Переподключение…</span>`;
+    document.body.appendChild(el);
+  }
+  el.classList.add('visible');
+}
+
+function hideServerToast() {
+  document.getElementById('server-toast')?.classList.remove('visible');
+}
 
 // ── HIGH AVAILABILITY ──
 async function openHAModal() {

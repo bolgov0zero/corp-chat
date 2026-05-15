@@ -28,28 +28,31 @@
 
 <!-- HA Modal -->
 <div class="modal-bg" id="modal-ha">
-  <div class="modal" style="width:380px">
+  <div class="modal ha-modal">
     <div class="modal-header">
-      <span class="modal-title">Высокая доступность</span>
+      <div class="ha-modal-title">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Высокая доступность
+      </div>
       <button class="modal-x" onclick="closeModal('modal-ha')">✕</button>
     </div>
-    <div style="padding:20px">
-      <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px">
-        Данные приложения (сессия, настройки) будут сохраняться на выбранном диске.<br>
-        Удобно для сетевых дисков в корпоративной среде.
-      </p>
-      <div id="ha-active-info" style="display:none;margin-bottom:16px;padding:10px 12px;background:var(--primary-light,#eff6ff);border-radius:8px;font-size:13px">
-        <strong>Активен:</strong> <span id="ha-active-path"></span>
+    <div class="ha-modal-body">
+      <p class="ha-desc">Данные приложения сохраняются на выбранном диске. При входе с любого компа, где смонтирован этот диск, клиент запустится с вашей сессией автоматически.</p>
+      <div id="ha-active-info" class="ha-active-badge" style="display:none">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        Активен: <strong id="ha-active-path"></strong>
       </div>
-      <label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Диск для хранения данных</label>
-      <select id="ha-drive-select" style="width:100%;padding:9px 12px;border:1.5px solid var(--border,#e2e8f0);border-radius:8px;font-size:14px;outline:none;background:#fff;color:var(--text,#1e293b)">
-        <option value="">Загрузка дисков…</option>
-      </select>
-      <p style="font-size:11px;color:var(--muted);margin-top:6px">Данные будут сохранены в <code id="ha-path-preview" style="background:#f1f5f9;padding:1px 5px;border-radius:4px">…\Corp-Chat</code></p>
+      <div class="ha-field">
+        <label class="ha-label">Диск для хранения данных</label>
+        <select id="ha-drive-select" class="ha-select">
+          <option value="">Загрузка дисков…</option>
+        </select>
+        <div class="ha-path-hint">Данные будут сохранены в <code id="ha-path-preview" class="ha-code">…\Corp-Chat</code></div>
+      </div>
     </div>
-    <div style="padding:12px 20px;border-top:1px solid var(--border,#e2e8f0);display:flex;justify-content:space-between;gap:8px">
-      <button id="ha-disable-btn" class="btn" style="display:none" onclick="disableHA()">Отключить</button>
-      <div style="display:flex;gap:8px;margin-left:auto">
+    <div class="ha-modal-footer">
+      <button id="ha-disable-btn" class="btn ha-disable-btn" style="display:none" onclick="disableHA()">Отключить</button>
+      <div class="ha-footer-right">
         <button class="btn" onclick="closeModal('modal-ha')">Отмена</button>
         <button class="btn btn-primary" onclick="saveHA()">Применить и перезапустить</button>
       </div>
@@ -260,6 +263,10 @@
   <button id="ctx-reply-btn" onclick="ctxReply()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
     Ответить
+  </button>
+  <button id="ctx-copy-btn" onclick="ctxCopy()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+    Скопировать
   </button>
   <button id="ctx-edit-btn" onclick="ctxEdit()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
