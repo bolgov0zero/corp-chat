@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('electron', {
   checkUpdate: () => ipcRenderer.invoke('check-update'),
   installUpdate: (url) => ipcRenderer.invoke('install-update', url),
   onUpdateProgress: (cb) => ipcRenderer.on('update-progress', (_, p) => cb(p)),
+  onWindowFocus: (cb) => ipcRenderer.on('window-focus', (_, focused) => cb(focused)),
   onOpenChat: (cb) => ipcRenderer.on('open-chat', (_, chatId) => cb(chatId)),
   getAutostart: () => ipcRenderer.invoke('get-autostart'),
   setAutostart: (enabled) => ipcRenderer.invoke('set-autostart', enabled),

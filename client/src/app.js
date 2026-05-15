@@ -132,6 +132,11 @@ window.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('focus', () => {
     if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'set_status', status:'online'}));
   });
+  // На Windows: blur окна → статус "отошёл"
+  window.electron?.onWindowFocus?.(focused => {
+    if (S.ws?.readyState===1)
+      S.ws.send(JSON.stringify({type:'set_status', status: focused ? 'online' : 'away'}));
+  });
 });
 
 // ── LOGIN ──
@@ -1336,6 +1341,15 @@ function setUpdateBadge(visible) {
   if (badge) badge.style.display = visible ? '' : 'none';
 }
 
+function skipUpdate() {
+  if (_updateDownloadUrl) {
+    const ver = document.getElementById('update-new-version').textContent.replace(/^v/, '');
+    localStorage.setItem('skippedVersion', ver);
+    setUpdateBadge(false);
+  }
+  closeModal('modal-update');
+}
+
 async function checkUpdate(silent = false) {
   if (!window.electron?.checkUpdate) return;
   const btn = document.getElementById('update-check-btn');
@@ -1356,6 +1370,9 @@ async function checkUpdate(silent = false) {
   if (result.error) { if (!silent) status.textContent = 'Ошибка проверки'; return; }
   if (result.upToDate) { if (!silent) status.textContent = 'Версия актуальна'; setUpdateBadge(false); return; }
 
+  const skipped = localStorage.getItem('skippedVersion');
+  if (silent && skipped === result.version) return;
+
   status.textContent = `Доступна v${result.version}`;
   _updateDownloadUrl = result.downloadUrl;
   setUpdateBadge(true);
@@ -1365,7 +1382,6 @@ async function checkUpdate(silent = false) {
   document.getElementById('update-progress-wrap').style.display = 'none';
   document.getElementById('update-install-btn').disabled = false;
   document.getElementById('update-install-btn').style.opacity = '';
-  document.getElementById('update-cancel-btn').textContent = 'Отмена';
 
   window.electron.onUpdateProgress(p => {
     document.getElementById('update-progress-wrap').style.display = '';
@@ -1373,8 +1389,7 @@ async function checkUpdate(silent = false) {
     document.getElementById('update-progress-text').textContent = `Загрузка ${p}%`;
   });
 
-  if (!silent) openModal('modal-update');
-  else if (!document.getElementById('modal-update').classList.contains('open')) openModal('modal-update');
+  if (!document.getElementById('modal-update').classList.contains('open')) openModal('modal-update');
 }
 
 // Автопроверка обновлений раз в минуту
