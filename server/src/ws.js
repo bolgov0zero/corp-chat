@@ -7,6 +7,10 @@ const clients = new Map();
 // userId -> 'online'|'away'|'offline'
 const userStatus = new Map();
 
+let connCounter = 0;
+// connId -> { ws, userId, username, displayName, hostname, clientVersion, connectedAt }
+const connMeta = new Map();
+
 function getConn(userId) { return clients.get(userId) || new Set(); }
 
 function broadcast(chatId, payload, excludeUserId = null) {
@@ -69,6 +73,9 @@ function setup(server) {
     if (!clients.has(user.id)) clients.set(user.id, new Set());
     clients.get(user.id).add(ws);
     broadcastStatus(user.id, 'online');
+    const connId = ++connCounter;
+    connMeta.set(connId, { ws, userId: user.id, username: user.username, displayName: user.display_name, hostname: '—', clientVersion: '—', connectedAt: Date.now() });
+    ws._connId = connId;
 
     ws.on('message', raw => {
       let data; try { data = JSON.parse(raw); } catch { return; }
@@ -160,10 +167,16 @@ function setup(server) {
         broadcast(chat_id, { type: 'typing', chat_id, user_id: user.id, sender_name: user.display_name }, user.id);
       }
 
+      if (data.type === 'client_info') {
+        const meta = connMeta.get(ws._connId);
+        if (meta) { meta.hostname = data.hostname || '—'; meta.clientVersion = data.clientVersion || '—'; }
+      }
+
       if (data.type === 'ping') ws.send(JSON.stringify({ type: 'pong' }));
     });
 
     ws.on('close', () => {
+      connMeta.delete(ws._connId);
       const conns = clients.get(user.id);
       if (conns) {
         conns.delete(ws);
@@ -175,4 +188,22 @@ function setup(server) {
   });
 }
 
-module.exports = { setup, broadcast, sendTo, getStatus };
+function getClients() {
+  return Array.from(connMeta.values()).map(m => ({
+    connId: m.ws._connId,
+    userId: m.userId,
+    username: m.username,
+    displayName: m.displayName,
+    hostname: m.hostname,
+    clientVersion: m.clientVersion,
+    connectedAt: m.connectedAt,
+    status: userStatus.get(m.userId) || 'online',
+  }));
+}
+
+function sendToConn(connId, payload) {
+  const meta = connMeta.get(connId);
+  if (meta && meta.ws.readyState === 1) meta.ws.send(JSON.stringify(payload));
+}
+
+module.exports = { setup, broadcast, sendTo, getStatus, getClients, sendToConn };

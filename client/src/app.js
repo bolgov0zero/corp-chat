@@ -1056,6 +1056,15 @@ function connectWS() {
       updateMeAvatar();
       renderChatList();
     }
+
+    if (data.type === 'force_update') {
+      if (_updateDownloadUrl) installUpdate();
+      else checkUpdate(false);
+    }
+
+    if (data.type === 'force_logout') {
+      logout();
+    }
   };
 
   ws.onclose = () => {
@@ -1066,7 +1075,7 @@ function connectWS() {
       setTimeout(connectWS, delay);
     }
   };
-  ws.onopen = () => {
+  ws.onopen = async () => {
     S.wsRetry = 0;
     hideServerToast();
     loadChats();
@@ -1075,6 +1084,12 @@ function connectWS() {
       if (ws.readyState === 1)
         ws.send(JSON.stringify({ type: 'set_status', status: document.hidden ? 'away' : 'online' }));
     }, 300);
+    // Отправить метаданные клиента
+    try {
+      const version = await window.electron?.getVersion?.() || '';
+      const hostname = await window.electron?.getHostname?.() || '';
+      if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'client_info', clientVersion: version, hostname }));
+    } catch {}
   };
   ws.onerror = () => ws.close();
 }

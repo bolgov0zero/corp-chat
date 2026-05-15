@@ -310,6 +310,7 @@ ipcMain.on('unread', (_, count) => {
 
 ipcMain.handle('get-platform', () => process.platform);
 ipcMain.handle('get-version', () => app.getVersion());
+ipcMain.handle('get-hostname', () => os.hostname());
 
 // ── HA IPC ──
 ipcMain.handle('ha-list-drives', async () => {

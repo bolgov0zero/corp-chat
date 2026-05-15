@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
-const { sendTo, getStatus } = require('../ws');
+const { sendTo, getStatus, getClients, sendToConn } = require('../ws');
 
 router.use(authMiddleware, adminMiddleware);
 
@@ -73,6 +73,41 @@ router.get('/chats/:id/members', (req, res) => {
     JOIN chat_members cm ON cm.user_id = u.id WHERE cm.chat_id = ? ORDER BY cm.joined_at
   `).all(req.params.id);
   res.json(members);
+});
+
+// Список подключённых клиентов + последняя версия с GitHub
+router.get('/clients', async (req, res) => {
+  const https = require('https');
+  const clients = getClients();
+
+  let latestVersion = null;
+  try {
+    const data = await new Promise((resolve, reject) => {
+      https.get('https://api.github.com/repos/bolgov0zero/corp-chat/releases/latest',
+        { headers: { 'User-Agent': 'Electron-Admin' } },
+        r => {
+          let body = '';
+          r.on('data', c => body += c);
+          r.on('end', () => resolve(JSON.parse(body)));
+          r.on('error', reject);
+        }).on('error', reject);
+    });
+    if (data.tag_name) latestVersion = data.tag_name.replace(/^v/, '');
+  } catch {}
+
+  res.json({ clients, latestVersion });
+});
+
+// Принудительное обновление
+router.post('/clients/:connId/force-update', (req, res) => {
+  sendToConn(Number(req.params.connId), { type: 'force_update' });
+  res.json({ ok: true });
+});
+
+// Принудительный выход
+router.post('/clients/:connId/force-logout', (req, res) => {
+  sendToConn(Number(req.params.connId), { type: 'force_logout' });
+  res.json({ ok: true });
 });
 
 module.exports = router;

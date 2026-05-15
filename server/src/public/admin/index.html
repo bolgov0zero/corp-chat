@@ -194,6 +194,9 @@ tbody tr:hover td{background:#f8fafc}
 /* ── ROOM CREATE MODAL ── */
 #room-name-input{width:100%;padding:9px 13px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;outline:none;transition:border-color .15s}
 #room-name-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+.version-ok { color: var(--success); font-weight: 600; font-size: 12px; }
+.version-old { color: var(--warn); font-weight: 700; font-size: 12px; }
+.clients-refresh { font-size: 11px; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -242,6 +245,10 @@ tbody tr:hover td{background:#f8fafc}
       <div class="nav-item" onclick="nav('chats')" data-page="chats">
         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         Чаты и группы
+      </div>
+      <div class="nav-item" onclick="nav('clients')" data-page="clients">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Клиенты
       </div>
     </nav>
     <div class="sidebar-footer">
@@ -466,10 +473,11 @@ function logout() {
   }
 })();
 
-const pageTitles = {dashboard:'Главная',users:'Пользователи',rooms:'Комнаты',chats:'Чаты и группы'};
-const pageRenders = {dashboard:renderDashboard,users:renderUsers,rooms:renderRooms,chats:renderChats};
+const pageTitles = {dashboard:'Главная',users:'Пользователи',rooms:'Комнаты',chats:'Чаты и группы',clients:'Клиенты'};
+const pageRenders = {dashboard:renderDashboard,users:renderUsers,rooms:renderRooms,chats:renderChats,clients:renderClients};
 
 function nav(page) {
+  if (window._clientsInterval) { clearInterval(window._clientsInterval); window._clientsInterval = null; }
   currentPage = page;
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.page===page));
   document.getElementById('page-title').textContent = pageTitles[page];
@@ -897,6 +905,123 @@ async function addSelectedMembers() {
   toast('Участники добавлены','success');
   closeModal('modal-members');
   if (currentPage==='rooms') renderRooms();
+}
+
+// ── CLIENTS ──
+async function renderClients() {
+  document.getElementById('topbar-actions').innerHTML = `
+    <span class="clients-refresh" id="clients-refresh-time"></span>
+    <button class="btn btn-ghost btn-sm" onclick="loadClients()">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Обновить
+    </button>`;
+
+  document.getElementById('page-body').innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <h3>Подключённые клиенты</h3>
+        <span id="clients-count" class="badge badge-blue">—</span>
+      </div>
+      <div id="clients-table-wrap">
+        <div class="empty-state" style="padding:32px">
+          <p>Загрузка…</p>
+        </div>
+      </div>
+    </div>`;
+
+  await loadClients();
+  window._clientsInterval = setInterval(loadClients, 10000);
+}
+
+async function loadClients() {
+  const { clients, latestVersion } = await api('GET', '/api/admin/clients');
+  document.getElementById('clients-count').textContent = clients.length;
+  const now = new Date().toLocaleTimeString('ru');
+  const el = document.getElementById('clients-refresh-time');
+  if (el) el.textContent = `Обновлено: ${now}`;
+
+  const wrap = document.getElementById('clients-table-wrap');
+  if (!wrap) return;
+
+  if (!clients.length) {
+    wrap.innerHTML = `<div class="empty-state"><svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><p>Нет подключённых клиентов</p></div>`;
+    return;
+  }
+
+  function semverGt(a, b) {
+    if (!a || !b || a === '—' || b === '—') return false;
+    const n = v => v.split('.').map(Number);
+    const [am,an,ap] = n(a), [bm,bn,bp] = n(b);
+    return am !== bm ? am > bm : an !== bn ? an > bn : ap > bp;
+  }
+
+  wrap.innerHTML = `<table>
+    <thead><tr>
+      <th>Пользователь</th>
+      <th>Компьютер</th>
+      <th>Статус</th>
+      <th>Версия</th>
+      <th>Доступна</th>
+      <th>Подключён</th>
+      <th></th>
+    </tr></thead>
+    <tbody>
+    ${clients.map(c => {
+      const hasUpdate = latestVersion && semverGt(latestVersion, c.clientVersion);
+      const statusLabel = c.status === 'online' ? '<span class="badge badge-green">онлайн</span>'
+        : c.status === 'away' ? '<span class="badge" style="background:#fef3c7;color:#92400e">отошёл</span>'
+        : '<span class="badge badge-gray">оффлайн</span>';
+      const verBadge = hasUpdate
+        ? `<span class="version-old">${esc(c.clientVersion)}</span>`
+        : `<span class="version-ok">${esc(c.clientVersion)}</span>`;
+      const latestBadge = hasUpdate
+        ? `<span class="version-old">${esc(latestVersion)} ↑</span>`
+        : `<span style="color:var(--muted-light);font-size:12px">—</span>`;
+      const connTime = new Date(c.connectedAt).toLocaleTimeString('ru', {hour:'2-digit',minute:'2-digit'});
+      const dispName = c.displayName || c.username || '?';
+      return `<tr>
+        <td>
+          <div class="user-cell">
+            ${avHtml(dispName, 32, 8, null, null, false)}
+            <div class="user-cell-info">
+              <div class="name">${esc(dispName)}</div>
+              <div class="uname">@${esc(c.username)}</div>
+            </div>
+          </div>
+        </td>
+        <td style="font-family:monospace;font-size:12px">${esc(c.hostname)}</td>
+        <td>${statusLabel}</td>
+        <td>${verBadge}</td>
+        <td>${latestBadge}</td>
+        <td style="color:var(--muted);font-size:12px">${connTime}</td>
+        <td>
+          <div class="td-actions">
+            ${hasUpdate ? `<button class="btn btn-primary btn-xs" title="Принудительное обновление" onclick="forceUpdate(${c.connId})">
+              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              Обновить
+            </button>` : ''}
+            <button class="btn btn-danger btn-xs" title="Разлогинить" onclick="forceLogout(${c.connId})">
+              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Выйти
+            </button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table>`;
+}
+
+async function forceUpdate(connId) {
+  await api('POST', `/api/admin/clients/${connId}/force-update`);
+  toast('Команда обновления отправлена', 'success');
+}
+
+async function forceLogout(connId) {
+  if (!window.confirm('Разлогинить пользователя?')) return;
+  await api('POST', `/api/admin/clients/${connId}/force-logout`);
+  toast('Пользователь разлогинен', 'success');
+  setTimeout(loadClients, 1000);
 }
 </script>
 </body>
