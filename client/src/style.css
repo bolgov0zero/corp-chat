@@ -235,7 +235,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .drawer { position: fixed; left: 0; top: 0; width: 280px; height: 100vh; background: var(--card); z-index: 101; transform: translateX(-100%); transition: transform .25s ease; box-shadow: 4px 0 24px rgba(0,0,0,.15); display: flex; flex-direction: column; }
 .drawer.open { transform: translateX(0); }
 .drawer-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-size: 15px; font-weight: 700; }
-.drawer-body { padding: 12px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.drawer-body { padding: 12px; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 .drawer-footer { padding: 10px 16px; font-size: 11px; color: var(--muted); text-align: center; border-top: 1px solid var(--border); }
 
 /* Profile card */
