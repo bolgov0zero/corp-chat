@@ -1058,8 +1058,13 @@ function connectWS() {
     }
 
     if (data.type === 'force_update') {
-      if (_updateDownloadUrl) installUpdate();
-      else checkUpdate(false);
+      if (_updateDownloadUrl) {
+        installUpdate();
+      } else {
+        checkUpdate(false).then(() => {
+          if (_updateDownloadUrl) installUpdate();
+        });
+      }
     }
 
     if (data.type === 'force_logout') {

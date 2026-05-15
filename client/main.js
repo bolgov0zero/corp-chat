@@ -77,6 +77,9 @@ ipcMain.handle('install-update', async (_, downloadUrl) => {
 
     if (process.platform === 'win32') {
       const { spawn } = require('child_process');
+      const exePath = app.getPath('exe').replace(/'/g, "''");
+      const ps = `Start-Sleep -Seconds 12; Start-Process '${exePath}'`;
+      spawn('powershell', ['-WindowStyle', 'Hidden', '-NonInteractive', '-Command', ps], { detached: true, stdio: 'ignore' }).unref();
       spawn(tmpFile, ['/S'], { detached: true, stdio: 'ignore' }).unref();
       app.isQuiting = true; app.quit();
     } else if (process.platform === 'linux') {
