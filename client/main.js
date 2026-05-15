@@ -34,8 +34,10 @@ function downloadFile(url, dest, onProgress) {
         const total = parseInt(res.headers['content-length'] || '0');
         let received = 0;
         res.on('data', chunk => { received += chunk.length; file.write(chunk); if (total) onProgress?.(Math.round(received / total * 100)); });
-        res.on('end', () => { file.end(); resolve(); });
+        res.on('end', () => file.end());
         res.on('error', reject);
+        file.on('finish', resolve);
+        file.on('error', reject);
       }).on('error', reject);
     };
     request(url);
@@ -83,7 +85,7 @@ ipcMain.handle('install-update', async (_, downloadUrl) => {
       app.relaunch(); app.isQuiting = true; app.quit();
     } else if (process.platform === 'darwin') {
       const { execSync } = require('child_process');
-      const out = execSync(`hdiutil attach "${tmpFile}" -nobrowse -quiet`).toString();
+      const out = execSync(`hdiutil attach "${tmpFile}" -nobrowse -quiet -agree`).toString();
       const mountPoint = out.split('\n').map(l => l.match(/\/Volumes\/.+/)?.[0]).filter(Boolean)[0]?.trim();
       const appFile = fs.readdirSync(mountPoint).find(f => f.endsWith('.app'));
       execSync(`cp -rf "${mountPoint}/${appFile}" /Applications/`);
