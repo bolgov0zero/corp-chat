@@ -1,4 +1,6 @@
 const { app, BrowserWindow, Tray, Menu, nativeImage, Notification, ipcMain } = require('electron');
+
+if (process.platform === 'linux') app.commandLine.appendSwitch('no-sandbox');
 const path = require('path');
 const zlib = require('zlib');
 const fs = require('fs');
