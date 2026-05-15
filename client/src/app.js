@@ -548,24 +548,26 @@ function renderMsgIRC(m, isGroup) {
   const mine = m.sender_id===S.user.id;
   const time = fmtTime(m.sent_at);
   const isDeleted = m.deleted;
-  const bodyText = isDeleted ? '<span class="irc-deleted">Сообщение удалено</span>' : esc(m.text) + (m.edited_at?` <span class="edited-tag">изм.</span>`:'');
+  const bodyText = isDeleted ? '<em class="irc-deleted">Сообщение удалено</em>' : esc(m.text) + (m.edited_at?` <span class="edited-tag">изм.</span>`:'');
   const statusIcon = mine && !isDeleted ? renderStatus(m.status) : '';
   const reactionsHtml = isDeleted ? '' : renderReactions(m.id);
-  const senderName = (isGroup || !mine) ? esc(m.sender_name) : 'Вы';
+  const senderName = esc(m.sender_name);
+  const avColor = avatarColor(m.sender_id);
+  const avLetter = initials(m.sender_name).slice(0,1);
   const replyHtml = m.reply_to_id ? `
-    <div class="reply-quote irc-reply-quote" onclick="scrollToMsg(${m.reply_to_id})">
+    <div class="reply-quote" onclick="scrollToMsg(${m.reply_to_id})">
       <div class="reply-quote-name">${esc(m.reply_sender_name || '')}</div>
       <div class="reply-quote-text">${m.reply_deleted ? 'Сообщение удалено' : esc((m.reply_text||'').slice(0,80))}</div>
     </div>` : '';
   return `<div class="msg-group irc-msg ${mine?'mine':'theirs'}" data-msg-id="${m.id}" data-sender-id="${m.sender_id}" data-sent-at="${m.sent_at}">
-    <div class="irc-row" oncontextmenu="${!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at},${mine})`:'event.preventDefault()'}" ondblclick="${!isDeleted?`dblReply(${m.id})`:''}">
-      <span class="irc-name${mine?' irc-mine':''}">${senderName}</span>
-      <span class="irc-time">${time}</span>
-      <div class="irc-body">
-        ${replyHtml}
-        <span class="irc-text">${bodyText}</span>
-        ${statusIcon}
+    <div class="irc-av av ${avColor}">${avLetter}</div>
+    <div class="irc-content" oncontextmenu="${!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at},${mine})`:'event.preventDefault()'}" ondblclick="${!isDeleted?`dblReply(${m.id})`:''}">
+      <div class="irc-header">
+        <span class="irc-name ${avColor}-text">${senderName}</span>
+        <div class="irc-meta">${statusIcon}<span class="irc-time">${time}</span></div>
       </div>
+      ${replyHtml}
+      <div class="irc-text${isDeleted?' irc-deleted':''}">${bodyText}</div>
       ${reactionsHtml}
     </div>
   </div>`;

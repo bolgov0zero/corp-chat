@@ -294,18 +294,22 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .reaction-btn span { font-size: 12px; color: var(--muted); font-weight: 600; }
 
 /* ── IRC VIEW ── */
-.irc-msg { max-width: 80%; }
-.irc-msg.mine, .irc-msg.theirs { align-self: flex-start; }
-.irc-row { display: flex; align-items: baseline; gap: 8px; padding: 3px 6px; border-radius: 6px; cursor: default; user-select: text; flex-wrap: wrap; }
-.irc-row:hover { background: var(--hover); }
-.irc-name { font-size: 13px; font-weight: 700; color: var(--primary); white-space: nowrap; flex-shrink: 0; }
-.irc-name.irc-mine { color: #10b981; }
-.irc-time { font-size: 11px; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
-.irc-body { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.irc-msg { display: flex; align-items: flex-start; gap: 10px; max-width: 100%; padding: 4px 8px; border-radius: 8px; }
+.irc-msg:hover { background: var(--hover); }
+.irc-msg.mine, .irc-msg.theirs { align-self: stretch; flex-direction: row; }
+.irc-av { width: 36px; height: 36px; font-size: 14px; border-radius: 50%; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; }
+.irc-content { flex: 1; min-width: 0; cursor: default; }
+.irc-header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 3px; }
+.irc-name { font-size: 13px; font-weight: 700; }
+.av-blue-text { color: #2563eb; } .dark .av-blue-text { color: #60a5fa; }
+.av-green-text { color: #059669; } .dark .av-green-text { color: #34d399; }
+.av-purple-text { color: #7c3aed; } .dark .av-purple-text { color: #a78bfa; }
+.av-orange-text { color: #d97706; } .dark .av-orange-text { color: #fbbf24; }
+.irc-meta { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.irc-time { font-size: 11px; color: var(--muted); }
 .irc-text { font-size: 1rem; white-space: pre-wrap; word-break: break-word; color: var(--text); line-height: 1.5; }
-.irc-deleted { opacity: .5; font-style: italic; }
-.irc-reply-quote { width: 100%; margin-bottom: 3px; }
-.irc-msg .reactions { padding: 0; flex-shrink: 0; }
+.irc-deleted { opacity: .55; font-style: italic; }
+.irc-msg .reactions { margin-top: 4px; padding: 0; }
 
 /* ── EMOJI PICKER ── */
 .emoji-picker { position: fixed; z-index: 400; background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,.18); padding: 8px; display: grid; grid-template-columns: repeat(6, 36px); gap: 2px; }
