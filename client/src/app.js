@@ -14,8 +14,6 @@ const S = {
   newGroupAvatarBase64: null,
   presence: {}, // userId -> 'online'|'away'|'offline'
   reactions: {}, // messageId -> [{reaction, count}]
-  pins: {}, // chatId -> [pinned messages], ordered by pinned_at DESC
-  pinIndex: {}, // chatId -> current index shown in banner
 };
 
 const SESSION_KEY = 'electron_v2';
@@ -528,11 +526,6 @@ async function openChat(chatId) {
         <div class="ch-sub">${sub}</div>
       </div>
     </div>
-    <div id="pin-banner" class="pin-banner" style="display:none" onclick="pinBannerClick()" oncontextmenu="pinBannerCtx(event)">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
-      <div class="pin-banner-text" id="pin-banner-text"></div>
-      <div class="pin-banner-count" id="pin-banner-count"></div>
-    </div>
     <div class="messages" id="messages"></div>
     <div id="typing-indicator" class="typing-indicator" style="display:none">
       <span class="typing-dots"><span></span><span></span><span></span></span>
@@ -572,111 +565,9 @@ async function openChat(chatId) {
   const sendBtn = document.getElementById('send-btn');
   if (sendBtn) { sendBtn.style.background='transparent'; sendBtn.style.color='var(--muted)'; sendBtn.style.boxShadow='none'; }
   if (S.ws && !document.hidden) S.ws.send(JSON.stringify({type:'read', chat_id: chatId}));
-  const [msgs, pins] = await Promise.all([
-    api('GET', `/messages/chat/${chatId}`),
-    api('GET', `/chats/${chatId}/pins`),
-  ]);
+  const msgs = await api('GET', `/messages/chat/${chatId}`);
   if (msgs) renderMessages(msgs);
-  if (pins) { S.pins[chatId] = pins; S.pinIndex[chatId] = 0; }
-  renderPinBanner();
   document.getElementById('msg-input')?.focus();
-}
-
-// ── PINNED MESSAGES ──
-function renderPinBanner() {
-  const cid = S.activeChatId;
-  const banner = document.getElementById('pin-banner');
-  const msgs = document.getElementById('messages');
-  if (!banner) return;
-  const pins = S.pins[cid] || [];
-  if (!pins.length) {
-    banner.style.display = 'none';
-    if (msgs) msgs.style.paddingTop = '';
-    return;
-  }
-  const idx = S.pinIndex[cid] || 0;
-  const pin = pins[idx];
-  const textEl = document.getElementById('pin-banner-text');
-  const countEl = document.getElementById('pin-banner-count');
-  textEl.textContent = pin.text.replace(/\n/g, ' ');
-  countEl.textContent = pins.length > 1 ? `${idx + 1} / ${pins.length}` : '';
-  // position banner below chat header
-  const header = document.querySelector('.chat-header');
-  const headerH = header ? header.offsetHeight : 0;
-  banner.style.top = headerH + 'px';
-  banner.style.display = 'flex';
-  banner.dataset.msgId = pin.id;
-  // push messages down so banner doesn't cover first message
-  if (msgs) msgs.style.paddingTop = (banner.offsetHeight + 8) + 'px';
-}
-
-function pinBannerClick() {
-  const cid = S.activeChatId;
-  const pins = S.pins[cid] || [];
-  if (!pins.length) return;
-  const idx = S.pinIndex[cid] || 0;
-  const pin = pins[idx];
-  if (pins.length > 1) S.pinIndex[cid] = (idx + 1) % pins.length;
-  renderPinBanner(); // всегда — чтобы layout (padding-top) был актуален до скролла
-  requestAnimationFrame(() => scrollToMessage(pin.id));
-}
-
-function scrollToMessage(msgId) {
-  const el = document.querySelector(`[data-msg-id="${msgId}"]`);
-  if (!el) return;
-  const container = document.getElementById('messages');
-  if (container) {
-    // считаем абсолютную позицию внутри scroll-контента
-    const absoluteTop = el.offsetTop;
-    const target = absoluteTop - (container.clientHeight - el.offsetHeight) / 2;
-    container.scrollTop = Math.max(0, target);
-  }
-  // highlight — outline не затрагивает фон сообщения
-  el.classList.remove('msg-highlight');
-  void el.offsetWidth;
-  el.classList.add('msg-highlight');
-  setTimeout(() => el.classList.remove('msg-highlight'), 1000);
-}
-
-function pinBannerCtx(e) {
-  e.preventDefault();
-  const cid = S.activeChatId;
-  const pins = S.pins[cid] || [];
-  if (!pins.length) return;
-  const idx = S.pinIndex[cid] || 0;
-  const pin = pins[idx];
-  const menu = document.getElementById('ctx-pin-menu');
-  menu.querySelector('button').onclick = () => unpinMessage(pin.id);
-  menu.style.top = '-9999px'; menu.style.left = '-9999px';
-  menu.classList.add('open');
-  const mw = menu.offsetWidth, mh = menu.offsetHeight;
-  const margin = 8;
-  let x = e.clientX, y = e.clientY;
-  if (x + mw + margin > window.innerWidth) x = window.innerWidth - mw - margin;
-  if (y + mh + margin > window.innerHeight) y = e.clientY - mh;
-  if (y < margin) y = margin; if (x < margin) x = margin;
-  menu.style.left = x + 'px'; menu.style.top = y + 'px';
-}
-
-async function pinMessage(messageId) {
-  const cid = S.activeChatId;
-  const pin = await api('POST', `/chats/${cid}/pins`, { message_id: messageId });
-  if (!pin) return;
-  // add to local state if not already there
-  if (!S.pins[cid]) S.pins[cid] = [];
-  if (!S.pins[cid].find(p => p.id === pin.id)) S.pins[cid].unshift(pin);
-  S.pinIndex[cid] = 0;
-  renderPinBanner();
-}
-
-async function unpinMessage(messageId) {
-  const cid = S.activeChatId;
-  await api('DELETE', `/chats/${cid}/pins/${messageId}`);
-  if (S.pins[cid]) S.pins[cid] = S.pins[cid].filter(p => p.id !== messageId);
-  const maxIdx = Math.max(0, (S.pins[cid]?.length || 1) - 1);
-  S.pinIndex[cid] = Math.min(S.pinIndex[cid] || 0, maxIdx);
-  renderPinBanner();
-  document.getElementById('ctx-pin-menu')?.classList.remove('open');
 }
 
 // ── EMOJI PICKER ──
@@ -1006,8 +897,6 @@ function showCtxMenu(e, msgId, sentAt, isMine) {
   document.getElementById('ctx-copy-btn').style.display = '';
   document.getElementById('ctx-edit-btn').style.display = (isMine && S.ctx.canEdit) ? '' : 'none';
   document.getElementById('ctx-delete-btn').style.display = isMine ? '' : 'none';
-  const alreadyPinned = (S.pins[S.activeChatId] || []).some(p => p.id === msgId);
-  document.getElementById('ctx-pin-btn').style.display = alreadyPinned ? 'none' : '';
   // Сначала показываем чтобы получить реальные размеры
   menu.style.top = '-9999px'; menu.style.left = '-9999px';
   menu.classList.add('open');
@@ -1081,7 +970,6 @@ function scrollToMsg(msgId) {
 }
 function hideCtxMenu() {
   document.getElementById('ctx-menu').classList.remove('open');
-  document.getElementById('ctx-pin-menu')?.classList.remove('open');
 }
 
 function ctxEdit() {
@@ -1286,20 +1174,6 @@ function connectWS() {
           }
         }
       }
-    }
-
-    if (data.type==='pins_updated') {
-      const { chat_id, action, pin, message_id } = data;
-      if (!S.pins[chat_id]) S.pins[chat_id] = [];
-      if (action === 'pin' && pin) {
-        if (!S.pins[chat_id].find(p => p.id === pin.id)) S.pins[chat_id].unshift(pin);
-        S.pinIndex[chat_id] = 0;
-      } else if (action === 'unpin') {
-        S.pins[chat_id] = S.pins[chat_id].filter(p => p.id !== message_id);
-        const maxIdx = Math.max(0, (S.pins[chat_id].length || 1) - 1);
-        if (S.pinIndex[chat_id] > maxIdx) S.pinIndex[chat_id] = maxIdx;
-      }
-      if (S.activeChatId === chat_id) renderPinBanner();
     }
 
     if (data.type==='typing') {

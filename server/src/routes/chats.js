@@ -136,56 +136,6 @@ router.get('/:id/avatar', (req, res) => {
   res.sendFile(file, err => { if (err) res.status(404).end(); });
 });
 
-// Get pinned messages
-router.get('/:id/pins', authMiddleware, (req, res) => {
-  const chatId = Number(req.params.id);
-  if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chatId, req.user.id))
-    return res.status(403).json({ error: 'Not a member' });
-  const pins = db.prepare(`
-    SELECT m.id, m.text, m.sent_at, u.display_name as sender_name,
-           pm.pinned_at, pm.pinned_by
-    FROM pinned_messages pm
-    JOIN messages m ON m.id = pm.message_id
-    JOIN users u ON u.id = m.sender_id
-    WHERE pm.chat_id = ?
-    ORDER BY pm.pinned_at DESC
-  `).all(chatId);
-  res.json(pins);
-});
-
-// Pin message
-router.post('/:id/pins', authMiddleware, (req, res) => {
-  const chatId = Number(req.params.id);
-  const { message_id } = req.body;
-  if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chatId, req.user.id))
-    return res.status(403).json({ error: 'Not a member' });
-  const msg = db.prepare('SELECT * FROM messages WHERE id = ? AND chat_id = ?').get(message_id, chatId);
-  if (!msg) return res.status(404).json({ error: 'Message not found' });
-  db.prepare('INSERT OR IGNORE INTO pinned_messages (chat_id, message_id, pinned_by) VALUES (?, ?, ?)')
-    .run(chatId, message_id, req.user.id);
-  const pin = db.prepare(`
-    SELECT m.id, m.text, m.sent_at, u.display_name as sender_name,
-           pm.pinned_at, pm.pinned_by
-    FROM pinned_messages pm
-    JOIN messages m ON m.id = pm.message_id
-    JOIN users u ON u.id = m.sender_id
-    WHERE pm.chat_id = ? AND pm.message_id = ?
-  `).get(chatId, message_id);
-  broadcast(chatId, { type: 'pins_updated', chat_id: chatId, pin, action: 'pin' });
-  res.json(pin);
-});
-
-// Unpin message
-router.delete('/:id/pins/:messageId', authMiddleware, (req, res) => {
-  const chatId = Number(req.params.id);
-  const messageId = Number(req.params.messageId);
-  if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chatId, req.user.id))
-    return res.status(403).json({ error: 'Not a member' });
-  db.prepare('DELETE FROM pinned_messages WHERE chat_id = ? AND message_id = ?').run(chatId, messageId);
-  broadcast(chatId, { type: 'pins_updated', chat_id: chatId, message_id: messageId, action: 'unpin' });
-  res.json({ ok: true });
-});
-
 // Delete own chat
 router.delete('/:id', authMiddleware, (req, res) => {
   const id = Number(req.params.id);

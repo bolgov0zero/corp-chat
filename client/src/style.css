@@ -543,42 +543,8 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
 }
 
 /* ── MESSAGES ── */
-/* Pin banner — абсолютный, поверх переписки */
-.pin-banner {
-  position: absolute; top: 0; left: 0; right: 0;
-  z-index: 10;
-  display: flex; align-items: center; gap: 8px;
-  padding: 7px 16px;
-  background: var(--card-bg);
-  border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  color: var(--text);
-  font-size: 13px;
-  user-select: none; -webkit-user-select: none;
-  transition: background 0.15s;
-}
-.pin-banner:hover { background: var(--hover); }
-.pin-banner svg { flex-shrink: 0; color: var(--accent); }
-.pin-banner-text {
-  flex: 1; overflow: hidden; white-space: nowrap;
-  text-overflow: ellipsis; color: var(--muted);
-}
-.pin-banner-count {
-  flex-shrink: 0; font-size: 11px;
-  color: var(--accent); font-weight: 500;
-}
-/* Сдвигаем переписку вниз когда баннер виден */
-.messages { transition: padding-top 0.15s; }
-
-/* Message highlight on scroll-to */
-@keyframes msg-flash {
-  0%   { outline: 2px solid rgba(99,102,241,.7); border-radius: 4px; }
-  100% { outline: 2px solid rgba(99,102,241,0);  border-radius: 4px; }
-}
-.msg-highlight { animation: msg-flash 1s ease-out; }
-
 .messages {
-  flex: 1; overflow-y: auto; position: relative;
+  flex: 1; overflow-y: auto;
   padding: 20px 24px 12px;
   display: flex; flex-direction: column;
   gap: 4px;
@@ -723,13 +689,6 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
 .theirs .reply-quote-text { color: var(--muted); }
-
-/* Msg highlight flash */
-.msg-highlight { animation: msg-flash .4s ease 2; }
-@keyframes msg-flash {
-  0%,100% { background: transparent; }
-  50% { background: rgba(99,102,241,.18); }
-}
 
 /* ── IRC VIEW ── */
 .irc-msg {
