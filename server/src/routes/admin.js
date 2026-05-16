@@ -1,18 +1,74 @@
 const router = require('express').Router();
 const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
-const { sendTo, getStatus, getClients, sendToConn } = require('../ws');
+const { sendTo, getStatus, getClients, sendToConn, getConnCount } = require('../ws');
 
 router.use(authMiddleware, adminMiddleware);
 
 router.get('/stats', (req, res) => {
+  const pageCount = db.prepare('PRAGMA page_count').get()['page_count'];
+  const pageSize  = db.prepare('PRAGMA page_size').get()['page_size'];
   res.json({
-    users: db.prepare('SELECT COUNT(*) as c FROM users').get().c,
-    chats: db.prepare("SELECT COUNT(*) as c FROM chats WHERE type='direct'").get().c,
-    groups: db.prepare("SELECT COUNT(*) as c FROM chats WHERE type='group'").get().c,
-    rooms: db.prepare("SELECT COUNT(*) as c FROM chats WHERE type='room'").get().c,
+    users:    db.prepare('SELECT COUNT(*) as c FROM users').get().c,
+    chats:    db.prepare("SELECT COUNT(*) as c FROM chats WHERE type='direct'").get().c,
+    groups:   db.prepare("SELECT COUNT(*) as c FROM chats WHERE type='group'").get().c,
+    rooms:    db.prepare("SELECT COUNT(*) as c FROM chats WHERE type='room'").get().c,
     messages: db.prepare('SELECT COUNT(*) as c FROM messages WHERE deleted = 0').get().c,
+    uptimeSeconds: Math.floor(process.uptime()),
+    dbBytes: pageCount * pageSize,
+    wsConnections: getConnCount(),
   });
+});
+
+// Message activity for sparkline chart
+router.get('/activity', (req, res) => {
+  const range = req.query.range || '24h';
+
+  if (range === '24h') {
+    // 24 hourly buckets (oldest → newest)
+    const now = Math.floor(Date.now() / 1000);
+    const since = now - 86400;
+    const rows = db.prepare(`
+      SELECT CAST((sent_at - ?) / 3600 AS INTEGER) AS bucket, COUNT(*) AS count
+      FROM messages WHERE deleted=0 AND sent_at >= ?
+      GROUP BY bucket
+    `).all(since, since);
+    const points = new Array(24).fill(0);
+    rows.forEach(r => { if (r.bucket >= 0 && r.bucket < 24) points[r.bucket] = r.count; });
+    const startH = new Date((since) * 1000);
+    const labels = [0, 6, 12, 18, 24].map(offset => {
+      const d = new Date((since + offset * 3600) * 1000);
+      return d.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
+    });
+    return res.json({ points, labels });
+  }
+
+  if (range === '7d') {
+    const rows = db.prepare(`
+      SELECT CAST((unixepoch('now') - sent_at) / 86400 AS INTEGER) AS days_ago, COUNT(*) AS count
+      FROM messages WHERE deleted=0 AND sent_at >= unixepoch('now') - 7*86400
+      GROUP BY days_ago
+    `).all();
+    const points = new Array(7).fill(0);
+    rows.forEach(r => { const i = 6 - r.days_ago; if (i >= 0 && i < 7) points[i] = r.count; });
+    const ruDay = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+    const labels = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(); d.setDate(d.getDate() - (6 - i));
+      return ruDay[d.getDay()];
+    });
+    return res.json({ points, labels });
+  }
+
+  // 30d
+  const rows = db.prepare(`
+    SELECT CAST((unixepoch('now') - sent_at) / 86400 AS INTEGER) AS days_ago, COUNT(*) AS count
+    FROM messages WHERE deleted=0 AND sent_at >= unixepoch('now') - 30*86400
+    GROUP BY days_ago
+  `).all();
+  const points = new Array(30).fill(0);
+  rows.forEach(r => { const i = 29 - r.days_ago; if (i >= 0 && i < 30) points[i] = r.count; });
+  const labels = Array.from({ length: 5 }, (_, i) => String(Math.round(i * 7.5) + 1));
+  res.json({ points, labels });
 });
 
 // Create room (admin only) — notifies members via WS
@@ -144,6 +200,21 @@ router.post('/clients/:connId/force-update', (req, res) => {
 router.post('/clients/:connId/force-logout', (req, res) => {
   sendToConn(Number(req.params.connId), { type: 'force_logout' });
   res.json({ ok: true });
+});
+
+// Перезапуск службы systemd
+router.post('/system/restart', (req, res) => {
+  const { exec } = require('child_process');
+  // Сначала проверяем, что служба существует
+  exec('systemctl is-active electron', (err, stdout) => {
+    const active = (stdout || '').trim();
+    if (active !== 'active' && active !== 'activating') {
+      return res.status(400).json({ error: 'Служба electron не активна или не найдена. Перезапуск невозможен.' });
+    }
+    // Отправляем ответ до перезапуска, иначе соединение оборвётся без ответа
+    res.json({ ok: true });
+    setTimeout(() => exec('systemctl restart electron'), 300);
+  });
 });
 
 module.exports = router;

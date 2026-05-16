@@ -65,6 +65,13 @@ db.exec(`
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS pinned_messages (
+    chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+    message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    pinned_by INTEGER REFERENCES users(id),
+    pinned_at INTEGER DEFAULT (unixepoch()),
+    PRIMARY KEY (chat_id, message_id)
+  );
 `);
 
 fs.mkdirSync(path.join(path.dirname(DB_PATH), 'avatar'), { recursive: true });
