@@ -615,10 +615,10 @@ function scrollToMessage(msgId) {
   if (!el) return;
   const container = document.getElementById('messages');
   if (container) {
-    const elTop = el.offsetTop;
-    const elH = el.offsetHeight;
-    const cH = container.clientHeight;
-    container.scrollTop = elTop - (cH - elH) / 2;
+    const containerRect = container.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const offset = elRect.top - containerRect.top;
+    container.scrollTop += offset - (container.clientHeight - el.offsetHeight) / 2;
   }
   // highlight with fade-out
   el.classList.remove('msg-highlight');
