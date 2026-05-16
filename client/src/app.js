@@ -605,11 +605,20 @@ function pinBannerClick() {
   if (!pins.length) return;
   const idx = S.pinIndex[cid] || 0;
   const pin = pins[idx];
-  // scroll to message
-  const el = document.querySelector(`[data-msg-id="${pin.id}"]`);
-  if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('msg-highlight'); setTimeout(() => el.classList.remove('msg-highlight'), 1500); }
-  // advance to next pin
+  // advance to next pin first, then scroll
   if (pins.length > 1) { S.pinIndex[cid] = (idx + 1) % pins.length; renderPinBanner(); }
+  scrollToMessage(pin.id);
+}
+
+function scrollToMessage(msgId) {
+  const el = document.querySelector(`[data-msg-id="${msgId}"]`);
+  if (!el) return;
+  el.scrollIntoView({ block: 'center' });
+  // highlight with fade-out
+  el.classList.remove('msg-highlight');
+  void el.offsetWidth; // force reflow
+  el.classList.add('msg-highlight');
+  setTimeout(() => el.classList.remove('msg-highlight'), 1000);
 }
 
 function pinBannerCtx(e) {
