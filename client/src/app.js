@@ -75,6 +75,17 @@ function loadSession() {
 
 // ── INIT ──
 window.addEventListener('DOMContentLoaded', async () => {
+  // Версия — всегда, независимо от сессии
+  if (window.electron?.getVersion) {
+    window.electron.getVersion().then(v => {
+      if (!v) return;
+      const lv = document.getElementById('login-version');
+      if (lv) lv.textContent = `v${v}`;
+      const av = document.getElementById('app-version');
+      if (av) av.textContent = `v${v}`;
+    });
+  }
+
   const session = loadSession();
   if (session?.token) {
     Object.assign(S, { server:session.server, token:session.token, user:session.user, settings:session.settings||S.settings });
@@ -84,18 +95,10 @@ window.addEventListener('DOMContentLoaded', async () => {
     applySettings();
     const lastServer = localStorage.getItem('lastServer');
     if (lastServer) document.getElementById('l-server').value = lastServer;
-    window.electron?.getVersion?.().then(v => {
-      const el = document.getElementById('login-version');
-      if (el && v) el.textContent = `v${v}`;
-    });
   }
 
   // Show HA button on Windows only
   if (window.electron) {
-    window.electron.getVersion?.().then(v => {
-      const el = document.getElementById('app-version');
-      if (el && v) el.textContent = `v${v}`;
-    });
     const platform = await window.electron.getPlatform();
     if (platform === 'win32') {
       const btn = document.getElementById('ha-toggle-btn');
