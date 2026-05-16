@@ -170,7 +170,11 @@ async function doLogin() {
 function logout() {
   closeSettings();
   if (S.ws) S.ws.close();
-  if (S.server) localStorage.setItem('lastServer', S.server);
+  if (S.server) {
+    localStorage.setItem('lastServer', S.server);
+    const serverInput = document.getElementById('l-server');
+    if (serverInput) serverInput.value = S.server;
+  }
   Object.assign(S, { token:null, user:null, chats:[], activeChatId:null, ws:null, unread:{}, allUsers:[] });
   localStorage.removeItem(SESSION_KEY);
   document.getElementById('screen-main').classList.remove('active');

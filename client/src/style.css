@@ -108,8 +108,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .btn-login:hover { background: #1d4ed8; }
 .btn-login:disabled { background: #93c5fd; cursor: not-allowed; }
 .login-err { color: var(--danger); font-size: 13px; text-align: center; min-height: 18px; }
-.login-copy { font-size: 11px; color: var(--muted); text-align: center; margin-top: 4px; }
-.login-copy span { margin-left: 6px; opacity: .5; }
+.login-copy { font-size: 11px; color: var(--text); opacity: .35; text-align: center; margin-top: 4px; }
+.login-copy span { margin-left: 6px; opacity: .7; }
 
 /* ── LAYOUT ── */
 #screen-main { flex-direction: row; }
