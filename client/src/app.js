@@ -586,17 +586,28 @@ async function openChat(chatId) {
 function renderPinBanner() {
   const cid = S.activeChatId;
   const banner = document.getElementById('pin-banner');
+  const msgs = document.getElementById('messages');
   if (!banner) return;
   const pins = S.pins[cid] || [];
-  if (!pins.length) { banner.style.display = 'none'; return; }
+  if (!pins.length) {
+    banner.style.display = 'none';
+    if (msgs) msgs.style.paddingTop = '';
+    return;
+  }
   const idx = S.pinIndex[cid] || 0;
   const pin = pins[idx];
   const textEl = document.getElementById('pin-banner-text');
   const countEl = document.getElementById('pin-banner-count');
   textEl.textContent = pin.text.replace(/\n/g, ' ');
   countEl.textContent = pins.length > 1 ? `${idx + 1} / ${pins.length}` : '';
+  // position banner below chat header
+  const header = document.querySelector('.chat-header');
+  const headerH = header ? header.offsetHeight : 0;
+  banner.style.top = headerH + 'px';
   banner.style.display = 'flex';
   banner.dataset.msgId = pin.id;
+  // push messages down so banner doesn't cover first message
+  if (msgs) msgs.style.paddingTop = (banner.offsetHeight + 8) + 'px';
 }
 
 function pinBannerClick() {
@@ -615,10 +626,8 @@ function scrollToMessage(msgId) {
   if (!el) return;
   const container = document.getElementById('messages');
   if (container) {
-    const containerRect = container.getBoundingClientRect();
-    const elRect = el.getBoundingClientRect();
-    const offset = elRect.top - containerRect.top;
-    container.scrollTop += offset - (container.clientHeight - el.offsetHeight) / 2;
+    // el.offsetTop is relative to #messages because it has position:relative
+    container.scrollTop = el.offsetTop - (container.clientHeight - el.offsetHeight) / 2;
   }
   // highlight with fade-out
   el.classList.remove('msg-highlight');

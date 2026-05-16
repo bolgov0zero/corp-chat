@@ -543,8 +543,10 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
 }
 
 /* ── MESSAGES ── */
-/* Pin banner */
+/* Pin banner — абсолютный, поверх переписки */
 .pin-banner {
+  position: absolute; top: 0; left: 0; right: 0;
+  z-index: 10;
   display: flex; align-items: center; gap: 8px;
   padding: 7px 16px;
   background: var(--card-bg);
@@ -565,13 +567,15 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
   flex-shrink: 0; font-size: 11px;
   color: var(--accent); font-weight: 500;
 }
+/* Сдвигаем переписку вниз когда баннер виден */
+.messages { transition: padding-top 0.15s; }
 
 /* Message highlight on scroll-to */
 @keyframes msg-flash { 0% { background: rgba(99,102,241,.22); } 100% { background: transparent; } }
 .msg-highlight { animation: msg-flash 1s ease-out; }
 
 .messages {
-  flex: 1; overflow-y: auto;
+  flex: 1; overflow-y: auto; position: relative;
   padding: 20px 24px 12px;
   display: flex; flex-direction: column;
   gap: 4px;
