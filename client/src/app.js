@@ -245,11 +245,11 @@ function updateViewToggleIcon() {
 async function openSettings() {
   document.getElementById('modal-settings').classList.add('open');
   const dn = document.getElementById('settings-display-name');
-  if (dn) dn.textContent = S.user.display_name;
+  if (dn) { dn.value = S.user.display_name; dn.readOnly = true; dn.classList.remove('editing'); }
   const un = document.getElementById('settings-username');
   if (un) un.textContent = '@' + S.user.username;
-  const ni = document.getElementById('profile-name-input');
-  if (ni) ni.value = S.user.display_name;
+  const btn = document.getElementById('settings-edit-btn');
+  if (btn) btn.textContent = 'Изменить';
   updateSettingsAvatar();
   if (window.electron?.getAutostart) {
     const row = document.getElementById('autostart-row');
@@ -260,14 +260,37 @@ async function openSettings() {
   }
   const soundChk = document.getElementById('sound-chk');
   if (soundChk) soundChk.checked = S.settings.soundEnabled !== false;
-  const npChk = document.getElementById('notify-preview-chk');
-  if (npChk) npChk.checked = !!S.settings.notifyPreview;
   applySettings();
 }
 function closeSettings() { document.getElementById('modal-settings').classList.remove('open'); }
 function openNameEdit() {
-  const row = document.getElementById('settings-name-edit');
-  if (row) row.style.display = row.style.display === 'none' ? 'flex' : 'none';
+  const input = document.getElementById('settings-display-name');
+  const btn = document.getElementById('settings-edit-btn');
+  if (!input) return;
+  if (input.readOnly) {
+    input.readOnly = false;
+    input.classList.add('editing');
+    input.focus();
+    input.select();
+    if (btn) btn.textContent = 'Сохранить';
+  } else {
+    saveDisplayName();
+  }
+}
+async function saveDisplayName() {
+  const input = document.getElementById('settings-display-name');
+  const btn = document.getElementById('settings-edit-btn');
+  const name = input?.value?.trim();
+  if (name) {
+    const res = await api('PATCH', '/users/me', { display_name: name });
+    if (res?.ok) {
+      S.user.display_name = name;
+      document.getElementById('me-name').textContent = name;
+      saveSession();
+    }
+  }
+  if (input) { input.readOnly = true; input.classList.remove('editing'); }
+  if (btn) btn.textContent = 'Изменить';
 }
 async function setAutostart(enabled) { await window.electron?.setAutostart(enabled); }
 
@@ -321,6 +344,24 @@ async function onAvatarFileChange(input) {
     }
   };
   reader.readAsDataURL(file);
+}
+
+// ── NOTIFICATION SOUND ──
+function playNotificationSound() {
+  if (S.settings.soundEnabled === false) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.3);
+  } catch(e) {}
 }
 
 // ── CHAT LIST ──
@@ -405,8 +446,8 @@ function renderChatList() {
     });
   if (!filtered.length) { list.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Нет чатов</div>'; return; }
 
-  const pinned = filtered.filter(c => c.pinned);
-  const rest = filtered.filter(c => !c.pinned);
+  const pinned = filtered.filter(c => c.pinned || c.type === 'room');
+  const rest = filtered.filter(c => !c.pinned && c.type !== 'room');
 
   let html = '';
   if (pinned.length) {
@@ -481,23 +522,6 @@ async function openChat(chatId) {
         <div class="ch-name">${esc(name)}</div>
         <div class="ch-sub">${sub}</div>
       </div>
-      <div class="chat-header-actions">
-        <button class="icon-btn light" id="view-toggle-btn" title="Переключить режим" onclick="toggleChatView()">
-          <svg id="header-irc-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-          <svg id="header-bubble-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        </button>
-        <button class="icon-btn light" title="Обновить" onclick="loadChats()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
-        </button>
-        ${(isGroup||isRoom)?`<button class="icon-btn light" title="Участники" onclick="openGroupMembers(${chatId})">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        </button>`:`<button class="icon-btn light" title="Информация" onclick="showMsgInfo&&showMsgInfo()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        </button>`}
-        ${canDelete?`<button class="icon-btn light icon-btn-danger" title="Удалить чат" onclick="deleteChat(${chatId})">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-        </button>`:''}
-      </div>
     </div>
     <div class="messages" id="messages"></div>
     <div id="typing-indicator" class="typing-indicator" style="display:none">
@@ -522,16 +546,12 @@ async function openChat(chatId) {
           </button>
         </div>
         <div class="composer-pill" id="composer-pill">
-          <button class="composer-icon-btn" title="Прикрепить файл">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 17.93 8.83l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-          </button>
           <button class="composer-icon-btn" title="Эмодзи" onclick="toggleEmojiPicker(event)">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 3 4 3 4-3 4-3"/><circle cx="9" cy="9" r="1" fill="currentColor"/><circle cx="15" cy="9" r="1" fill="currentColor"/></svg>
           </button>
           <textarea id="msg-input" placeholder="Сообщение…" onkeydown="handleKey(event)" oninput="onMsgInput(this)"></textarea>
-          <button class="send-btn" id="send-mic-btn" onclick="sendOrEdit()">
-            <svg id="send-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:none"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            <svg id="mic-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          <button class="send-btn" id="send-btn" onclick="sendOrEdit()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
         </div>
       </div>
@@ -539,11 +559,7 @@ async function openChat(chatId) {
 
   applyAvatars();
   updateViewToggleIcon();
-  // init send/mic icon
-  const sendIcon = document.getElementById('send-icon');
-  const micIcon = document.getElementById('mic-icon');
-  if (sendIcon) { sendIcon.style.display='none'; micIcon.style.display=''; }
-  const sendBtn = document.getElementById('send-mic-btn');
+  const sendBtn = document.getElementById('send-btn');
   if (sendBtn) { sendBtn.style.background='transparent'; sendBtn.style.color='var(--muted)'; sendBtn.style.boxShadow='none'; }
   if (S.ws && !document.hidden) S.ws.send(JSON.stringify({type:'read', chat_id: chatId}));
   const msgs = await api('GET', `/messages/chat/${chatId}`);
@@ -691,12 +707,10 @@ function renderMsgIRC(m, isGroup) {
       <button class="irc-action-btn" onclick="sendReaction(${m.id},'👍')" title="👍">👍</button>
       <button class="irc-action-btn" onclick="sendReaction(${m.id},'❤️')" title="❤️">❤️</button>
       <button class="irc-action-btn" onclick="sendReaction(${m.id},'😂')" title="😂">😂</button>
+      <button class="irc-action-btn" onclick="sendReaction(${m.id},'👎')" title="👎">👎</button>
       <span style="width:1px;background:var(--border);margin:3px 2px;align-self:stretch"></span>
       <button class="irc-action-btn" onclick="dblReply(${m.id})" title="Ответить">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
-      </button>
-      <button class="irc-action-btn" onclick="showCtxMenu(event,${m.id},${m.sent_at},${mine})" title="Ещё">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>
       </button>
     </div>`;
 
@@ -795,13 +809,9 @@ function onMsgInput(el) {
   }
   clearTimeout(typingSendTimer);
   typingSendTimer = setTimeout(() => { typingSendTimer = null; }, 1000);
-  const sendIcon = document.getElementById('send-icon');
-  const micIcon = document.getElementById('mic-icon');
-  const sendBtn = document.getElementById('send-mic-btn');
-  if (sendIcon && micIcon) {
+  const sendBtn = document.getElementById('send-btn');
+  if (sendBtn) {
     const hasDraft = el.value.trim().length > 0;
-    sendIcon.style.display = hasDraft ? '' : 'none';
-    micIcon.style.display = hasDraft ? 'none' : '';
     sendBtn.style.background = hasDraft ? 'var(--accent)' : 'transparent';
     sendBtn.style.color = hasDraft ? '#fff' : 'var(--muted)';
     sendBtn.style.boxShadow = hasDraft ? '0 6px 16px var(--accent-shadow)' : 'none';
@@ -1094,6 +1104,7 @@ function connectWS() {
           const title = chatName(chat2) || 'Electron';
           const body = `${message.sender_name}: ${message.text}`;
           window.electron?.notify(title, body, chatId);
+          playNotificationSound();
         }
         if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'delivered', message_id:message.id}));
       }
