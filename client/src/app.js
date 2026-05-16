@@ -897,9 +897,18 @@ function showCtxMenu(e, msgId, sentAt, isMine) {
   document.getElementById('ctx-copy-btn').style.display = '';
   document.getElementById('ctx-edit-btn').style.display = (isMine && S.ctx.canEdit) ? '' : 'none';
   document.getElementById('ctx-delete-btn').style.display = isMine ? '' : 'none';
-  menu.style.left = Math.min(e.clientX, window.innerWidth-180)+'px';
-  menu.style.top = Math.min(e.clientY, window.innerHeight-160)+'px';
+  // Сначала показываем чтобы получить реальные размеры
+  menu.style.top = '-9999px'; menu.style.left = '-9999px';
   menu.classList.add('open');
+  const mw = menu.offsetWidth, mh = menu.offsetHeight;
+  const margin = 6;
+  let x = e.clientX, y = e.clientY;
+  if (x + mw + margin > window.innerWidth)  x = window.innerWidth  - mw - margin;
+  if (y + mh + margin > window.innerHeight) y = e.clientY - mh; // открываем вверх
+  if (y < margin) y = margin;
+  if (x < margin) x = margin;
+  menu.style.left = x + 'px';
+  menu.style.top  = y + 'px';
 }
 
 function dblReply(msgId) {
