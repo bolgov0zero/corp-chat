@@ -120,6 +120,9 @@ html.dark {
 /* ── RESET & BASE ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Выделение текста только в сообщениях и полях ввода */
+body { user-select: none; -webkit-user-select: none; }
+
 html {
   font-size: var(--font-size);
   -webkit-font-smoothing: antialiased;
@@ -526,6 +529,17 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
   background: var(--accent-soft);
   color: var(--accent);
   vertical-align: middle; margin-left: 6px;
+}
+
+/* Разрешить выделение только там где нужно */
+.bubble-text,
+.irc-text,
+.reply-quote-text,
+.update-notes,
+.link-modal-url,
+textarea, input[type="text"], input[type="password"], input[type="search"], input:not([type]) {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 /* ── MESSAGES ── */
