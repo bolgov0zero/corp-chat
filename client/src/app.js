@@ -927,6 +927,7 @@ function showReplyBar() {
   document.getElementById('reply-bar-name').textContent = S.replyTo.senderName;
   document.getElementById('reply-bar-text').textContent = S.replyTo.text;
   bar.style.display = '';
+  document.getElementById('composer-pill')?.classList.add('has-reply');
   document.getElementById('msg-input')?.focus();
 }
 
@@ -934,6 +935,7 @@ function hideReplyBar() {
   S.replyTo = null;
   const bar = document.getElementById('reply-bar');
   if (bar) bar.style.display = 'none';
+  document.getElementById('composer-pill')?.classList.remove('has-reply');
 }
 
 function scrollToMsg(msgId) {
