@@ -213,14 +213,21 @@ function updateMeAvatar() {
 
 // ── SETTINGS ──
 function applySettings() {
-  document.documentElement.classList.toggle('dark', S.settings.theme==='dark');
+  const isDark = S.settings.theme === 'dark';
+  document.documentElement.classList.toggle('dark', isDark);
   document.documentElement.className = document.documentElement.className.replace(/font-\w+/,'');
   document.documentElement.classList.add('font-'+S.settings.fontSize);
   document.querySelectorAll('#theme-seg button').forEach(b => b.classList.toggle('active', b.textContent.trim()===(S.settings.theme==='light'?'Светлая':'Тёмная')));
   document.querySelectorAll('#font-seg button').forEach(b => b.classList.toggle('active', b.textContent.trim()===S.settings.fontSize[0].toUpperCase()));
   document.querySelectorAll('#chatview-seg button').forEach(b => b.classList.toggle('active', b.dataset.view===(S.settings.chatView||'bubbles')));
+  // Sidebar theme toggle icon
+  const sunIcon = document.getElementById('theme-icon-sun');
+  const moonIcon = document.getElementById('theme-icon-moon');
+  if (sunIcon) sunIcon.style.display = isDark ? '' : 'none';
+  if (moonIcon) moonIcon.style.display = isDark ? 'none' : '';
 }
 function setTheme(t) { S.settings.theme=t; applySettings(); saveSession(); }
+function toggleTheme() { setTheme(S.settings.theme === 'dark' ? 'light' : 'dark'); }
 function setFontSize(f) { S.settings.fontSize=f; applySettings(); saveSession(); }
 function setChatView(v) { S.settings.chatView=v; applySettings(); saveSession(); if (S.activeChatId) openChat(S.activeChatId); }
 async function openSettings() {
@@ -375,7 +382,7 @@ function renderChatList() {
       const ta = a.last_message?.sent_at||0, tb = b.last_message?.sent_at||0;
       return tb-ta;
     });
-  if (!filtered.length) { list.innerHTML='<div style="padding:20px;text-align:center;color:var(--sidebar-muted);font-size:13px">Нет чатов</div>'; return; }
+  if (!filtered.length) { list.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Нет чатов</div>'; return; }
   list.innerHTML = filtered.map(c => {
     const name = chatName(c);
     const u = S.unread[c.id]||0;
@@ -943,7 +950,7 @@ function openGroupMembers(chatId) {
         <div style="font-size:14px;font-weight:500">${esc(m.display_name)}</div>
         <div style="font-size:12px;color:var(--muted)">@${esc(m.username)}</div>
       </div>
-      ${chat.created_by===m.id?'<span style="margin-left:auto;font-size:11px;color:var(--muted);background:var(--bg);padding:2px 8px;border-radius:10px">создатель</span>':''}
+      ${chat.created_by===m.id?'<span style="margin-left:auto;font-size:11px;color:var(--muted);background:var(--card-bg);padding:2px 8px;border-radius:10px">создатель</span>':''}
     </div>`).join('') || '<div style="color:var(--muted);text-align:center;padding:20px">Нет участников</div>';
   openModal('modal-group-members');
 }
