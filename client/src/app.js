@@ -616,9 +616,9 @@ function pinBannerClick() {
   if (!pins.length) return;
   const idx = S.pinIndex[cid] || 0;
   const pin = pins[idx];
-  // advance to next pin first, then scroll
-  if (pins.length > 1) { S.pinIndex[cid] = (idx + 1) % pins.length; renderPinBanner(); }
-  scrollToMessage(pin.id);
+  if (pins.length > 1) S.pinIndex[cid] = (idx + 1) % pins.length;
+  renderPinBanner(); // всегда — чтобы layout (padding-top) был актуален до скролла
+  requestAnimationFrame(() => scrollToMessage(pin.id));
 }
 
 function scrollToMessage(msgId) {
@@ -626,12 +626,14 @@ function scrollToMessage(msgId) {
   if (!el) return;
   const container = document.getElementById('messages');
   if (container) {
-    const absoluteTop = el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
-    container.scrollTop = absoluteTop - (container.clientHeight - el.offsetHeight) / 2;
+    // считаем абсолютную позицию внутри scroll-контента
+    const absoluteTop = el.offsetTop;
+    const target = absoluteTop - (container.clientHeight - el.offsetHeight) / 2;
+    container.scrollTop = Math.max(0, target);
   }
-  // highlight with fade-out
+  // highlight — outline не затрагивает фон сообщения
   el.classList.remove('msg-highlight');
-  void el.offsetWidth; // force reflow
+  void el.offsetWidth;
   el.classList.add('msg-highlight');
   setTimeout(() => el.classList.remove('msg-highlight'), 1000);
 }
