@@ -791,7 +791,7 @@ function ctxReply() {
   hideCtxMenu();
   const msgId = S.ctx.messageId;
   if (!msgId) return;
-  const bubbleEl = document.querySelector(`[data-msg-id="${msgId}"] .bubble-text`);
+  const bubbleEl = document.querySelector(`[data-msg-id="${msgId}"] .bubble-text`) || document.querySelector(`[data-msg-id="${msgId}"] .irc-text`);
   const text = bubbleEl?.innerText || '';
   const msgEl = document.querySelector(`[data-msg-id="${msgId}"]`);
   const senderIdAttr = parseInt(msgEl?.dataset.senderId || '0');
