@@ -230,23 +230,45 @@ function setTheme(t) { S.settings.theme=t; applySettings(); saveSession(); }
 function toggleTheme() { setTheme(S.settings.theme === 'dark' ? 'light' : 'dark'); }
 function setFontSize(f) { S.settings.fontSize=f; applySettings(); saveSession(); }
 function setChatView(v) { S.settings.chatView=v; applySettings(); saveSession(); if (S.activeChatId) openChat(S.activeChatId); }
+function toggleChatView() {
+  setChatView(S.settings.chatView === 'irc' ? 'bubbles' : 'irc');
+  updateViewToggleIcon();
+}
+function updateViewToggleIcon() {
+  const ircIcon = document.getElementById('header-irc-icon');
+  const bubbleIcon = document.getElementById('header-bubble-icon');
+  if (!ircIcon) return;
+  const isIRC = (S.settings.chatView||'bubbles') === 'irc';
+  ircIcon.style.display = isIRC ? 'none' : '';
+  bubbleIcon.style.display = isIRC ? '' : 'none';
+}
 async function openSettings() {
-  document.getElementById('drawer-settings').classList.add('open');
-  document.getElementById('drawer-bg').classList.add('open');
-  document.getElementById('profile-name-input').value = S.user.display_name;
+  document.getElementById('modal-settings').classList.add('open');
   const dn = document.getElementById('settings-display-name');
   if (dn) dn.textContent = S.user.display_name;
   const un = document.getElementById('settings-username');
   if (un) un.textContent = '@' + S.user.username;
+  const ni = document.getElementById('profile-name-input');
+  if (ni) ni.value = S.user.display_name;
   updateSettingsAvatar();
   if (window.electron?.getAutostart) {
     const row = document.getElementById('autostart-row');
-    row.style.display = '';
+    if (row) row.style.display = '';
     const enabled = await window.electron.getAutostart();
-    document.getElementById('autostart-chk').checked = !!enabled;
+    const chk = document.getElementById('autostart-chk');
+    if (chk) chk.checked = !!enabled;
   }
+  const soundChk = document.getElementById('sound-chk');
+  if (soundChk) soundChk.checked = S.settings.soundEnabled !== false;
+  const npChk = document.getElementById('notify-preview-chk');
+  if (npChk) npChk.checked = !!S.settings.notifyPreview;
+  applySettings();
 }
-function closeSettings() { document.getElementById('drawer-settings').classList.remove('open'); document.getElementById('drawer-bg').classList.remove('open'); }
+function closeSettings() { document.getElementById('modal-settings').classList.remove('open'); }
+function openNameEdit() {
+  const row = document.getElementById('settings-name-edit');
+  if (row) row.style.display = row.style.display === 'none' ? 'flex' : 'none';
+}
 async function setAutostart(enabled) { await window.electron?.setAutostart(enabled); }
 
 function updateSettingsAvatar() {
@@ -373,7 +395,6 @@ function applyAvatars() {
 function renderChatList() {
   const q = document.getElementById('search').value.toLowerCase();
   const list = document.getElementById('chats-list');
-  // Rooms always on top, then sort by last message time
   const filtered = S.chats
     .filter(c=>chatName(c).toLowerCase().includes(q))
     .sort((a,b) => {
@@ -383,31 +404,48 @@ function renderChatList() {
       return tb-ta;
     });
   if (!filtered.length) { list.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Нет чатов</div>'; return; }
-  list.innerHTML = filtered.map(c => {
-    const name = chatName(c);
-    const u = S.unread[c.id]||0;
-    const lm = c.last_message;
-    let preview = lm ? (lm.deleted?'Сообщение удалено':lm.text) : 'Нет сообщений';
-    if (preview.length>40) preview = preview.slice(0,40)+'…';
-    const time = lm ? fmtTime(lm.sent_at) : '';
-    const peerId = getPeerUserId(c);
-    const dot = peerId ? presenceDot(peerId) : '';
-    return `<div class="chat-item${c.id===S.activeChatId?' active':''}" data-chat-id="${c.id}" onclick="openChat(${c.id})" oncontextmenu="showChatCtx(event,${c.id})">
-      <div class="av-wrap">
-        <div class="av av-md ${chatAvatarClass(c)}" data-av-chat="${c.id}">${chatIcon(c)}</div>
-        ${dot}
+
+  const pinned = filtered.filter(c => c.pinned);
+  const rest = filtered.filter(c => !c.pinned);
+
+  let html = '';
+  if (pinned.length) {
+    html += `<div class="chat-list-section-label">Закреплённые</div>`;
+    html += pinned.map(c => renderChatRow(c)).join('');
+  }
+  html += `<div class="chat-list-section-label" style="${pinned.length?'padding-top:12px':''}">Все чаты</div>`;
+  html += rest.map(c => renderChatRow(c)).join('');
+  list.innerHTML = html;
+  applyAvatars();
+}
+
+function renderChatRow(c) {
+  const name = chatName(c);
+  const u = S.unread[c.id]||0;
+  const lm = c.last_message;
+  let preview = lm ? (lm.deleted?'Сообщение удалено':lm.text) : 'Нет сообщений';
+  if (preview.length>40) preview = preview.slice(0,40)+'…';
+  const time = lm ? fmtTime(lm.sent_at) : '';
+  const peerId = getPeerUserId(c);
+  const dot = peerId ? presenceDot(peerId) : '';
+  const pinIcon = c.pinned ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--muted);opacity:.7"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>` : '';
+  return `<div class="chat-item${c.id===S.activeChatId?' active':''}" data-chat-id="${c.id}" onclick="openChat(${c.id})" oncontextmenu="showChatCtx(event,${c.id})">
+    <div class="av-wrap">
+      <div class="av av-md ${chatAvatarClass(c)}" data-av-chat="${c.id}">${chatIcon(c)}</div>
+      ${dot}
+    </div>
+    <div class="info">
+      <div class="ci-name" style="display:flex;align-items:center;gap:5px">
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(name)}</span>
+        ${pinIcon}
+        <span class="ci-time">${time}</span>
       </div>
-      <div class="info">
-        <div class="ci-name">${esc(name)}</div>
-        <div class="ci-preview ci-last">${esc(preview)}</div>
-      </div>
-      <div class="ci-right">
-        <div class="ci-time">${time}</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
+        <span class="ci-preview ci-last" style="flex:1">${esc(preview)}</span>
         ${u>0?`<div class="unread-badge">${u}</div>`:''}
       </div>
-    </div>`;
-  }).join('');
-  applyAvatars();
+    </div>
+  </div>`;
 }
 
 function filterChats() { renderChatList(); }
@@ -444,13 +482,19 @@ async function openChat(chatId) {
         <div class="ch-sub">${sub}</div>
       </div>
       <div class="chat-header-actions">
-        ${isGroup && isCreator ? `<button class="icon-btn light" title="Редактировать группу" onclick="openEditGroup(${chatId})">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        </button>` : ''}
-        ${isGroup?`<button class="icon-btn light" title="Выйти из группы" onclick="leaveGroup(${chatId})">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        </button>`:''}
-        ${canDelete?`<button class="icon-btn light" title="Удалить чат" onclick="deleteChat(${chatId})">
+        <button class="icon-btn light" id="view-toggle-btn" title="Переключить режим" onclick="toggleChatView()">
+          <svg id="header-irc-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          <svg id="header-bubble-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </button>
+        <button class="icon-btn light" title="Обновить" onclick="loadChats()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+        </button>
+        ${(isGroup||isRoom)?`<button class="icon-btn light" title="Участники" onclick="openGroupMembers(${chatId})">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </button>`:`<button class="icon-btn light" title="Информация" onclick="showMsgInfo&&showMsgInfo()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </button>`}
+        ${canDelete?`<button class="icon-btn light icon-btn-danger" title="Удалить чат" onclick="deleteChat(${chatId})">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
         </button>`:''}
       </div>
@@ -461,34 +505,46 @@ async function openChat(chatId) {
       <span class="typing-name"></span><span class="typing-label"> печатает…</span>
     </div>
     <div class="chat-input-wrap" id="input-wrap">
-      <button class="icon-btn emoji-btn" title="Эмодзи" onclick="toggleEmojiPicker(event)">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M8 13s1.5 3 4 3 4-3 4-3"/>
-          <circle cx="9" cy="9" r="1" fill="currentColor"/>
-          <circle cx="15" cy="9" r="1" fill="currentColor"/>
-        </svg>
-      </button>
-      <div class="chat-input-area">
+      <div class="composer-inner">
         <div id="reply-bar" style="display:none" class="input-reply-bar">
           <div class="reply-bar-content">
             <div class="reply-bar-name" id="reply-bar-name"></div>
             <div class="reply-bar-text" id="reply-bar-text"></div>
           </div>
-          <button onclick="hideReplyBar()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:0 4px">✕</button>
+          <button onclick="hideReplyBar()" class="icon-btn" style="width:24px;height:24px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
         <div id="edit-bar" style="display:none" class="input-edit-bar">
           <span>Редактирование</span>
-          <button onclick="cancelEdit()" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:18px">✕</button>
+          <button onclick="cancelEdit()" class="icon-btn" style="width:24px;height:24px;color:var(--accent)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
-        <textarea id="msg-input" placeholder="Сообщение…" onkeydown="handleKey(event)" oninput="onMsgInput(this)"></textarea>
+        <div class="composer-pill" id="composer-pill">
+          <button class="composer-icon-btn" title="Прикрепить файл">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 17.93 8.83l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          </button>
+          <button class="composer-icon-btn" title="Эмодзи" onclick="toggleEmojiPicker(event)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 3 4 3 4-3 4-3"/><circle cx="9" cy="9" r="1" fill="currentColor"/><circle cx="15" cy="9" r="1" fill="currentColor"/></svg>
+          </button>
+          <textarea id="msg-input" placeholder="Сообщение…" onkeydown="handleKey(event)" oninput="onMsgInput(this)"></textarea>
+          <button class="send-btn" id="send-mic-btn" onclick="sendOrEdit()">
+            <svg id="send-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:none"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            <svg id="mic-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </button>
+        </div>
       </div>
-      <button class="send-btn" onclick="sendOrEdit()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-      </button>
     </div>`;
 
   applyAvatars();
+  updateViewToggleIcon();
+  // init send/mic icon
+  const sendIcon = document.getElementById('send-icon');
+  const micIcon = document.getElementById('mic-icon');
+  if (sendIcon) { sendIcon.style.display='none'; micIcon.style.display=''; }
+  const sendBtn = document.getElementById('send-mic-btn');
+  if (sendBtn) { sendBtn.style.background='transparent'; sendBtn.style.color='var(--muted)'; sendBtn.style.boxShadow='none'; }
   if (S.ws && !document.hidden) S.ws.send(JSON.stringify({type:'read', chat_id: chatId}));
   const msgs = await api('GET', `/messages/chat/${chatId}`);
   if (msgs) renderMessages(msgs);
@@ -590,21 +646,25 @@ function renderMsg(m, isChatGroup, hideTime = false, grouped = false) {
       <div class="reply-quote-name">${esc(m.reply_sender_name || '')}</div>
       <div class="reply-quote-text">${m.reply_deleted ? 'Сообщение удалено' : esc((m.reply_text||'').slice(0,80))}</div>
     </div>` : '';
-  return `<div class="msg-group ${mine?'mine':'theirs'}" data-msg-id="${m.id}" data-sender-id="${m.sender_id}" data-sent-at="${m.sent_at}">
-    ${isGroup&&!mine?`<div class="msg-sender">${esc(m.sender_name)}</div>`:''}
+  // Аватар слева для чужих (только первое в группе)
+  const avColor = avatarColor(m.sender_id);
+  const avLetter = initials(m.sender_name||'').slice(0,1);
+  const avImg = `<img src="http://${S.server}/api/users/${m.sender_id}/avatar" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:10px" onerror="this.style.display='none'">`;
+  const avatarHtml = (!mine && !grouped) ? `<div class="av av-sm ${avColor}" style="position:relative;flex-shrink:0;align-self:flex-end;margin-bottom:2px">${avLetter}${avImg}</div>` : (!mine ? `<div style="width:32px;flex-shrink:0"></div>` : '');
+  const senderNameHtml = (!mine && !grouped && isChatGroup) ? `<div class="msg-sender">${esc(m.sender_name)}</div>` : '';
+  return `<div class="msg-group ${mine?'mine':'theirs'}${grouped?' grouped':''}" data-msg-id="${m.id}" data-sender-id="${m.sender_id}" data-sent-at="${m.sent_at}">
+    ${senderNameHtml}
     <div class="msg-bubble-row">
+      ${avatarHtml}
       <div class="msg-row">
         <div class="bubble${isDeleted?' deleted':''}" oncontextmenu="${!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at},${mine})`:'event.preventDefault()'}" ondblclick="${!isDeleted?`dblReply(${m.id})`:''}">
           ${replyHtml}
           <div class="bubble-text">${bodyText}</div>
+          <div class="bubble-meta">${time}${statusIcon}</div>
         </div>
       </div>
-      ${reactionsHtml}
     </div>
-    <div class="msg-meta${hideTime?' msg-meta-hidden':''}">
-      <span class="msg-time">${time}</span>
-      ${statusIcon}
-    </div>
+    ${reactionsHtml}
   </div>`;
 }
 
@@ -687,22 +747,17 @@ function appendMsg(m) {
   const container = document.getElementById('messages');
   if (!container) return;
   const chat = S.chats.find(c=>c.id===S.activeChatId);
-  // Check if previous message is from same sender in same minute → hide its timestamp
-  const prevEl = container.querySelector('[data-msg-id]:last-of-type');
-  if (prevEl && !m.deleted) {
-    const prevId = parseInt(prevEl.dataset.msgId);
-    const allMsgs = [...container.querySelectorAll('[data-msg-id]')];
-    const lastEl = allMsgs[allMsgs.length - 1];
-    if (lastEl) {
-      const prevSenderId = parseInt(lastEl.dataset.senderId || '0');
-      const prevTime = parseInt(lastEl.dataset.sentAt || '0');
-      const prevMsg = { sender_id: prevSenderId, sent_at: prevTime };
-      if (sameTimeGroup(prevMsg, m)) {
-        lastEl.querySelector('.msg-meta')?.classList.add('msg-meta-hidden');
-      }
-    }
+  // Check if previous message is from same sender → grouped (no avatar, etc.)
+  const allMsgs = [...container.querySelectorAll('[data-msg-id]')];
+  const lastEl = allMsgs[allMsgs.length - 1];
+  let grouped = false;
+  if (lastEl && !m.deleted) {
+    const prevSenderId = parseInt(lastEl.dataset.senderId || '0');
+    const prevTime = parseInt(lastEl.dataset.sentAt || '0');
+    const prevMsg = { sender_id: prevSenderId, sent_at: prevTime };
+    grouped = sameTimeGroup(prevMsg, m);
   }
-  container.insertAdjacentHTML('beforeend', renderMsg(m, chat?.type==='group'));
+  container.insertAdjacentHTML('beforeend', renderMsg(m, chat?.type==='group', false, grouped));
   container.scrollTop = container.scrollHeight;
 }
 
@@ -740,6 +795,17 @@ function onMsgInput(el) {
   }
   clearTimeout(typingSendTimer);
   typingSendTimer = setTimeout(() => { typingSendTimer = null; }, 1000);
+  const sendIcon = document.getElementById('send-icon');
+  const micIcon = document.getElementById('mic-icon');
+  const sendBtn = document.getElementById('send-mic-btn');
+  if (sendIcon && micIcon) {
+    const hasDraft = el.value.trim().length > 0;
+    sendIcon.style.display = hasDraft ? '' : 'none';
+    micIcon.style.display = hasDraft ? 'none' : '';
+    sendBtn.style.background = hasDraft ? 'var(--accent)' : 'transparent';
+    sendBtn.style.color = hasDraft ? '#fff' : 'var(--muted)';
+    sendBtn.style.boxShadow = hasDraft ? '0 6px 16px var(--accent-shadow)' : 'none';
+  }
 }
 
 function showTyping(chatId, senderName) {

@@ -605,12 +605,20 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
 .bubble .edited-tag { font-size: 10px; opacity: .65; margin-left: 4px; }
 .bubble-text { font-size: 1rem; white-space: pre-wrap; word-break: break-word; }
 
-/* Meta (time + status) */
-.msg-meta {
-  display: flex; align-items: center; gap: 3px;
-  margin-top: 2px; padding: 0 4px;
+/* Meta (time + status) — inside bubble as float-right */
+.bubble-meta {
+  display: inline-flex; align-items: center; gap: 3px;
+  float: right; clear: right;
+  margin-left: 8px; margin-top: 2px;
+  font-size: 11px; font-variant-numeric: tabular-nums;
+  color: rgba(255,255,255,.65);
 }
-.msg-meta-hidden { visibility: hidden; height: 0; margin: 0; overflow: hidden; }
+.theirs .bubble-meta { color: var(--muted); }
+
+/* Legacy msg-meta hidden (kept for appendMsg compat) */
+.msg-meta { display: none; }
+.msg-meta-hidden { display: none; }
+
 .msg-time {
   font-size: 11px; color: var(--muted);
   font-variant-numeric: tabular-nums;
@@ -730,20 +738,11 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
 
 /* ── COMPOSER ── */
 .chat-input-wrap {
-  background: var(--header-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-top: 1px solid var(--border);
   padding: 12px 24px 18px;
   flex-shrink: 0;
+  /* без background — прозрачный, фон от app-bg */
 }
-@supports not (backdrop-filter: blur(1px)) {
-  .chat-input-wrap { background: var(--modal-bg); }
-}
-
-.composer-inner {
-  max-width: 760px; margin: 0 auto;
-}
+.composer-inner { max-width: 760px; margin: 0 auto; }
 
 /* Reply preview above composer */
 .input-reply-bar {
@@ -767,7 +766,7 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
   display: flex; align-items: center; justify-content: space-between;
 }
 
-/* Composer row */
+/* Composer row (legacy) */
 .chat-input-area { flex: 1; display: flex; flex-direction: column; }
 .composer-row {
   display: flex; align-items: flex-end; gap: 8px;
@@ -779,20 +778,45 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
 }
 .composer-row.has-reply { border-radius: 4px 4px 18px 18px; }
 
-.chat-input-area textarea {
-  flex: 1;
-  padding: 4px 0;
-  border: none; outline: none;
-  background: transparent;
-  font-size: 14px; font-family: inherit;
-  color: var(--text);
-  resize: none; overflow: hidden;
-  max-height: 120px; line-height: 1.5;
-  display: block;
+/* Pill */
+.composer-pill {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--composer-bg);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 8px 8px 8px 12px;
 }
-.chat-input-area textarea::placeholder { color: var(--muted); }
+.composer-pill.has-reply { border-radius: 4px 4px 18px 18px; }
 
-/* Emoji + attach buttons inside composer */
+.composer-icon-btn {
+  width: 34px; height: 34px; flex-shrink: 0;
+  border: none; background: none;
+  border-radius: 8px; cursor: pointer;
+  color: var(--muted);
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, color .15s;
+}
+.composer-icon-btn:hover { background: var(--hover-row); color: var(--text); }
+
+.composer-pill textarea {
+  flex: 1; border: none; outline: none; background: transparent;
+  font-size: 14px; font-family: inherit; color: var(--text);
+  resize: none; overflow: hidden; max-height: 120px; line-height: 1.5;
+  padding: 6px 4px;
+}
+.composer-pill textarea::placeholder { color: var(--muted); }
+
+/* Send/mic button inside pill */
+.composer-pill .send-btn {
+  width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0;
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, box-shadow .15s, color .15s;
+  /* initial state: transparent (mic mode) */
+  background: transparent; color: var(--muted); box-shadow: none;
+}
+
+/* Emoji + attach buttons (legacy) */
 .emoji-btn {
   width: 34px; height: 34px; border: none; border-radius: 8px;
   background: none; color: var(--muted);
@@ -801,7 +825,7 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
 }
 .emoji-btn:hover { background: var(--hover-row); color: var(--text); }
 
-/* Send button */
+/* Send button (global, used outside pill) */
 .send-btn {
   width: 38px; height: 38px; border: none; border-radius: 12px;
   background: var(--accent); color: #fff;
@@ -814,6 +838,9 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
 .send-btn:hover { opacity: .88; }
 .send-btn:disabled { background: var(--border); box-shadow: none; cursor: not-allowed; }
 .send-btn svg { width: 16px; height: 16px; }
+
+/* Danger icon-btn */
+.icon-btn-danger:hover { color: #ef4444 !important; background: var(--danger-bg) !important; }
 
 /* Typing indicator */
 .typing-indicator {
