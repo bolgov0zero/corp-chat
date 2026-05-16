@@ -626,8 +626,8 @@ function scrollToMessage(msgId) {
   if (!el) return;
   const container = document.getElementById('messages');
   if (container) {
-    // el.offsetTop is relative to #messages because it has position:relative
-    container.scrollTop = el.offsetTop - (container.clientHeight - el.offsetHeight) / 2;
+    const absoluteTop = el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+    container.scrollTop = absoluteTop - (container.clientHeight - el.offsetHeight) / 2;
   }
   // highlight with fade-out
   el.classList.remove('msg-highlight');
