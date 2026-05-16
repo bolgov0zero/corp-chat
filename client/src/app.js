@@ -1082,6 +1082,7 @@ function openGroupMembers(chatId) {
       ${chat.created_by===m.id?'<span style="margin-left:auto;font-size:11px;color:var(--muted);background:var(--card-bg);padding:2px 8px;border-radius:10px">создатель</span>':''}
     </div>`).join('') || '<div style="color:var(--muted);text-align:center;padding:20px">Нет участников</div>';
   openModal('modal-group-members');
+  applyAvatars();
 }
 
 async function leaveGroup(chatId) {
