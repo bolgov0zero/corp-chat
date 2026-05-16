@@ -1,4 +1,5 @@
 name: Build Client
+run-name: "Сборка и публикация ${{ github.ref_name }}"
 
 on:
   push:
