@@ -380,10 +380,10 @@
 <!-- Context menu -->
 <div class="ctx-menu" id="ctx-menu">
   <div class="ctx-reactions">
-    <button class="ctx-reaction-btn" onclick="ctxReact('👍')">👍</button>
-    <button class="ctx-reaction-btn" onclick="ctxReact('❤️')">❤️</button>
-    <button class="ctx-reaction-btn" onclick="ctxReact('😂')">😂</button>
-    <button class="ctx-reaction-btn" onclick="ctxReact('👎')">👎</button>
+    <button class="ctx-reaction-btn" data-r="👍" onclick="ctxReact(this.dataset.r)">👍</button>
+    <button class="ctx-reaction-btn" data-r="❤️" onclick="ctxReact(this.dataset.r)">❤️</button>
+    <button class="ctx-reaction-btn" data-r="😂" onclick="ctxReact(this.dataset.r)">😂</button>
+    <button class="ctx-reaction-btn" data-r="👎" onclick="ctxReact(this.dataset.r)">👎</button>
   </div>
   <button id="ctx-reply-btn" onclick="ctxReply()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>

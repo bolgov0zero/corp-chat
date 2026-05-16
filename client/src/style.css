@@ -628,11 +628,28 @@ html.dark .login-copy { opacity: 1; color: var(--muted); }
   font-variant-numeric: tabular-nums;
 }
 .mine .msg-time { color: rgba(255,255,255,.65); }
-.msg-status { display: flex; }
-.msg-status svg { width: 14px; height: 14px; }
-.status-sent     { color: rgba(255,255,255,.55); }
-.status-delivered { color: rgba(255,255,255,.55); }
-.status-read     { color: rgba(255,255,255,.9); }
+
+/* ── STATUS CHECKMARKS ── */
+.msg-status {
+  display: inline-flex; align-items: center;
+  line-height: 0; flex-shrink: 0;
+}
+.msg-status svg { display: block; }
+
+/* Inside mine bubble (dark gradient bg) */
+.mine .status-sent      { color: rgba(255,255,255,.40); }
+.mine .status-delivered { color: rgba(255,255,255,.65); }
+.mine .status-read      { color: #93c5fd; } /* pastel blue */
+
+/* Inside theirs bubble (light bg) — shouldn't appear, but just in case */
+.theirs .status-sent      { color: var(--muted); opacity: .5; }
+.theirs .status-delivered { color: var(--muted); }
+.theirs .status-read      { color: var(--accent); }
+
+/* IRC mode — shown in irc-meta */
+.irc-meta .status-sent      { color: var(--muted); opacity: .45; }
+.irc-meta .status-delivered { color: var(--muted); }
+.irc-meta .status-read      { color: var(--accent); }
 
 /* Reply inside bubble */
 .reply-quote {
@@ -742,7 +759,7 @@ html.dark .login-copy { opacity: 1; color: var(--muted); }
 
 /* ── COMPOSER ── */
 .chat-input-wrap {
-  padding: 12px 24px 18px;
+  padding: 8px 24px 14px;
   flex-shrink: 0;
   /* без background — прозрачный, фон от app-bg */
 }
@@ -793,7 +810,7 @@ html.dark .login-copy { opacity: 1; color: var(--muted); }
 .composer-pill.has-reply { border-radius: 4px 4px 18px 18px; }
 
 .composer-icon-btn {
-  width: 34px; height: 34px; flex-shrink: 0;
+  width: 30px; height: 30px; flex-shrink: 0;
   border: none; background: none;
   border-radius: 8px; cursor: pointer;
   color: var(--muted);
@@ -812,7 +829,7 @@ html.dark .login-copy { opacity: 1; color: var(--muted); }
 
 /* Send/mic button inside pill */
 .composer-pill .send-btn {
-  width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0;
+  width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;
   border: none; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: background .15s, box-shadow .15s, color .15s;
@@ -849,7 +866,7 @@ html.dark .login-copy { opacity: 1; color: var(--muted); }
 /* Typing indicator */
 .typing-indicator {
   display: flex; align-items: center; gap: 6px;
-  padding: 4px 4px 2px; min-height: 20px;
+  padding: 2px 24px 2px; min-height: 20px;
 }
 .typing-name { font-size: 12px; font-weight: 600; color: var(--muted); }
 .typing-label { font-size: 12px; color: var(--muted); }

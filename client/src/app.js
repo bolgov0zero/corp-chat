@@ -704,10 +704,10 @@ function renderMsgIRC(m, isGroup) {
   // Hover action panel (shown on :hover via CSS)
   const actionsHtml = isDeleted ? '' : `
     <div class="irc-actions">
-      <button class="irc-action-btn" onclick="sendReaction(${m.id},'👍')" title="👍">👍</button>
-      <button class="irc-action-btn" onclick="sendReaction(${m.id},'❤️')" title="❤️">❤️</button>
-      <button class="irc-action-btn" onclick="sendReaction(${m.id},'😂')" title="😂">😂</button>
-      <button class="irc-action-btn" onclick="sendReaction(${m.id},'👎')" title="👎">👎</button>
+      <button class="irc-action-btn" data-mid="${m.id}" data-r="👍" onclick="sendReaction(+this.dataset.mid,this.dataset.r)" title="👍">👍</button>
+      <button class="irc-action-btn" data-mid="${m.id}" data-r="❤️" onclick="sendReaction(+this.dataset.mid,this.dataset.r)" title="❤️">❤️</button>
+      <button class="irc-action-btn" data-mid="${m.id}" data-r="😂" onclick="sendReaction(+this.dataset.mid,this.dataset.r)" title="😂">😂</button>
+      <button class="irc-action-btn" data-mid="${m.id}" data-r="👎" onclick="sendReaction(+this.dataset.mid,this.dataset.r)" title="👎">👎</button>
       <span style="width:1px;background:var(--border);margin:3px 2px;align-self:stretch"></span>
       <button class="irc-action-btn" onclick="dblReply(${m.id})" title="Ответить">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
@@ -743,16 +743,17 @@ function renderMsgIRC(m, isGroup) {
 function renderStatus(status) {
   if (!status) return '';
   const { delivered, read, total } = status;
-  if (total===0) return '';
-  let cls = 'status-sent', title='Отправлено';
-  if (read>0) { cls='status-read'; title='Прочитано'; }
-  else if (delivered>0) { cls='status-delivered'; title='Доставлено'; }
-  const single = delivered===0;
+  if (total === 0) return '';
+  let cls, title;
+  if (read > 0)           { cls = 'status-read';       title = 'Прочитано'; }
+  else if (delivered > 0) { cls = 'status-delivered';  title = 'Доставлено'; }
+  else                    { cls = 'status-sent';        title = 'Отправлено'; }
+  const double = delivered > 0 || read > 0;
   return `<span class="msg-status ${cls}" title="${title}">
-    <svg viewBox="0 0 16 11" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      ${single
-        ? '<polyline points="1,6 5,10 15,1"/>'
-        : '<polyline points="1,6 5,10 15,1"/><polyline points="5,6 9,10 19,1" transform="translate(-4,0)"/>'}
+    <svg width="13" height="9" viewBox="0 0 ${double?18:12} 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      ${double
+        ? '<polyline points="1,5.5 3.5,8 9,1"/><polyline points="7,5.5 9.5,8 15,1"/>'
+        : '<polyline points="1,5.5 3.5,8 11,1"/>'}
     </svg>
   </span>`;
 }
