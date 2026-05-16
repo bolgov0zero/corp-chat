@@ -147,7 +147,7 @@ function setup(server) {
 
       if (data.type === 'react') {
         const { message_id, reaction } = data;
-        if (!['👍','👎'].includes(reaction)) return;
+        if (!['👍','👎','❤️','😂'].includes(reaction)) return;
         const msg = db.prepare('SELECT * FROM messages WHERE id = ? AND deleted = 0').get(message_id);
         if (!msg) return;
         if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(msg.chat_id, user.id)) return;
@@ -209,4 +209,6 @@ function sendToConn(connId, payload) {
   if (meta && meta.ws.readyState === 1) meta.ws.send(JSON.stringify(payload));
 }
 
-module.exports = { setup, broadcast, sendTo, getStatus, getClients, sendToConn };
+function getConnCount() { return connMeta.size; }
+
+module.exports = { setup, broadcast, sendTo, getStatus, getClients, sendToConn, getConnCount };

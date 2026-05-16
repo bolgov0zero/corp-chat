@@ -552,7 +552,7 @@ async function openChat(chatId) {
           <button class="composer-icon-btn" title="Эмодзи" onclick="toggleEmojiPicker(event)">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 3 4 3 4-3 4-3"/><circle cx="9" cy="9" r="1" fill="currentColor"/><circle cx="15" cy="9" r="1" fill="currentColor"/></svg>
           </button>
-          <textarea id="msg-input" placeholder="Сообщение…" onkeydown="handleKey(event)" oninput="onMsgInput(this)"></textarea>
+          <textarea id="msg-input" rows="1" placeholder="Сообщение…" onkeydown="handleKey(event)" oninput="onMsgInput(this)"></textarea>
           <button class="send-btn" id="send-btn" onclick="sendOrEdit()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
@@ -852,7 +852,7 @@ function clearTyping(chatId) {
 }
 function autoResize(el) {
   el.style.overflow = 'hidden';
-  el.style.height = '0';
+  el.style.height = '20px'; // min = одна строка
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
   if (el.scrollHeight > 120) el.style.overflow = 'auto';
 }
@@ -866,7 +866,7 @@ function sendOrEdit() {
   if (S.replyTo) payload.reply_to_id = S.replyTo.id;
   S.ws.send(JSON.stringify(payload));
   hideReplyBar();
-  input.value=''; input.style.height=''; input.style.overflow='hidden';
+  input.value=''; input.style.height='20px'; input.style.overflow='hidden';
 }
 
 function submitEdit() {

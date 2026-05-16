@@ -822,8 +822,9 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
 .composer-pill textarea {
   flex: 1; border: none; outline: none; background: transparent;
   font-size: 14px; font-family: inherit; color: var(--text);
-  resize: none; overflow: hidden; max-height: 120px; line-height: 1.5;
-  padding: 4px 4px;
+  resize: none; overflow: hidden; max-height: 120px; line-height: 1.4;
+  padding: 0; margin: 0;
+  height: 20px; /* одна строка */
 }
 .composer-pill textarea::placeholder { color: var(--muted); }
 
