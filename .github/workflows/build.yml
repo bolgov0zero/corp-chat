@@ -67,13 +67,9 @@ jobs:
 
       - name: Получить описание релиза
         id: notes
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          # Читаем описание уже созданного релиза (если оно было задано вручную)
-          existing=$(gh release view "${{ github.ref_name }}" --json body -q .body 2>/dev/null || echo "")
-          if [ -n "$existing" ]; then
-            body="$existing"
+          if [ -f RELEASE_NOTES.md ]; then
+            body=$(cat RELEASE_NOTES.md)
           else
             body=$(git log -1 --pretty=%B)
           fi
