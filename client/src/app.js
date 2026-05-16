@@ -80,7 +80,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     Object.assign(S, { server:session.server, token:session.token, user:session.user, settings:session.settings||S.settings });
     applySettings();
     enterApp();
-  } else { applySettings(); }
+  } else {
+    applySettings();
+    const lastServer = localStorage.getItem('lastServer');
+    if (lastServer) document.getElementById('l-server').value = lastServer;
+  }
 
   // Show HA button on Windows only
   if (window.electron) {
@@ -162,6 +166,7 @@ async function doLogin() {
 function logout() {
   closeSettings();
   if (S.ws) S.ws.close();
+  if (S.server) localStorage.setItem('lastServer', S.server);
   Object.assign(S, { token:null, user:null, chats:[], activeChatId:null, ws:null, unread:{}, allUsers:[] });
   localStorage.removeItem(SESSION_KEY);
   document.getElementById('screen-main').classList.remove('active');
