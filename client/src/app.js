@@ -84,6 +84,10 @@ window.addEventListener('DOMContentLoaded', async () => {
     applySettings();
     const lastServer = localStorage.getItem('lastServer');
     if (lastServer) document.getElementById('l-server').value = lastServer;
+    window.electron?.getVersion?.().then(v => {
+      const el = document.getElementById('login-version');
+      if (el && v) el.textContent = `v${v}`;
+    });
   }
 
   // Show HA button on Windows only
