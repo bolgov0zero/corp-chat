@@ -1553,6 +1553,7 @@ async function checkUpdate(silent = false) {
     document.getElementById('update-progress-text').textContent = `Загрузка ${p}%`;
   });
 
+  closeSettings(); // закрываем настройки перед показом модалки обновления
   const modal = document.getElementById('modal-update');
   if (modal && !modal.classList.contains('open')) openModal('modal-update');
 }
