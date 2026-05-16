@@ -529,7 +529,7 @@ async function openChat(chatId) {
       </div>
     </div>
     <div id="pin-banner" class="pin-banner" style="display:none" onclick="pinBannerClick()" oncontextmenu="pinBannerCtx(event)">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L12 22M12 2C12 2 19 8 19 13C19 16.866 15.866 20 12 20C8.134 20 5 16.866 5 13C5 8 12 2 12 2Z"/></svg>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
       <div class="pin-banner-text" id="pin-banner-text"></div>
       <div class="pin-banner-count" id="pin-banner-count"></div>
     </div>
@@ -619,8 +619,8 @@ function pinBannerCtx(e) {
   if (!pins.length) return;
   const idx = S.pinIndex[cid] || 0;
   const pin = pins[idx];
-  const menu = document.getElementById('ctx-menu');
-  menu.innerHTML = `<button onclick="unpinMessage(${pin.id})">📌 Открепить</button>`;
+  const menu = document.getElementById('ctx-pin-menu');
+  menu.querySelector('button').onclick = () => unpinMessage(pin.id);
   menu.style.top = '-9999px'; menu.style.left = '-9999px';
   menu.classList.add('open');
   const mw = menu.offsetWidth, mh = menu.offsetHeight;
@@ -650,7 +650,7 @@ async function unpinMessage(messageId) {
   const maxIdx = Math.max(0, (S.pins[cid]?.length || 1) - 1);
   S.pinIndex[cid] = Math.min(S.pinIndex[cid] || 0, maxIdx);
   renderPinBanner();
-  document.getElementById('ctx-menu')?.classList.remove('open');
+  document.getElementById('ctx-pin-menu')?.classList.remove('open');
 }
 
 // ── EMOJI PICKER ──
@@ -1053,7 +1053,10 @@ function scrollToMsg(msgId) {
   el.classList.add('msg-highlight');
   setTimeout(() => el.classList.remove('msg-highlight'), 1500);
 }
-function hideCtxMenu() { document.getElementById('ctx-menu').classList.remove('open'); }
+function hideCtxMenu() {
+  document.getElementById('ctx-menu').classList.remove('open');
+  document.getElementById('ctx-pin-menu')?.classList.remove('open');
+}
 
 function ctxEdit() {
   hideCtxMenu();

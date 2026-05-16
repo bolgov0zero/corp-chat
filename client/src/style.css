@@ -568,7 +568,7 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
 
 /* Message highlight on scroll-to */
 @keyframes msg-flash { 0%,100% { background: transparent; } 50% { background: var(--accent-dim, rgba(99,102,241,.15)); } }
-.msg-highlight { animation: msg-flash 1.5s ease; border-radius: 8px; }
+.msg-highlight { animation: msg-flash 1.5s ease; }
 
 .messages {
   flex: 1; overflow-y: auto;
