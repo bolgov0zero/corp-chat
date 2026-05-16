@@ -1,10 +1,9 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, Notification, ipcMain } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, Notification, ipcMain, net } = require('electron');
 
 if (process.platform === 'linux') app.commandLine.appendSwitch('no-sandbox');
 const path = require('path');
 const zlib = require('zlib');
 const fs = require('fs');
-const https = require('https');
 const os = require('os');
 
 // ── AUTO UPDATE ──
@@ -12,35 +11,39 @@ const GITHUB_REPO = 'bolgov0zero/corp-chat';
 
 function httpsGet(url) {
   return new Promise((resolve, reject) => {
-    const request = (u) => {
-      https.get(u, { headers: { 'User-Agent': 'Electron' } }, res => {
-        if (res.statusCode === 301 || res.statusCode === 302) { request(res.headers.location); return; }
-        let data = '';
-        res.on('data', c => data += c);
-        res.on('end', () => resolve(data));
-        res.on('error', reject);
-      }).on('error', reject);
-    };
-    request(url);
+    const req = net.request({ url, redirect: 'follow' });
+    req.setHeader('User-Agent', 'Electron');
+    let data = '';
+    req.on('response', res => {
+      res.on('data', c => data += c);
+      res.on('end', () => resolve(data));
+      res.on('error', reject);
+    });
+    req.on('error', reject);
+    req.end();
   });
 }
 
 function downloadFile(url, dest, onProgress) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(dest);
-    const request = (u) => {
-      https.get(u, { headers: { 'User-Agent': 'Electron' } }, res => {
-        if (res.statusCode === 301 || res.statusCode === 302) { request(res.headers.location); return; }
-        const total = parseInt(res.headers['content-length'] || '0');
-        let received = 0;
-        res.on('data', chunk => { received += chunk.length; file.write(chunk); if (total) onProgress?.(Math.round(received / total * 100)); });
-        res.on('end', () => file.end());
-        res.on('error', reject);
-        file.on('finish', resolve);
-        file.on('error', reject);
-      }).on('error', reject);
-    };
-    request(url);
+    const req = net.request({ url, redirect: 'follow' });
+    req.setHeader('User-Agent', 'Electron');
+    req.on('response', res => {
+      const total = parseInt(res.headers['content-length'] || '0');
+      let received = 0;
+      res.on('data', chunk => {
+        received += chunk.length;
+        file.write(chunk);
+        if (total) onProgress?.(Math.round(received / total * 100));
+      });
+      res.on('end', () => file.end());
+      res.on('error', reject);
+      file.on('finish', resolve);
+      file.on('error', reject);
+    });
+    req.on('error', reject);
+    req.end();
   });
 }
 
