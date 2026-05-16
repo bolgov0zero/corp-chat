@@ -945,60 +945,60 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
 .settings-group {
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden; flex-shrink: 0;
 }
 .settings-group-label {
-  font-size: 11px; font-weight: 600;
+  font-size: 10px; font-weight: 700;
   color: var(--muted);
-  text-transform: uppercase; letter-spacing: .06em;
-  padding: 10px 14px 4px;
+  text-transform: uppercase; letter-spacing: .07em;
+  padding: 6px 12px 3px;
 }
 .settings-name-row {
   display: flex; align-items: center; gap: 6px;
-  padding: 4px 10px 10px;
+  padding: 4px 10px 8px;
 }
 .settings-name-row .profile-name-input { flex: 1; }
 .setting-row {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 9px 14px;
+  padding: 7px 12px;
   border-top: 1px solid var(--border);
   font-size: 13px; color: var(--text);
 }
 
 /* Toggle */
-.toggle { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
+.toggle { position: relative; display: inline-block; width: 34px; height: 20px; flex-shrink: 0; }
 .toggle input { opacity: 0; width: 0; height: 0; }
 .toggle-slider {
   position: absolute; inset: 0;
-  background: var(--border); border-radius: 22px;
+  background: var(--border); border-radius: 20px;
   cursor: pointer; transition: background .2s;
 }
 .toggle-slider:before {
   content: ''; position: absolute;
-  width: 16px; height: 16px; left: 3px; top: 3px;
+  width: 14px; height: 14px; left: 3px; top: 3px;
   background: #fff; border-radius: 50%;
   transition: transform .2s;
 }
 .toggle input:checked + .toggle-slider { background: var(--accent); }
-.toggle input:checked + .toggle-slider:before { transform: translateX(16px); }
+.toggle input:checked + .toggle-slider:before { transform: translateX(14px); }
 
 /* Segmented control */
 .seg {
   display: flex;
   border: 1px solid var(--border);
-  border-radius: 8px; overflow: hidden;
+  border-radius: 7px; overflow: hidden;
 }
 .seg button {
   border: none; background: none;
-  padding: 5px 11px; font-size: 12px; font-weight: 500;
+  padding: 4px 10px; font-size: 12px; font-weight: 500;
   cursor: pointer; color: var(--muted);
   font-family: inherit; transition: background .15s;
 }
 .seg button.active { background: var(--accent); color: #fff; }
 
 .seg-single-btn {
-  padding: 5px 14px; border-radius: 8px;
+  padding: 4px 12px; border-radius: 7px;
   border: 1px solid var(--border);
   background: transparent; color: var(--text);
   font-size: 12px; font-weight: 600;
@@ -1010,11 +1010,11 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
 
 /* Logout button */
 .setting-logout {
-  margin-top: 4px; width: 100%;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 10px;
+  width: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 8px;
   border: 1px solid var(--danger-border);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--danger-bg);
   font-size: 13px; color: var(--danger);
   cursor: pointer; font-family: inherit;

@@ -300,7 +300,7 @@ async function setAutostart(enabled) { await window.electron?.setAutostart(enabl
 function updateSettingsAvatar() {
   const el = document.getElementById('settings-av');
   if (!el) return;
-  el.className = `av av-xl ${avatarColor(S.user.id)}`;
+  el.className = `av av-lg ${avatarColor(S.user.id)}`;
   const url = `http://${S.server}/api/users/${S.user.id}/avatar?t=${Date.now()}`;
   const img = new Image();
   img.onload = () => {
