@@ -613,7 +613,13 @@ function pinBannerClick() {
 function scrollToMessage(msgId) {
   const el = document.querySelector(`[data-msg-id="${msgId}"]`);
   if (!el) return;
-  el.scrollIntoView({ block: 'center' });
+  const container = document.getElementById('messages');
+  if (container) {
+    const elTop = el.offsetTop;
+    const elH = el.offsetHeight;
+    const cH = container.clientHeight;
+    container.scrollTop = elTop - (cH - elH) / 2;
+  }
   // highlight with fade-out
   el.classList.remove('msg-highlight');
   void el.offsetWidth; // force reflow
