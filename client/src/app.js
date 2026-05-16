@@ -543,17 +543,27 @@ function renderMessages(msgs) {
   const container = document.getElementById('messages');
   if (!container) return;
   const chat = S.chats.find(c=>c.id===S.activeChatId);
-  const isGroup = chat?.type==='group';
+  const isChatGroup = chat?.type==='group';
   msgs.forEach(m => { if (m.reactions?.length) S.reactions[m.id] = m.reactions; });
   let html = '';
   let lastDate = '';
+  let lastSenderId = null;
+  let lastSentAt = 0;
   msgs.forEach((m, i) => {
     const dateStr = fmtDate(m.sent_at);
-    if (dateStr!==lastDate) { html+=`<div class="date-divider"><span>${dateStr}</span></div>`; lastDate=dateStr; }
+    const dayChanged = dateStr !== lastDate;
+    if (dayChanged) {
+      html += `<div class="date-divider"><span>${dateStr}</span></div>`;
+      lastDate = dateStr;
+      lastSenderId = null; // reset grouping after day separator
+    }
+    // grouped = same sender as previous, within 5 minutes, no day break
+    const grouped = !dayChanged && m.sender_id === lastSenderId && (m.sent_at - lastSentAt) < 300;
     const next = msgs[i + 1];
-    // Hide timestamp if next message is from same sender in same minute
     const hideTime = !m.deleted && next && sameTimeGroup(m, next) && fmtDate(m.sent_at) === fmtDate(next.sent_at);
-    html += renderMsg(m, isGroup, hideTime);
+    html += renderMsg(m, isChatGroup, hideTime, grouped);
+    lastSenderId = m.sender_id;
+    lastSentAt = m.sent_at;
   });
   container.innerHTML = html;
   container.scrollTop = container.scrollHeight;
@@ -567,8 +577,8 @@ function renderReactions(msgId) {
   ).join('')}</div>`;
 }
 
-function renderMsg(m, isGroup, hideTime = false) {
-  if ((S.settings.chatView||'bubbles') === 'irc') return renderMsgIRC(m, isGroup);
+function renderMsg(m, isChatGroup, hideTime = false, grouped = false) {
+  if ((S.settings.chatView||'bubbles') === 'irc') return renderMsgIRC(m, grouped);
   const mine = m.sender_id===S.user.id;
   const time = fmtTime(m.sent_at);
   const isDeleted = m.deleted;
@@ -608,23 +618,51 @@ function renderMsgIRC(m, isGroup) {
   const senderName = esc(m.sender_name);
   const avColor = avatarColor(m.sender_id);
   const avLetter = initials(m.sender_name).slice(0,1);
-  const avImg = `<img src="http://${S.server}/api/users/${m.sender_id}/avatar" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:10px" onerror="this.style.display='none'">`;
+  const avImg = `<img src="http://${S.server}/api/users/${m.sender_id}/avatar" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:8px" onerror="this.style.display='none'">`;
   const replyHtml = m.reply_to_id ? `
-    <div class="reply-quote" onclick="scrollToMsg(${m.reply_to_id})">
-      <div class="reply-quote-name">${esc(m.reply_sender_name || '')}</div>
-      <div class="reply-quote-text">${m.reply_deleted ? 'Сообщение удалено' : esc((m.reply_text||'').slice(0,80))}</div>
+    <div style="border-left:2px solid var(--accent);padding:2px 0 2px 10px;margin-bottom:4px;color:var(--muted);font-size:13px" onclick="scrollToMsg(${m.reply_to_id})">
+      <span style="color:var(--accent);font-weight:600;margin-right:6px">↳ ${esc(m.reply_sender_name || '')}</span>
+      <span style="opacity:.8">${m.reply_deleted ? 'Сообщение удалено' : esc((m.reply_text||'').slice(0,80))}</span>
     </div>` : '';
-  return `<div class="msg-group irc-msg ${mine?'mine':'theirs'}" data-msg-id="${m.id}" data-sender-id="${m.sender_id}" data-sent-at="${m.sent_at}">
-    <div class="irc-av av ${avColor}" style="position:relative">${avLetter}${avImg}</div>
-    <div class="irc-content" oncontextmenu="${!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at},${mine})`:'event.preventDefault()'}" ondblclick="${!isDeleted?`dblReply(${m.id})`:''}">
-      <div class="irc-header">
-        <span class="irc-name ${avColor}-text">${senderName}</span>
-        <div class="irc-meta">${statusIcon}<span class="irc-time">${time}</span></div>
-      </div>
+
+  // Hover action panel (shown on :hover via CSS)
+  const actionsHtml = isDeleted ? '' : `
+    <div class="irc-actions">
+      <button class="irc-action-btn" onclick="sendReaction(${m.id},'👍')" title="👍">👍</button>
+      <button class="irc-action-btn" onclick="sendReaction(${m.id},'❤️')" title="❤️">❤️</button>
+      <button class="irc-action-btn" onclick="sendReaction(${m.id},'😂')" title="😂">😂</button>
+      <span style="width:1px;background:var(--border);margin:3px 2px;align-self:stretch"></span>
+      <button class="irc-action-btn" onclick="dblReply(${m.id})" title="Ответить">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+      </button>
+      <button class="irc-action-btn" onclick="showCtxMenu(event,${m.id},${m.sent_at},${mine})" title="Ещё">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>
+      </button>
+    </div>`;
+
+  // Show avatar only on first message in group; otherwise show time hint on left
+  const avCol = isGroup
+    ? `<div style="width:28px;flex-shrink:0;display:flex;align-items:flex-start;justify-content:flex-end;padding-top:2px">
+        <span class="irc-time" style="opacity:0;font-size:10px;padding-right:2px">${time}</span>
+       </div>`
+    : `<div class="irc-av av ${avColor}" style="position:relative;flex-shrink:0">${avLetter}${avImg}</div>`;
+
+  const header = isGroup ? '' : `
+    <div class="irc-header">
+      <span class="irc-name ${avColor}-text${mine?' mine':''}">${senderName}</span>
+      <div class="irc-meta">${statusIcon}<span class="irc-time">${time}</span></div>
+    </div>`;
+
+  return `<div class="irc-msg${isGroup?' irc-grouped':''}" data-msg-id="${m.id}" data-sender-id="${m.sender_id}" data-sent-at="${m.sent_at}"
+    oncontextmenu="${!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at},${mine})`:'event.preventDefault()'}">
+    ${avCol}
+    <div class="irc-content" ondblclick="${!isDeleted?`dblReply(${m.id})`:''}">
+      ${header}
       ${replyHtml}
       <div class="irc-text${isDeleted?' irc-deleted':''}">${bodyText}</div>
       ${reactionsHtml}
     </div>
+    ${actionsHtml}
   </div>`;
 }
 

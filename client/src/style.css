@@ -656,29 +656,33 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
 
 /* ── IRC VIEW ── */
 .irc-msg {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: flex-start !important;
-  align-self: stretch !important;
-  max-width: 100% !important;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  align-self: stretch;
+  max-width: 100%;
   gap: 10px;
   padding: 3px 6px;
   border-radius: 8px;
   position: relative;
 }
+.irc-msg.irc-grouped { padding-top: 1px; padding-bottom: 1px; }
 .irc-msg:hover { background: var(--hover-row); }
 
 /* IRC hover action panel */
 .irc-actions {
-  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
-  display: flex; align-items: center; gap: 2px;
+  position: absolute; right: 8px;
+  top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center; gap: 1px;
   background: var(--menu-bg);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 3px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.15);
   opacity: 0;
   transition: opacity .12s;
   pointer-events: none;
+  z-index: 2;
 }
 .irc-msg:hover .irc-actions { opacity: 1; pointer-events: auto; }
 .irc-action-btn {
@@ -686,9 +690,10 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
   border: none; background: none;
   border-radius: 6px;
   cursor: pointer; color: var(--muted);
-  font-size: 14px;
+  font-size: 15px; line-height: 1;
   display: flex; align-items: center; justify-content: center;
   transition: background .12s, color .12s;
+  flex-shrink: 0;
 }
 .irc-action-btn:hover { background: var(--hover-row); color: var(--text); }
 
@@ -706,7 +711,7 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
   display: flex; align-items: baseline;
   gap: 8px; margin-bottom: 3px;
 }
-.irc-name { font-size: 13px; font-weight: 700; }
+.irc-name { font-size: 13px; font-weight: 700; color: var(--muted); }
 .irc-name.mine { color: var(--accent); }
 .irc-meta { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .irc-time {
