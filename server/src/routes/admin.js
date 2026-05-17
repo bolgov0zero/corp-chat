@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const db = require('../db');
 const path = require('path');
+const fs = require('fs');
 const https = require('https');
 const { authMiddleware, adminMiddleware } = require('../auth');
 const { sendTo, getStatus, getClients, sendToConn, getConnCount } = require('../ws');
@@ -8,7 +9,7 @@ const { sendTo, getStatus, getClients, sendToConn, getConnCount } = require('../
 // ── Версия сервера ──
 const VERSION_FILE = path.join(__dirname, '..', '..', 'version.json');
 function getLocalVersion() {
-  try { return require(VERSION_FILE).version; } catch { return '0.0.0'; }
+  try { return JSON.parse(fs.readFileSync(VERSION_FILE, 'utf8')).version; } catch { return '0.0.0'; }
 }
 
 let cachedRemoteVersion = null;
@@ -17,7 +18,7 @@ let lastRemoteCheck = 0;
 function fetchRemoteVersion() {
   return new Promise((resolve) => {
     const now = Date.now();
-    if (cachedRemoteVersion && now - lastRemoteCheck < 3600000) return resolve(cachedRemoteVersion);
+    if (cachedRemoteVersion && now - lastRemoteCheck < 300000) return resolve(cachedRemoteVersion);
     const req = https.request({
       hostname: 'raw.githubusercontent.com',
       path: '/bolgov0zero/corp-chat/main/server/version.json',
