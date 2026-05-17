@@ -60,6 +60,35 @@ show_panel() {
   PORT=$(systemctl show "$SERVICE" --property=Environment --value 2>/dev/null | grep -o 'PORT=[0-9]*' | cut -d= -f2)
   PORT="${PORT:-3000}"
 
+  # Версия сервера
+  VERSION_FILE="$APP_DIR/version.json"
+  if command -v node &>/dev/null && [ -f "$VERSION_FILE" ]; then
+    SERVER_VERSION=$(node -e "try{process.stdout.write(require('$VERSION_FILE').version)}catch{process.stdout.write('—')}" 2>/dev/null)
+  else
+    SERVER_VERSION="—"
+  fi
+
+  # Аптайм
+  UPTIME_STR="—"
+  if [ "$status" = "active" ]; then
+    START_TS=$(systemctl show "$SERVICE" --property=ActiveEnterTimestampMonotonic --value 2>/dev/null)
+    if [ -n "$START_TS" ] && [ "$START_TS" != "0" ]; then
+      NOW_MONO=$(cat /proc/uptime | awk '{print int($1 * 1000000)}')
+      ELAPSED_US=$(( NOW_MONO - START_TS ))
+      ELAPSED_SEC=$(( ELAPSED_US / 1000000 ))
+      DAYS=$(( ELAPSED_SEC / 86400 ))
+      HOURS=$(( (ELAPSED_SEC % 86400) / 3600 ))
+      MINS=$(( (ELAPSED_SEC % 3600) / 60 ))
+      if [ $DAYS -gt 0 ]; then
+        UPTIME_STR="${DAYS}д ${HOURS}ч ${MINS}м"
+      elif [ $HOURS -gt 0 ]; then
+        UPTIME_STR="${HOURS}ч ${MINS}м"
+      else
+        UPTIME_STR="${MINS}м"
+      fi
+    fi
+  fi
+
   echo ""
   echo -e "  ${BOLD}╔══════════════════════════════════════════════╗${NC}"
   echo -e "  ${BOLD}║           Electron — Управление              ║${NC}"
@@ -67,8 +96,9 @@ show_panel() {
   echo ""
   echo -e "  ${BOLD}Статус:${NC}      ${STATUS_COLOR}${STATUS_ICON} ${STATUS_TEXT}${NC}"
   if [ "$status" = "active" ]; then
+    echo -e "  ${BOLD}Версия:${NC}      ${DIM}${SERVER_VERSION}${NC}"
+    echo -e "  ${BOLD}Аптайм:${NC}      ${DIM}${UPTIME_STR}${NC}"
     echo -e "  ${BOLD}Запущен:${NC}     ${DIM}${uptime_str}${NC}"
-    echo -e "  ${BOLD}PID:${NC}         ${DIM}${pid_str}${NC}"
     echo -e "  ${BOLD}Порт:${NC}        ${DIM}${PORT}${NC}"
   fi
   echo ""
