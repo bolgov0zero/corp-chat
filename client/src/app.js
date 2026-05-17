@@ -873,6 +873,8 @@ function sendOrEdit() {
   S.ws.send(JSON.stringify(payload));
   hideReplyBar();
   input.value=''; input.style.height='20px'; input.style.overflow='hidden';
+  const sendBtn = document.getElementById('send-btn');
+  if (sendBtn) { sendBtn.style.background='transparent'; sendBtn.style.color='var(--muted)'; sendBtn.style.boxShadow='none'; }
 }
 
 function submitEdit() {
