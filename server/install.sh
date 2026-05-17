@@ -2,7 +2,7 @@
 set -e
 
 echo "╔══════════════════════════════════════════╗"
-echo "║     Corp Chat Server — установка         ║"
+echo "║        Electorn — установка              ║"
 echo "╚══════════════════════════════════════════╝"
 echo ""
 
@@ -15,7 +15,7 @@ fi
 # ── Параметры ──
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 PORT="${PORT:-3000}"
-SERVICE_NAME="corp-chat"
+SERVICE_NAME="electorn"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 DB_DIR="${DB_DIR:-$APP_DIR/../chat_db}"
 
@@ -90,11 +90,21 @@ echo "→ Папка базы данных: $DB_DIR"
 JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(48).toString('hex'))")
 echo "→ JWT_SECRET сгенерирован"
 
+# ── Остановка старых служб если есть ──
+for OLD in electron corp-chat; do
+  if systemctl is-active --quiet "$OLD" 2>/dev/null; then
+    echo "→ Остановка старой службы $OLD..."
+    systemctl stop "$OLD" 2>/dev/null || true
+    systemctl disable "$OLD" 2>/dev/null || true
+  fi
+  [ -f "/etc/systemd/system/${OLD}.service" ] && rm -f "/etc/systemd/system/${OLD}.service"
+done
+
 # ── Systemd сервис ──
 echo "→ Настройка автозапуска..."
 cat > "$SERVICE_FILE" <<EOF
 [Unit]
-Description=Corp Chat Server
+Description=Electorn Server
 After=network.target
 
 [Service]

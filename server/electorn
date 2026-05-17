@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SERVICE="corp-chat"
+SERVICE="electorn"
 APP_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 GITHUB_REPO="bolgov0zero/corp-chat"
 DB_PATH="${DB_PATH:-$APP_DIR/../chat_db/chat.db}"
