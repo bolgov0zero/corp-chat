@@ -52,10 +52,15 @@ function fmtDate(ts) {
 }
 function avatarColor(id) { return ['av-blue','av-green','av-purple','av-orange'][id%4]; }
 
+// ── PROTOCOL ──
+// Если в адресе есть порт — прямое подключение (http/ws), иначе через прокси (https/wss)
+function httpProto() { return /:\d+$/.test(S.server) ? 'http' : 'https'; }
+function wsProto()   { return /:\d+$/.test(S.server) ? 'ws'   : 'wss';   }
+
 // ── API ──
 async function api(method, path, body) {
   try {
-    const res = await fetch(`http://${S.server}/api${path}`, {
+    const res = await fetch(`${httpProto()}://${S.server}/api${path}`, {
       method,
       headers: { 'Content-Type':'application/json', ...(S.token?{Authorization:'Bearer '+S.token}:{}) },
       body: body ? JSON.stringify(body) : undefined,
@@ -160,7 +165,8 @@ async function doLogin() {
   if (!server||!username||!password) { err.textContent='Заполните все поля'; return; }
   btn.disabled=true; btn.textContent='Подключение...'; err.textContent='';
   try {
-    const res = await fetch(`http://${server}/api/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    const proto = /:\d+$/.test(server) ? 'http' : 'https';
+    const res = await fetch(`${proto}://${server}/api/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
     const data = await res.json();
     if (data.token) {
       Object.assign(S, { server, token:data.token, user:data.user });
@@ -198,7 +204,7 @@ function enterApp() {
 
 function updateMeAvatar() {
   const el = document.getElementById('me-av');
-  const url = `http://${S.server}/api/users/${S.user.id}/avatar?t=${Date.now()}`;
+  const url = `${httpProto()}://${S.server}/api/users/${S.user.id}/avatar?t=${Date.now()}`;
   // Try loading avatar image
   const img = new Image();
   img.onload = () => {
@@ -301,7 +307,7 @@ function updateSettingsAvatar() {
   const el = document.getElementById('settings-av');
   if (!el) return;
   el.className = `av av-lg ${avatarColor(S.user.id)}`;
-  const url = `http://${S.server}/api/users/${S.user.id}/avatar?t=${Date.now()}`;
+  const url = `${httpProto()}://${S.server}/api/users/${S.user.id}/avatar?t=${Date.now()}`;
   const img = new Image();
   img.onload = () => {
     el.style.backgroundImage = `url('${url}')`;
@@ -419,10 +425,10 @@ function applyAvatars() {
     if (chat.type === 'direct') {
       const peerId = getPeerUserId(chat);
       if (!peerId) return;
-      const url = `http://${S.server}/api/users/${peerId}/avatar?t=${S.avatarTs||0}`;
+      const url = `${httpProto()}://${S.server}/api/users/${peerId}/avatar?t=${S.avatarTs||0}`;
       tryLoadAvatar(el, url, initials(chatName(chat)));
     } else {
-      const url = `http://${S.server}/api/chats/${chatId}/avatar?t=${S.avatarTs||0}`;
+      const url = `${httpProto()}://${S.server}/api/chats/${chatId}/avatar?t=${S.avatarTs||0}`;
       tryLoadAvatar(el, url, chatIcon(chat));
     }
   });
@@ -431,7 +437,7 @@ function applyAvatars() {
     const uid = parseInt(el.dataset.avUser);
     const user = S.allUsers.find(u => u.id === uid) || (uid === S.user.id ? S.user : null);
     if (!user) return;
-    const url = `http://${S.server}/api/users/${uid}/avatar?t=${S.avatarTs||0}`;
+    const url = `${httpProto()}://${S.server}/api/users/${uid}/avatar?t=${S.avatarTs||0}`;
     tryLoadAvatar(el, url, initials(user.display_name));
   });
 }
@@ -668,7 +674,7 @@ function renderMsg(m, isChatGroup, hideTime = false, grouped = false) {
   // Аватар слева для чужих (только первое в группе)
   const avColor = avatarColor(m.sender_id);
   const avLetter = initials(m.sender_name||'').slice(0,1);
-  const avImg = `<img src="http://${S.server}/api/users/${m.sender_id}/avatar" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:10px" onerror="this.style.display='none'">`;
+  const avImg = `<img src="${httpProto()}://${S.server}/api/users/${m.sender_id}/avatar" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:10px" onerror="this.style.display='none'">`;
   const avatarHtml = (!mine && !grouped) ? `<div class="av av-sm ${avColor}" style="position:relative;flex-shrink:0;align-self:flex-end;margin-bottom:2px">${avLetter}${avImg}</div>` : (!mine ? `<div style="width:32px;flex-shrink:0"></div>` : '');
   const senderNameHtml = (!mine && !grouped && isChatGroup) ? `<div class="msg-sender">${esc(m.sender_name)}</div>` : '';
   return `<div class="msg-group ${mine?'mine':'theirs'}${grouped?' grouped':''}" data-msg-id="${m.id}" data-sender-id="${m.sender_id}" data-sent-at="${m.sent_at}">
@@ -697,7 +703,7 @@ function renderMsgIRC(m, isGroup) {
   const senderName = esc(m.sender_name);
   const avColor = avatarColor(m.sender_id);
   const avLetter = initials(m.sender_name).slice(0,1);
-  const avImg = `<img src="http://${S.server}/api/users/${m.sender_id}/avatar" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:8px" onerror="this.style.display='none'">`;
+  const avImg = `<img src="${httpProto()}://${S.server}/api/users/${m.sender_id}/avatar" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:8px" onerror="this.style.display='none'">`;
   const replyHtml = m.reply_to_id ? `
     <div style="border-left:2px solid var(--accent);padding:2px 0 2px 10px;margin-bottom:4px;color:var(--muted);font-size:13px" onclick="scrollToMsg(${m.reply_to_id})">
       <span style="color:var(--accent);font-weight:600;margin-right:6px">↳ ${esc(m.reply_sender_name || '')}</span>
@@ -1098,7 +1104,7 @@ async function leaveGroup(chatId) {
 
 // ── WEBSOCKET ──
 function connectWS() {
-  const ws = new WebSocket(`ws://${S.server}/ws?token=${S.token}`);
+  const ws = new WebSocket(`${wsProto()}://${S.server}/ws?token=${S.token}`);
   S.ws = ws;
 
   ws.onmessage = async e => {
