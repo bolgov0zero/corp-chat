@@ -5,7 +5,7 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use('/admin', express.static(path.join(__dirname, 'public/admin')));
 
 app.use('/api/auth', require('./routes/auth'));
