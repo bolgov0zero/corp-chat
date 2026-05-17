@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SERVICE="electorn"
+SERVICE="electron"
 APP_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 GITHUB_REPO="bolgov0zero/corp-chat"
 DB_PATH="${DB_PATH:-$APP_DIR/../chat_db/chat.db}"
@@ -62,7 +62,7 @@ show_panel() {
 
   echo ""
   echo -e "  ${BOLD}╔══════════════════════════════════════════════╗${NC}"
-  echo -e "  ${BOLD}║           Electorn — Управление              ║${NC}"
+  echo -e "  ${BOLD}║           Electron — Управление              ║${NC}"
   echo -e "  ${BOLD}╚══════════════════════════════════════════════╝${NC}"
   echo ""
   echo -e "  ${BOLD}Статус:${NC}      ${STATUS_COLOR}${STATUS_ICON} ${STATUS_TEXT}${NC}"

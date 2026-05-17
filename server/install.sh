@@ -2,7 +2,7 @@
 set -e
 
 echo "╔══════════════════════════════════════════╗"
-echo "║        Electorn — установка              ║"
+echo "║        Electron — установка              ║"
 echo "╚══════════════════════════════════════════╝"
 echo ""
 
@@ -15,7 +15,7 @@ fi
 # ── Параметры ──
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 PORT="${PORT:-3000}"
-SERVICE_NAME="electorn"
+SERVICE_NAME="electron"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 DB_DIR="${DB_DIR:-$APP_DIR/../chat_db}"
 
@@ -104,7 +104,7 @@ done
 echo "→ Настройка автозапуска..."
 cat > "$SERVICE_FILE" <<EOF
 [Unit]
-Description=Electorn Server
+Description=Electron Server
 After=network.target
 
 [Service]
@@ -126,10 +126,10 @@ systemctl daemon-reload
 systemctl enable "$SERVICE_NAME"
 systemctl restart "$SERVICE_NAME"
 
-# ── Установка CLI-команды electorn ──
-echo "→ Установка команды 'electorn'..."
-chmod +x "$APP_DIR/electorn"
-ln -sf "$APP_DIR/electorn" /usr/local/bin/electorn
+# ── Установка CLI-команды electron ──
+echo "→ Установка команды 'electron'..."
+chmod +x "$APP_DIR/electron"
+ln -sf "$APP_DIR/electron" /usr/local/bin/electron
 
 # Установка sqlite3 для статистики БД в панели
 if [ "$PKG" = "apt" ]; then
@@ -156,7 +156,7 @@ if systemctl is-active --quiet "$SERVICE_NAME"; then
   echo "  Сервис:    $SERVICE_NAME"
   echo ""
   echo "  Управление:"
-  echo "    electorn          — панель управления"
+  echo "    electron          — панель управления"
   echo "    systemctl status $SERVICE_NAME"
   echo "    journalctl -u $SERVICE_NAME -f"
   echo ""
