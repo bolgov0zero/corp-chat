@@ -116,6 +116,20 @@ systemctl daemon-reload
 systemctl enable "$SERVICE_NAME"
 systemctl restart "$SERVICE_NAME"
 
+# ── Установка CLI-команды electorn ──
+echo "→ Установка команды 'electorn'..."
+chmod +x "$APP_DIR/electorn"
+ln -sf "$APP_DIR/electorn" /usr/local/bin/electorn
+
+# Установка sqlite3 для статистики БД в панели
+if [ "$PKG" = "apt" ]; then
+  apt-get install -y sqlite3 -q 2>/dev/null || true
+elif [ "$PKG" = "yum" ]; then
+  yum install -y sqlite 2>/dev/null || dnf install -y sqlite 2>/dev/null || true
+elif [ "$PKG" = "pacman" ]; then
+  pacman -Sy --noconfirm sqlite 2>/dev/null || true
+fi
+
 # ── Проверка ──
 echo ""
 echo "→ Ожидание запуска сервера..."
@@ -132,8 +146,8 @@ if systemctl is-active --quiet "$SERVICE_NAME"; then
   echo "  Сервис:    $SERVICE_NAME"
   echo ""
   echo "  Управление:"
+  echo "    electorn          — панель управления"
   echo "    systemctl status $SERVICE_NAME"
-  echo "    systemctl stop $SERVICE_NAME"
   echo "    journalctl -u $SERVICE_NAME -f"
   echo ""
 else
