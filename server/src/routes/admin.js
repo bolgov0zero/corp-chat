@@ -1,7 +1,42 @@
 const router = require('express').Router();
 const db = require('../db');
+const path = require('path');
+const https = require('https');
 const { authMiddleware, adminMiddleware } = require('../auth');
 const { sendTo, getStatus, getClients, sendToConn, getConnCount } = require('../ws');
+
+// ── Версия сервера ──
+const VERSION_FILE = path.join(__dirname, '..', '..', 'version.json');
+function getLocalVersion() {
+  try { return require(VERSION_FILE).version; } catch { return '0.0.0'; }
+}
+
+let cachedRemoteVersion = null;
+let lastRemoteCheck = 0;
+
+function fetchRemoteVersion() {
+  return new Promise((resolve) => {
+    const now = Date.now();
+    if (cachedRemoteVersion && now - lastRemoteCheck < 3600000) return resolve(cachedRemoteVersion);
+    const req = https.request({
+      hostname: 'raw.githubusercontent.com',
+      path: '/bolgov0zero/corp-chat/main/server/version.json',
+      headers: { 'User-Agent': 'Electron-Server' },
+    }, res => {
+      let data = '';
+      res.on('data', c => data += c);
+      res.on('end', () => {
+        try {
+          cachedRemoteVersion = JSON.parse(data).version;
+          lastRemoteCheck = Date.now();
+          resolve(cachedRemoteVersion);
+        } catch { resolve(null); }
+      });
+    });
+    req.on('error', () => resolve(null));
+    req.end();
+  });
+}
 
 router.use(authMiddleware, adminMiddleware);
 
@@ -17,6 +52,7 @@ router.get('/stats', (req, res) => {
     uptimeSeconds: Math.floor(process.uptime()),
     dbBytes: pageCount * pageSize,
     wsConnections: getConnCount(),
+    serverVersion: getLocalVersion(),
   });
 });
 
@@ -205,16 +241,38 @@ router.post('/clients/:connId/force-logout', (req, res) => {
 // Перезапуск службы systemd
 router.post('/system/restart', (req, res) => {
   const { exec } = require('child_process');
-  // Сначала проверяем, что служба существует
   exec('systemctl is-active electron', (err, stdout) => {
     const active = (stdout || '').trim();
     if (active !== 'active' && active !== 'activating') {
       return res.status(400).json({ error: 'Служба electron не активна или не найдена. Перезапуск невозможен.' });
     }
-    // Отправляем ответ до перезапуска, иначе соединение оборвётся без ответа
     res.json({ ok: true });
     setTimeout(() => exec('systemctl restart electron'), 300);
   });
+});
+
+// Версия сервера
+router.get('/server/version', async (req, res) => {
+  const local = getLocalVersion();
+  const remote = await fetchRemoteVersion();
+  res.json({ current: local, latest: remote, hasUpdate: remote && remote !== local });
+});
+
+// Обновление сервера с GitHub
+router.post('/server/update', (req, res) => {
+  const { exec } = require('child_process');
+  const appDir = path.join(__dirname, '..', '..', '..');
+  const script = `
+    cd "${appDir}" && \
+    git pull origin main && \
+    cd server && \
+    npm install --omit=dev && \
+    npm rebuild better-sqlite3 && \
+    systemctl restart electron
+  `;
+  res.json({ ok: true });
+  cachedRemoteVersion = null; // сбросить кеш
+  setTimeout(() => exec(script), 300);
 });
 
 module.exports = router;

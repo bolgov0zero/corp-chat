@@ -129,6 +129,7 @@ code,pre,.mono{font-family:var(--f-mono)}
 .btn-full{width:100%;justify-content:center}
 .btn-sm{padding:5px 11px;font-size:12px}
 .btn-xs{padding:3px 8px;font-size:11px;border-radius:5px}
+.btn-update{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;font-size:11px;border-radius:5px;border:1px solid var(--c-green);color:var(--c-green-text);background:var(--c-green-dim);cursor:pointer;font-weight:600;transition:opacity .15s}.btn-update:hover{opacity:.8}
 .btn-icon{padding:6px;border-radius:var(--radius-xs)}
 
 /* ── APP LAYOUT ── */
@@ -837,6 +838,7 @@ async function refreshDashboardData() {
     document.getElementById('dash-ws')?.setAttribute('style', `color:${wsColor}`);
     set('dash-db-size', fmtBytes(s.dbBytes));
     set('dash-uptime',  fmtUptime(s.uptimeSeconds));
+    if (s.serverVersion) set('dash-server-version', s.serverVersion);
 
     // Active users
     const active = users.filter(u => u.status === 'online' || u.status === 'away');
@@ -1010,6 +1012,10 @@ async function renderDashboard() {
               <span class="status-key">Uptime</span>
               <span class="status-val neutral" id="dash-uptime">—</span>
             </div>
+            <div class="status-row">
+              <span class="status-key">Версия сервера</span>
+              <span class="status-val neutral" id="dash-server-version">—</span>
+            </div>
           </div>
         </div>
 
@@ -1071,6 +1077,8 @@ async function renderDashboard() {
 
   setEl('dash-db-size', fmtBytes(s.dbBytes));
   setEl('dash-uptime', fmtUptime(s.uptimeSeconds));
+  if (s.serverVersion) setEl('dash-server-version', s.serverVersion);
+  checkServerUpdate();
 
   // Draw sparkline with real data — timeout ensures grid layout is settled
   setTimeout(() => fetchAndRenderSparkline('sparkline-svg', sparkRange), 50);
@@ -1652,6 +1660,34 @@ function setTopbarActions(html) {
   document.getElementById('topbar-actions').innerHTML=`
     <div class="server-status"><div class="server-dot"></div><span>server online</span><span class="server-time" id="clock">—</span></div>
     ${html}`;
+}
+
+async function checkServerUpdate() {
+  try {
+    const data = await api('GET', '/api/admin/server/version');
+    if (!data) return;
+    const el = document.getElementById('dash-server-version');
+    if (!el) return;
+    if (data.hasUpdate) {
+      el.innerHTML = `${data.current} <button class="btn-update" onclick="doServerUpdate()" title="Обновить до ${data.latest}">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="17 11 12 6 7 11"/><line x1="12" y1="6" x2="12" y2="18"/></svg>
+        ${data.latest}
+      </button>`;
+    } else {
+      el.textContent = data.current;
+    }
+  } catch {}
+}
+
+async function doServerUpdate() {
+  const btn = document.querySelector('.btn-update');
+  if (btn) { btn.textContent = '…'; btn.disabled = true; }
+  try {
+    await api('POST', '/api/admin/server/update');
+    showToast('Обновление запущено. Сервер перезапустится через несколько секунд.');
+  } catch {
+    showToast('Ошибка при запуске обновления');
+  }
 }
 </script>
 </body>
