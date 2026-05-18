@@ -898,7 +898,7 @@ function renderMsgIRC(m, isGroup) {
   // Show avatar only on first message in group; otherwise show time hint on left
   const avCol = isGroup
     ? `<div style="width:28px;flex-shrink:0;display:flex;align-items:flex-start;justify-content:flex-end;padding-top:2px">
-        <span class="irc-time irc-time-hint" style="font-size:10px">${statusIcon}${time}</span>
+        <span class="irc-time irc-time-hint">${statusIcon}${time}</span>
        </div>`
     : `<div class="irc-av av av-round ${avColor}" style="position:relative;flex-shrink:0">${avLetter}${avImg}</div>`;
 
@@ -1561,7 +1561,14 @@ function connectWS() {
       const m = data.message;
       if (S.activeChatId===m.chat_id && m.sender_id===S.user.id) {
         const el = document.querySelector(`[data-msg-id="${m.id}"] .msg-status`);
-        if (el) el.outerHTML = renderStatus(m.status);
+        const html = renderStatus(m.status);
+        if (el) {
+          el.outerHTML = html;
+        } else if (html) {
+          // иконки ещё не было (total был 0) — вставляем перед временем
+          const meta = document.querySelector(`[data-msg-id="${m.id}"] .irc-meta, [data-msg-id="${m.id}"] .irc-time-hint, [data-msg-id="${m.id}"] .bubble-meta`);
+          if (meta) meta.insertAdjacentHTML('afterbegin', html);
+        }
       }
     }
 
