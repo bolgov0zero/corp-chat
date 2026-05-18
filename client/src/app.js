@@ -1158,12 +1158,25 @@ function openLightbox(url) {
   if (!lb) {
     lb = document.createElement('div');
     lb.id = 'lightbox';
-    lb.onclick = () => lb.style.display = 'none';
+    lb.onclick = () => closeLightbox();
     lb.innerHTML = '<img id="lightbox-img">';
     document.body.appendChild(lb);
   }
   document.getElementById('lightbox-img').src = url;
-  lb.style.display = 'flex';
+  lb.classList.remove('lb-closing');
+  lb.classList.add('lb-open');
+}
+function closeLightbox() {
+  const lb = document.getElementById('lightbox');
+  if (!lb || lb.classList.contains('lb-closing')) return;
+  lb.classList.remove('lb-open');
+  lb.classList.add('lb-closing');
+  const onEnd = e => {
+    if (e.target !== lb) return;
+    lb.classList.remove('lb-closing');
+    lb.removeEventListener('animationend', onEnd);
+  };
+  lb.addEventListener('animationend', onEnd);
 }
 
 function scrollToMsg(msgId) {
