@@ -317,7 +317,7 @@ async function openSettings() {
   if (soundChk) soundChk.checked = S.settings.soundEnabled !== false;
   applySettings();
 }
-function closeSettings() { document.getElementById('modal-settings').classList.remove('open'); }
+function closeSettings() { closeModal('modal-settings'); }
 function openNameEdit() {
   const input = document.getElementById('settings-display-name');
   const btn = document.getElementById('settings-edit-btn');
@@ -1665,7 +1665,17 @@ async function ctxChatDelete() {
 
 // ── MODAL HELPERS ──
 function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (!el || !el.classList.contains('open') || el.classList.contains('closing')) return;
+  el.classList.add('closing');
+  const onEnd = e => {
+    if (e.target !== el) return;
+    el.classList.remove('open', 'closing');
+    el.removeEventListener('animationend', onEnd);
+  };
+  el.addEventListener('animationend', onEnd);
+}
 
 // ── SERVER UNAVAILABLE TOAST ──
 function showServerToast() {
