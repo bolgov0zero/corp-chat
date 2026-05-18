@@ -727,7 +727,7 @@ function renderMessages(msgs) {
   const container = document.getElementById('messages');
   if (!container) return;
   const chat = S.chats.find(c=>c.id===S.activeChatId);
-  const isChatGroup = chat?.type==='group';
+  const isChatGroup = chat?.type==='group' || chat?.type==='room';
   msgs.forEach(m => { if (m.reactions?.length) S.reactions[m.id] = m.reactions; });
   let html = '';
   let lastDate = '';
@@ -745,7 +745,9 @@ function renderMessages(msgs) {
     const grouped = !dayChanged && m.sender_id === lastSenderId && (m.sent_at - lastSentAt) < 300;
     const next = msgs[i + 1];
     const hideTime = !m.deleted && next && sameTimeGroup(m, next) && fmtDate(m.sent_at) === fmtDate(next.sent_at);
-    html += renderMsg(m, isChatGroup, hideTime, grouped);
+    const nextDayChanged = next ? fmtDate(next.sent_at) !== dateStr : true;
+    const isLast = !next || nextDayChanged || next.sender_id !== m.sender_id || (next.sent_at - m.sent_at) >= 300;
+    html += renderMsg(m, isChatGroup, hideTime, grouped, isLast);
     lastSenderId = m.sender_id;
     lastSentAt = m.sent_at;
   });
@@ -778,7 +780,7 @@ function prependMessages(msgs, chatId) {
   const container = document.getElementById('messages');
   if (!container) return;
   const chat = S.chats.find(c => c.id === chatId);
-  const isChatGroup = chat?.type === 'group';
+  const isChatGroup = chat?.type === 'group' || chat?.type === 'room';
   msgs.forEach(m => { if (m.reactions?.length) S.reactions[m.id] = m.reactions; });
 
   let html = '';
@@ -794,7 +796,10 @@ function prependMessages(msgs, chatId) {
       lastSenderId = null;
     }
     const grouped = !dayChanged && m.sender_id === lastSenderId && (m.sent_at - lastSentAt) < 300;
-    html += renderMsg(m, isChatGroup, false, grouped);
+    const next = msgs[i + 1];
+    const nextDayChanged = next ? fmtDate(next.sent_at) !== dateStr : true;
+    const isLast = !next || nextDayChanged || next.sender_id !== m.sender_id || (next.sent_at - m.sent_at) >= 300;
+    html += renderMsg(m, isChatGroup, false, grouped, isLast);
     lastSenderId = m.sender_id;
     lastSentAt = m.sent_at;
   });
@@ -814,7 +819,7 @@ function renderReactions(msgId) {
   ).join('')}</div>`;
 }
 
-function renderMsg(m, isChatGroup, hideTime = false, grouped = false) {
+function renderMsg(m, isChatGroup, hideTime = false, grouped = false, isLast = true) {
   if ((S.settings.chatView||'bubbles') === 'irc') return renderMsgIRC(m, grouped);
   const mine = m.sender_id===S.user.id;
   const time = fmtTime(m.sent_at);
@@ -829,18 +834,18 @@ function renderMsg(m, isChatGroup, hideTime = false, grouped = false) {
     </div>` : '';
   const att = m.attachment;
   const attachHtml = (!isDeleted && att?.url) ? `<div class="bubble-image" onclick="openLightbox('${httpProto()}://${S.server}${att.url}')"><img src="${httpProto()}://${S.server}${att.url}" loading="lazy"></div>` : '';
-  // Аватар слева для чужих (только первое в группе)
   const avColor = avatarColor(m.sender_id);
   const avLetter = initials(m.sender_name||'').slice(0,1);
   const avImg = `<img src="${httpProto()}://${S.server}/api/users/${m.sender_id}/avatar" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:10px" onerror="this.style.display='none'">`;
-  const avatarHtml = (!mine && !grouped) ? `<div class="av av-sm ${avColor}" style="position:relative;flex-shrink:0;align-self:flex-end;margin-bottom:2px">${avLetter}${avImg}</div>` : (!mine ? `<div style="width:32px;flex-shrink:0"></div>` : '');
-  const senderNameHtml = (!mine && !grouped && isChatGroup) ? `<div class="msg-sender">${esc(m.sender_name)}</div>` : '';
+  const avatarHtml = (!mine && isLast) ? `<div class="av av-sm ${avColor}" style="position:relative;flex-shrink:0;align-self:flex-end;margin-bottom:2px">${avLetter}${avImg}</div>` : (!mine ? `<div style="width:32px;flex-shrink:0"></div>` : '');
+  const senderNameHtml = (!mine && !grouped && isChatGroup) ? `<span class="bubble-sender ${avColor}">${esc(m.sender_name)}</span>` : '';
+  const bubblePositionClass = !grouped && isLast ? '' : (!grouped ? ' bubble-first' : (isLast ? ' bubble-last' : ' bubble-mid'));
   return `<div class="msg-group ${mine?'mine':'theirs'}${grouped?' grouped':''}${m._optimistic?' msg-optimistic':''}" data-msg-id="${m.id}" data-sender-id="${m.sender_id}" data-sent-at="${m.sent_at}"${m._optimistic?' data-optimistic="1"':''}>
-    ${senderNameHtml}
     <div class="msg-bubble-row">
       ${avatarHtml}
       <div class="msg-row">
-        <div class="bubble${isDeleted?' deleted':''}" oncontextmenu="${!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at},${mine})`:'event.preventDefault()'}" ondblclick="${!isDeleted?`dblReply(${m.id})`:''}">
+        <div class="bubble${isDeleted?' deleted':''}${bubblePositionClass}" oncontextmenu="${!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at},${mine})`:'event.preventDefault()'}" ondblclick="${!isDeleted?`dblReply(${m.id})`:''}">
+          ${senderNameHtml}
           ${replyHtml}
           ${attachHtml}
           ${m.text ? `<div class="bubble-text">${bodyText}</div>` : (isDeleted ? `<div class="bubble-text">${bodyText}</div>` : '')}
@@ -942,7 +947,24 @@ function appendMsg(m) {
     const prevTime = parseInt(lastEl.dataset.sentAt || '0');
     grouped = sameTimeGroup({ sender_id: prevSenderId, sent_at: prevTime }, m);
   }
-  container.insertAdjacentHTML('beforeend', renderMsg(m, chat?.type==='group', false, grouped));
+  if (lastEl && grouped) {
+    const lastBubble = lastEl.querySelector('.bubble');
+    if (lastBubble) {
+      lastBubble.classList.remove('bubble-last');
+      if (!lastBubble.classList.contains('bubble-first') && !lastBubble.classList.contains('bubble-mid')) {
+        lastBubble.classList.add('bubble-first');
+      } else if (lastBubble.classList.contains('bubble-last')) {
+        lastBubble.classList.remove('bubble-last');
+        lastBubble.classList.add('bubble-mid');
+      }
+      const lastAvatar = lastEl.querySelector('.av.av-sm');
+      if (lastAvatar) lastAvatar.style.display = 'none';
+      const lastPlaceholder = lastEl.querySelector('[style*="width:32px"]');
+      // placeholder already there if not last
+    }
+  }
+  const isChatGroupAppend = chat?.type==='group' || chat?.type==='room';
+  container.insertAdjacentHTML('beforeend', renderMsg(m, isChatGroupAppend, false, grouped, true));
   const newEl = container.lastElementChild;
   if (newEl && !m._optimistic) newEl.classList.add('msg-new');
 
@@ -957,7 +979,7 @@ function updateMsgInDOM(m) {
   const el = document.querySelector(`[data-msg-id="${m.id}"]`);
   if (!el) return;
   const chat = S.chats.find(c=>c.id===S.activeChatId);
-  el.outerHTML = renderMsg(m, chat?.type==='group');
+  el.outerHTML = renderMsg(m, chat?.type==='group' || chat?.type==='room');
 }
 
 // ── REACTIONS ──
@@ -1440,7 +1462,8 @@ function connectWS() {
           const fakeMsg = { id:message_id, deleted:1, text:'', attachment:null,
             sender_id:Number(el.dataset.senderId), sender_name:'', sent_at:Number(el.dataset.sentAt),
             reply_to_id:null, edited_at:null, status:{delivered:0,read:0,total:0}, reactions:[] };
-          el.outerHTML = renderMsg(fakeMsg, isChatGroup, false, grouped);
+          const isLastDeleted = !el.nextElementSibling || !el.nextElementSibling.dataset.msgId || el.nextElementSibling.dataset.senderId !== el.dataset.senderId;
+          el.outerHTML = renderMsg(fakeMsg, isChatGroup, false, grouped, isLastDeleted);
         }
       }
       renderChatList();
