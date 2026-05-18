@@ -1393,6 +1393,10 @@ function connectWS() {
       if (S.activeChatId) {
         const msgEl = document.querySelector(`[data-msg-id="${message_id}"]`);
         if (msgEl) {
+          const container = document.getElementById('messages');
+          const prevScrollHeight = container?.scrollHeight || 0;
+          const isAtBottom = container && (container.scrollHeight - container.scrollTop - container.clientHeight < 10);
+
           const existing = msgEl.querySelector('.reactions');
           const reactionsHtml = renderReactions(message_id);
           if (existing) {
@@ -1401,10 +1405,17 @@ function connectWS() {
             const target = msgEl.querySelector('.msg-bubble-row') || msgEl.querySelector('.irc-content');
             if (target) target.insertAdjacentHTML('beforeend', reactionsHtml);
           }
-          // Прокрутить вниз если сообщение последнее
-          const container = document.getElementById('messages');
-          if (container && !msgEl.nextElementSibling) {
-            container.scrollTop = container.scrollHeight;
+
+          if (container) {
+            const delta = container.scrollHeight - prevScrollHeight;
+            if (isAtBottom) {
+              // Были у дна — остаёмся у дна
+              container.scrollTop = container.scrollHeight;
+            } else if (delta > 0) {
+              // Компенсируем сдвиг: прокручиваем вверх на высоту добавленного элемента,
+              // чтобы сообщения ниже реакции остались на месте
+              container.scrollTop += delta;
+            }
           }
         }
       }
