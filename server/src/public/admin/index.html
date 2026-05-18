@@ -989,8 +989,9 @@ function nav(page) {
   const ta = document.getElementById('topbar-actions');
   ta.innerHTML=`<div class="server-status"><div class="server-dot"></div><span>server online</span><span class="server-time" id="clock">—</span></div>`;
 
-  // Анимация входа страницы
+  // Очищаем контент сразу — анимация играет на пустом контейнере, не на старой странице
   const pb = document.getElementById('page-body');
+  pb.innerHTML = '';
   pb.classList.remove('page-enter');
   void pb.offsetWidth; // force reflow
   pb.classList.add('page-enter');
@@ -1195,7 +1196,6 @@ async function renderRooms() {
       <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Создать комнату
     </button>`);
-  document.getElementById('page-body').innerHTML=`<div class="card" style="min-height:80px;opacity:.4"></div>`;
   [allRooms, allUsersCache] = await Promise.all([api('GET','/api/admin/chats'), api('GET','/api/admin/users')]);
   allRooms = allRooms.filter(c=>c.type==='room');
   renderRoomsTable();
@@ -1300,7 +1300,6 @@ async function renderUsers() {
       <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Создать пользователя
     </button>`);
-  document.getElementById('page-body').innerHTML=`<div class="card" style="min-height:80px;opacity:.4"></div>`;
   allUsers=await api('GET','/api/admin/users');
   renderUsersTable(allUsers);
 }
@@ -1437,7 +1436,6 @@ function chatRow(c) {
 
 async function renderChats() {
   chatFilter='';
-  document.getElementById('page-body').innerHTML=`<div class="card" style="min-height:80px;opacity:.4"></div>`;
   const raw=await api('GET','/api/admin/chats');
   allChats=raw.filter(c=>c.type!=='room');
   renderChatsTable(allChats);
@@ -1665,9 +1663,6 @@ async function forceLogout(connId,name,hostname) {
 
 /* ── SETTINGS ── */
 async function renderSettings() {
-  // Сразу рисуем скелет — анимация page-enter играет на нём, не на старом контенте
-  document.getElementById('page-body').innerHTML=`<div class="settings-wrap"><div class="card" style="min-height:80px;opacity:.4"></div><div class="card" style="min-height:120px;opacity:.4"></div></div>`;
-
   const [settings, verData] = await Promise.all([api('GET','/api/admin/settings'), api('GET','/api/admin/server/version')]);
   const LOCAL_VERSION_DISPLAY = verData?.current || '—';
 
