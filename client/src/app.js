@@ -688,6 +688,10 @@ function renderMessages(msgs) {
   });
   container.innerHTML = html;
   container.scrollTop = container.scrollHeight;
+  // Повторно прокручиваем после загрузки изображений
+  container.querySelectorAll('.bubble-image img').forEach(img => {
+    if (!img.complete) img.addEventListener('load', () => { container.scrollTop = container.scrollHeight; }, { once: true });
+  });
 }
 
 function renderReactions(msgId) {
@@ -830,6 +834,8 @@ function appendMsg(m) {
   }
   container.insertAdjacentHTML('beforeend', renderMsg(m, chat?.type==='group', false, grouped));
   container.scrollTop = container.scrollHeight;
+  const lastImg = container.querySelector('[data-msg-id]:last-child .bubble-image img');
+  if (lastImg && !lastImg.complete) lastImg.addEventListener('load', () => { container.scrollTop = container.scrollHeight; }, { once: true });
 }
 
 function updateMsgInDOM(m) {
