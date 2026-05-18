@@ -1531,13 +1531,15 @@ async function addSelectedMembers() {
 
 /* ── CLIENTS ── */
 async function renderClients() {
-  // Override topbar
-  document.getElementById('topbar-actions').innerHTML=`
-    <span class="clients-refresh" id="clients-refresh-time"></span>
+  setTopbarActions(`
     <button class="btn btn-ghost btn-sm" onclick="loadClients(true)">
       <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-      Обновить
-    </button>`;
+      Проверить
+    </button>
+    <button class="btn btn-primary btn-sm" id="update-all-btn" onclick="forceUpdateAll()" style="display:none">
+      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Обновить всех
+    </button>`);
 
   document.getElementById('page-body').innerHTML=`
     <div class="card">
@@ -1564,9 +1566,6 @@ async function loadClients(force=false) {
   // Page-specific updates — only if on clients page
   const cnt=document.getElementById('clients-count');
   if (cnt) cnt.textContent=clients.length;
-  const now=new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  const el=document.getElementById('clients-refresh-time');
-  if (el) el.textContent=`Обновлено: ${now}`;
 
   const wrap=document.getElementById('clients-table-wrap');
   if (!wrap) return;
@@ -1581,6 +1580,13 @@ async function loadClients(force=false) {
     const n=v=>v.split('.').map(Number);
     const [am,an,ap]=n(a),[bm,bn,bp]=n(b);
     return am!==bm?am>bm:an!==bn?an>bn:ap>bp;
+  }
+
+  const outdated = clients.filter(c => latestVersion && semverGt(latestVersion, c.clientVersion));
+  const updateAllBtn = document.getElementById('update-all-btn');
+  if (updateAllBtn) {
+    updateAllBtn.style.display = outdated.length ? '' : 'none';
+    updateAllBtn.onclick = () => forceUpdateAll(outdated, latestVersion);
   }
 
   wrap.innerHTML=`<table>
@@ -1648,6 +1654,15 @@ async function forceUpdate(connId,name,hostname,curVer,newVer) {
     async()=>{
       await api('POST',`/api/admin/clients/${connId}/force-update`);
       toast('Команда обновления отправлена','success');
+    });
+}
+
+async function forceUpdateAll(outdated, latestVersion) {
+  confirm('Обновить всех клиентов',
+    `Устаревших клиентов: ${outdated.length}\nДоступная версия: ${latestVersion}\n\nВсе клиенты получат команду обновления и перезапустятся автоматически.`,
+    async () => {
+      await Promise.all(outdated.map(c => api('POST', `/api/admin/clients/${c.connId}/force-update`)));
+      toast(`Команда отправлена ${outdated.length} клиентам`, 'success');
     });
 }
 
