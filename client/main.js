@@ -64,7 +64,7 @@ ipcMain.handle('check-update', async () => {
     const data = JSON.parse(await httpsGet(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`));
     if (data.status === '404' || data.message === 'Not Found') return { upToDate: true };
     if (data.message) return { error: data.message };
-    const latest = data.tag_name.replace(/^v/, '');
+    const latest = data.tag_name.replace(/^[a-zA-Z]+/, '');
     const current = app.getVersion();
     if (!semverGt(latest, current)) return { upToDate: true, version: current };
     const asset = data.assets?.find(a => getAssetPattern().test(a.name));
