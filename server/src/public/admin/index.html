@@ -1601,7 +1601,7 @@ async function loadClients(force=false) {
     const isSystem = installScope === 'system';
     const color = isSystem ? 'var(--c-green-text)' : 'var(--c-orange-text)';
     const bg = isSystem ? 'var(--c-green-dim)' : 'var(--c-orange-dim)';
-    return `<span style="display:inline-block;margin-top:3px;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700;background:${bg};color:${color}">${isSystem?'system':'user'}</span>`;
+    return `<span style="display:inline-block;margin-top:3px;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700;background:${bg};color:${color}">${isSystem?'system':'profile'}</span>`;
   }
 
   wrap.innerHTML=`<table>
@@ -1649,14 +1649,12 @@ async function loadClients(force=false) {
         <td style="color:var(--c-muted);font-size:11px;font-family:var(--f-mono)">${duration}</td>
         <td>
           <div class="td-actions">
+            <button class="btn btn-ghost btn-xs" ${hasUpdate?`onclick="forceUpdate(${c.connId},'${esc(c.displayName||c.username)}','${esc(c.hostname)}','${esc(c.clientVersion)}','${esc(latestVersion||'')}')"`:' disabled style="opacity:.3;cursor:default"'}>
+              <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            </button>
             <button class="btn btn-danger btn-xs" onclick="forceLogout(${c.connId},'${esc(c.displayName||c.username)}','${esc(c.hostname)}')">
               <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-              Выйти
             </button>
-            ${hasUpdate?`<button class="btn btn-ghost btn-xs" onclick="forceUpdate(${c.connId},'${esc(c.displayName||c.username)}','${esc(c.hostname)}','${esc(c.clientVersion)}','${esc(latestVersion||'')}')">
-              <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-              Обновить
-            </button>`:''}
           </div>
         </td>
       </tr>`;
