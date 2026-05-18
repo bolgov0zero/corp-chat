@@ -5,6 +5,7 @@ on:
   push:
     tags:
       - 'c*'
+      - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -57,7 +58,7 @@ jobs:
     name: Создать релиз
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/c')
+    if: startsWith(github.ref, 'refs/tags/c') || startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
     steps:
