@@ -539,6 +539,16 @@ async function openChat(chatId) {
     </div>
     <div class="chat-input-wrap" id="input-wrap">
       <div class="composer-inner">
+        <div id="image-preview-bar" style="display:none" class="input-reply-bar">
+          <img class="img-preview-thumb" src="" style="width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0">
+          <div class="reply-bar-content">
+            <div class="reply-bar-name">Изображение</div>
+            <div class="reply-bar-text img-preview-name"></div>
+          </div>
+          <button onclick="clearImagePreview()" class="icon-btn" style="width:24px;height:24px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
         <div id="reply-bar" style="display:none" class="input-reply-bar">
           <div class="reply-bar-content">
             <div class="reply-bar-name" id="reply-bar-name"></div>
@@ -558,6 +568,10 @@ async function openChat(chatId) {
           <button class="composer-icon-btn" title="Эмодзи" onclick="toggleEmojiPicker(event)">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 3 4 3 4-3 4-3"/><circle cx="9" cy="9" r="1" fill="currentColor"/><circle cx="15" cy="9" r="1" fill="currentColor"/></svg>
           </button>
+          <button class="composer-icon-btn" title="Прикрепить изображение" onclick="pickImage()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          </button>
+          <input type="file" id="img-file-input" accept="image/*" style="display:none" onchange="onImagePicked(this)">
           <textarea id="msg-input" rows="1" placeholder="Сообщение…" onkeydown="handleKey(event)" oninput="onMsgInput(this)"></textarea>
           <button class="send-btn" id="send-btn" onclick="sendOrEdit()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -671,6 +685,8 @@ function renderMsg(m, isChatGroup, hideTime = false, grouped = false) {
       <div class="reply-quote-name">${esc(m.reply_sender_name || '')}</div>
       <div class="reply-quote-text">${m.reply_deleted ? 'Сообщение удалено' : esc((m.reply_text||'').slice(0,80))}</div>
     </div>` : '';
+  const att = m.attachment;
+  const attachHtml = (!isDeleted && att?.url) ? `<div class="bubble-image" onclick="openLightbox('${httpProto()}://${S.server}${att.url}')"><img src="${httpProto()}://${S.server}${att.url}" loading="lazy"></div>` : '';
   // Аватар слева для чужих (только первое в группе)
   const avColor = avatarColor(m.sender_id);
   const avLetter = initials(m.sender_name||'').slice(0,1);
@@ -684,7 +700,8 @@ function renderMsg(m, isChatGroup, hideTime = false, grouped = false) {
       <div class="msg-row">
         <div class="bubble${isDeleted?' deleted':''}" oncontextmenu="${!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at},${mine})`:'event.preventDefault()'}" ondblclick="${!isDeleted?`dblReply(${m.id})`:''}">
           ${replyHtml}
-          <div class="bubble-text">${bodyText}</div>
+          ${attachHtml}
+          ${m.text ? `<div class="bubble-text">${bodyText}</div>` : (isDeleted ? `<div class="bubble-text">${bodyText}</div>` : '')}
           <div class="bubble-meta">${time}${statusIcon}</div>
         </div>
       </div>
@@ -867,11 +884,14 @@ function sendOrEdit() {
   if (S.editingMessageId) { submitEdit(); return; }
   const input = document.getElementById('msg-input');
   const text = input?.value.trim();
-  if (!text||!S.ws||S.ws.readyState!==1) return;
-  const payload = { type:'message', chat_id:S.activeChatId, text };
+  if (!text && !_pendingAttachment) return;
+  if (!S.ws||S.ws.readyState!==1) return;
+  const payload = { type:'message', chat_id:S.activeChatId, text: text || '' };
   if (S.replyTo) payload.reply_to_id = S.replyTo.id;
+  if (_pendingAttachment) payload.attachment = _pendingAttachment;
   S.ws.send(JSON.stringify(payload));
   hideReplyBar();
+  clearImagePreview();
   input.value=''; input.style.height='20px'; input.style.overflow='hidden';
   const sendBtn = document.getElementById('send-btn');
   if (sendBtn) { sendBtn.style.background='transparent'; sendBtn.style.color='var(--muted)'; sendBtn.style.boxShadow='none'; }
@@ -967,6 +987,73 @@ function hideReplyBar() {
   const bar = document.getElementById('reply-bar');
   if (bar) bar.style.display = 'none';
   document.getElementById('composer-pill')?.classList.remove('has-reply');
+}
+
+// ── IMAGE ATTACH ──
+let _pendingAttachment = null;
+
+function pickImage() {
+  document.getElementById('img-file-input')?.click();
+}
+
+async function onImagePicked(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  input.value = '';
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const sendBtn = document.getElementById('send-btn');
+  if (sendBtn) { sendBtn.style.background='var(--accent)'; sendBtn.style.color='#fff'; sendBtn.style.boxShadow='0 6px 16px var(--accent-shadow)'; }
+
+  try {
+    const res = await fetch(`${httpProto()}://${S.server}/api/upload`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${S.token}` },
+      body: formData,
+    });
+    if (!res.ok) throw new Error('upload failed');
+    _pendingAttachment = await res.json();
+    showImagePreviewBar();
+  } catch {
+    if (sendBtn && !document.getElementById('msg-input')?.value.trim()) {
+      sendBtn.style.background='transparent'; sendBtn.style.color='var(--muted)'; sendBtn.style.boxShadow='none';
+    }
+  }
+}
+
+function showImagePreviewBar() {
+  let bar = document.getElementById('image-preview-bar');
+  if (!bar) return;
+  const att = _pendingAttachment;
+  if (!att) { bar.style.display = 'none'; return; }
+  bar.style.display = '';
+  bar.querySelector('.img-preview-thumb').src = `${httpProto()}://${S.server}${att.url}`;
+  bar.querySelector('.img-preview-name').textContent = att.name || 'Изображение';
+}
+
+function clearImagePreview() {
+  _pendingAttachment = null;
+  const bar = document.getElementById('image-preview-bar');
+  if (bar) bar.style.display = 'none';
+  const sendBtn = document.getElementById('send-btn');
+  if (sendBtn && !document.getElementById('msg-input')?.value.trim()) {
+    sendBtn.style.background='transparent'; sendBtn.style.color='var(--muted)'; sendBtn.style.boxShadow='none';
+  }
+}
+
+function openLightbox(url) {
+  let lb = document.getElementById('lightbox');
+  if (!lb) {
+    lb = document.createElement('div');
+    lb.id = 'lightbox';
+    lb.onclick = () => lb.style.display = 'none';
+    lb.innerHTML = '<img id="lightbox-img">';
+    document.body.appendChild(lb);
+  }
+  document.getElementById('lightbox-img').src = url;
+  lb.style.display = 'flex';
 }
 
 function scrollToMsg(msgId) {
