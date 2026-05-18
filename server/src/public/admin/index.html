@@ -1785,7 +1785,7 @@ async function checkServerUpdate(force = false) {
     const el = document.getElementById('dash-server-version');
     if (!el) return;
     if (data.hasUpdate) {
-      el.innerHTML = `${data.current} <button class="btn-update" onclick="doServerUpdate()" title="Обновить до ${data.latest}">
+      el.innerHTML = `<button class="btn-update" onclick="doServerUpdate()" title="Обновить с ${data.current} до ${data.latest}">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="17 11 12 6 7 11"/><line x1="12" y1="6" x2="12" y2="18"/></svg>
         ${data.latest}
       </button>`;
