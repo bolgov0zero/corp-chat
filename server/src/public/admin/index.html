@@ -1128,14 +1128,9 @@ async function renderDashboard() {
               <span class="qa-label">Создать пользователя</span>
               <svg class="qa-arrow" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
             </div>
-            <div class="qa-item" onclick="nav('rooms');setTimeout(openCreateRoom,300)">
+            <div class="qa-item" onclick="openCreateRoom()">
               <div class="qa-icon" style="background:var(--c-green-dim)"><svg width="11" height="11" fill="none" stroke="var(--c-green-text)" stroke-width="2.5" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
               <span class="qa-label">Создать комнату</span>
-              <svg class="qa-arrow" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-            </div>
-            <div class="qa-item" onclick="nav('clients')">
-              <div class="qa-icon" style="background:var(--c-orange-dim)"><svg width="11" height="11" fill="none" stroke="var(--c-orange-text)" stroke-width="2.5" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
-              <span class="qa-label">Обновить клиентов</span>
               <svg class="qa-arrow" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
             </div>
             <div class="qa-item" onclick="restartService()">
@@ -1234,17 +1229,19 @@ function renderRoomsTable() {
     </div>`;
 }
 
-function openCreateRoom() {
+async function openCreateRoom() {
   createRoomSelectedIds = new Set();
   document.getElementById('room-name-input').value = '';
+  openModal('modal-create-room');
+  setTimeout(()=>document.getElementById('room-name-input').focus(),50);
+  // Загружаем пользователей если кеш пустой (например, вызов с дашборда)
+  if (!allUsersCache.length) allUsersCache = await api('GET','/api/admin/users');
   document.getElementById('room-create-users').innerHTML = allUsersCache.map(u=>`
     <div class="checkbox-row" id="cr-row-${u.id}" onclick="toggleRoomUser(${u.id})">
       <input type="checkbox" id="cr-chk-${u.id}" onclick="event.stopPropagation();toggleRoomUser(${u.id})">
       ${avHtml(u.display_name,26,7,u.id)}
       <div><div class="cname">${esc(u.display_name)}</div><div class="cuname">@${esc(u.username)}</div></div>
     </div>`).join('') || '<p style="color:var(--c-muted);font-size:12px">Нет пользователей</p>';
-  openModal('modal-create-room');
-  setTimeout(()=>document.getElementById('room-name-input').focus(),50);
 }
 
 function toggleRoomUser(id) {
