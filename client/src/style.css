@@ -620,7 +620,7 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
   box-shadow: var(--bubble-shadow-other);
 }
 .bubble.deleted { opacity: .5; font-style: italic; }
-.bubble .edited-tag { font-size: 10px; opacity: .65; margin-left: 4px; }
+.edited-tag { font-size: 10px; opacity: .55; margin-left: 4px; color: var(--muted); }
 .bubble-text { font-size: 1rem; white-space: pre-wrap; word-break: break-word; }
 
 /* Image in bubble */
