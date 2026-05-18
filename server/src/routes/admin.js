@@ -216,7 +216,7 @@ async function fetchLatestVersion(force = false) {
       ).on('error', reject);
     });
     if (data.tag_name) {
-      _versionCache = { version: data.tag_name.replace(/^v/, ''), fetchedAt: now };
+      _versionCache = { version: data.tag_name.replace(/^[a-zA-Z]+/, ''), fetchedAt: now };
     }
   } catch {}
   return _versionCache.version;
