@@ -279,10 +279,17 @@ router.post('/system/restart', (req, res) => {
 });
 
 // Версия сервера
+function semverGt(a, b) {
+  if (!a || !b) return false;
+  const n = v => v.replace(/^[^\d]*/, '').split('.').map(Number);
+  const [am, an, ap] = n(a), [bm, bn, bp] = n(b);
+  return am !== bm ? am > bm : an !== bn ? an > bn : ap > bp;
+}
+
 router.get('/server/version', async (req, res) => {
   const local = getLocalVersion();
   const remote = await fetchRemoteVersion();
-  res.json({ current: local, latest: remote, hasUpdate: remote && remote !== local });
+  res.json({ current: local, latest: remote, hasUpdate: semverGt(remote, local) });
 });
 
 // Обновление сервера с GitHub
