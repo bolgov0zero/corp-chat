@@ -93,7 +93,7 @@ html.dark {
   --accent-soft:   rgba(99,102,241,0.18);
   --accent-shadow: rgba(99,102,241,0.35);
 
-  --bubble-other:  rgba(255,255,255,0.06);
+  --bubble-other:  #1e2d3d;
   --bubble-shadow-other: 0 2px 8px rgba(0,0,0,0.28);
 
   --danger-bg:     rgba(239,68,68,0.08);
@@ -575,12 +575,12 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
 /* ── BUBBLES ── */
 .msg-group {
   display: flex; flex-direction: column;
-  margin: 4px 0; max-width: 100%;
+  margin: 2px 0; max-width: 100%;
 }
 .msg-group.mine  { align-items: flex-end;   align-self: flex-end; max-width: 70%; }
 .msg-group.theirs { align-items: flex-start; align-self: flex-start; max-width: 70%; }
-.msg-group + .msg-group { margin-top: 4px; }
-.msg-group.grouped { margin-top: 2px; }
+.msg-group + .msg-group { margin-top: 2px; }
+.msg-group.grouped { margin-top: 1px; }
 
 .msg-sender {
   font-size: 12px; font-weight: 600;
