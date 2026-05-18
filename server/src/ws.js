@@ -1,6 +1,23 @@
 const { WebSocketServer } = require('ws');
 const db = require('./db');
 const { wsAuth } = require('./auth');
+const path = require('path');
+const fs = require('fs');
+
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', '..', 'chat_db', 'chat.db');
+const FILES_DIR = path.join(path.dirname(DB_PATH), 'files');
+
+function deleteAttachmentFile(attachment) {
+  if (!attachment) return;
+  try {
+    const att = typeof attachment === 'string' ? JSON.parse(attachment) : attachment;
+    if (att?.url) {
+      const filename = path.basename(att.url);
+      const filepath = path.join(FILES_DIR, filename);
+      if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
+    }
+  } catch {}
+}
 
 // userId -> Set<ws>
 const clients = new Map();
@@ -43,7 +60,7 @@ function broadcastStatus(userId, status) {
 
 function getMessageWithStatus(msgId, viewerId) {
   const msg = db.prepare(`
-    SELECT m.id, m.chat_id, m.text, m.sent_at, m.edited_at, m.deleted,
+    SELECT m.id, m.chat_id, m.text, m.sent_at, m.edited_at, m.deleted, m.attachment,
       u.id as sender_id, u.display_name as sender_name,
       m.reply_to_id,
       rm.text as reply_text, ru.display_name as reply_sender_name
@@ -53,6 +70,7 @@ function getMessageWithStatus(msgId, viewerId) {
     WHERE m.id = ?
   `).get(msgId);
   if (!msg) return null;
+  if (msg.attachment) try { msg.attachment = JSON.parse(msg.attachment); } catch { msg.attachment = null; }
 
   const chat = db.prepare('SELECT type FROM chats WHERE id = ?').get(msg.chat_id);
   const memberCount = db.prepare('SELECT COUNT(*) as c FROM chat_members WHERE chat_id = ? AND user_id != ?').get(msg.chat_id, msg.sender_id).c;
@@ -81,8 +99,8 @@ function setup(server) {
       let data; try { data = JSON.parse(raw); } catch { return; }
 
       if (data.type === 'message') {
-        const { chat_id, text, reply_to_id } = data;
-        if (!chat_id || !text?.trim()) return;
+        const { chat_id, text, reply_to_id, attachment } = data;
+        if (!chat_id || (!text?.trim() && !attachment)) return;
         if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chat_id, user.id)) return;
 
         // Unhide chat for any members who had hidden it (e.g. deleted direct chat)
@@ -92,7 +110,8 @@ function setup(server) {
           hidden.forEach(({ user_id }) => sendTo(user_id, { type: 'reload_chats' }));
         }
 
-        const result = db.prepare('INSERT INTO messages (chat_id, sender_id, text, reply_to_id) VALUES (?, ?, ?, ?)').run(chat_id, user.id, text.trim(), reply_to_id || null);
+        const attJson = attachment ? JSON.stringify(attachment) : null;
+        const result = db.prepare('INSERT INTO messages (chat_id, sender_id, text, reply_to_id, attachment) VALUES (?, ?, ?, ?, ?)').run(chat_id, user.id, (text||'').trim(), reply_to_id || null, attJson);
         const msg = getMessageWithStatus(result.lastInsertRowid, user.id);
         broadcast(chat_id, { type: 'message', message: msg });
       }
@@ -136,7 +155,8 @@ function setup(server) {
         const { message_id } = data;
         const msg = db.prepare('SELECT * FROM messages WHERE id = ? AND deleted = 0').get(message_id);
         if (!msg || msg.sender_id !== user.id) return;
-        db.prepare("UPDATE messages SET deleted = 1, text = '' WHERE id = ?").run(message_id);
+        deleteAttachmentFile(msg.attachment);
+        db.prepare("UPDATE messages SET deleted = 1, text = '', attachment = NULL WHERE id = ?").run(message_id);
         broadcast(msg.chat_id, { type: 'message_deleted', message_id, chat_id: msg.chat_id });
       }
 

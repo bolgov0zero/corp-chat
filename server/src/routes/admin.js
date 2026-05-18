@@ -6,6 +6,32 @@ const https = require('https');
 const { authMiddleware, adminMiddleware } = require('../auth');
 const { sendTo, getStatus, getClients, sendToConn, getConnCount } = require('../ws');
 
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', '..', '..', 'chat_db', 'chat.db');
+const FILES_DIR = path.join(path.dirname(DB_PATH), 'files');
+
+function getDirSize(dir) {
+  let total = 0;
+  try {
+    for (const f of fs.readdirSync(dir)) {
+      try { total += fs.statSync(path.join(dir, f)).size; } catch {}
+    }
+  } catch {}
+  return total;
+}
+
+function deleteChatFiles(chatId) {
+  const rows = db.prepare("SELECT attachment FROM messages WHERE chat_id = ? AND attachment IS NOT NULL").all(chatId);
+  rows.forEach(r => {
+    try {
+      const att = JSON.parse(r.attachment);
+      if (att?.url) {
+        const fp = path.join(FILES_DIR, path.basename(att.url));
+        if (fs.existsSync(fp)) fs.unlinkSync(fp);
+      }
+    } catch {}
+  });
+}
+
 // ── Версия сервера ──
 const VERSION_FILE = path.join(__dirname, '..', '..', 'version.json');
 function getLocalVersion() {
@@ -52,6 +78,7 @@ router.get('/stats', (req, res) => {
     messages: db.prepare('SELECT COUNT(*) as c FROM messages WHERE deleted = 0').get().c,
     uptimeSeconds: Math.floor(process.uptime()),
     dbBytes: pageCount * pageSize,
+    filesBytes: getDirSize(FILES_DIR),
     wsConnections: getConnCount(),
     serverVersion: getLocalVersion(),
   });

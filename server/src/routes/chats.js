@@ -7,6 +7,20 @@ const { sendTo, broadcast } = require('../ws');
 
 const DB_DIR = path2.join(__dirname, '..', '..', '..', 'chat_db');
 const AVATAR_DIR = path2.join(DB_DIR, 'avatar');
+const FILES_DIR = path2.join(DB_DIR, 'files');
+
+function deleteChatFiles(chatId) {
+  const rows = db.prepare("SELECT attachment FROM messages WHERE chat_id = ? AND attachment IS NOT NULL").all(chatId);
+  rows.forEach(r => {
+    try {
+      const att = JSON.parse(r.attachment);
+      if (att?.url) {
+        const fp = path2.join(FILES_DIR, path2.basename(att.url));
+        if (fs.existsSync(fp)) fs.unlinkSync(fp);
+      }
+    } catch {}
+  });
+}
 
 function enrichChat(chat, userId) {
   const members = db.prepare(`
@@ -150,6 +164,7 @@ router.delete('/:id', authMiddleware, (req, res) => {
     const visibleCount = db.prepare('SELECT COUNT(*) as c FROM chat_members WHERE chat_id = ? AND hidden_at IS NULL').get(id).c;
     if (visibleCount === 0) {
       const allMembers = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ?').all(id);
+      deleteChatFiles(id);
       db.prepare('DELETE FROM chats WHERE id = ?').run(id);
       allMembers.forEach(({ user_id }) => sendTo(user_id, { type: 'chat_deleted', chat_id: id }));
     } else {
@@ -158,6 +173,7 @@ router.delete('/:id', authMiddleware, (req, res) => {
   } else {
     if (!req.user.is_admin && chat.created_by !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
     const members = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ?').all(id);
+    deleteChatFiles(id);
     db.prepare('DELETE FROM chats WHERE id = ?').run(id);
     members.forEach(({ user_id }) => sendTo(user_id, { type: 'chat_deleted', chat_id: id }));
   }
@@ -168,6 +184,7 @@ router.delete('/:id', authMiddleware, (req, res) => {
 router.delete('/admin/:id', authMiddleware, adminMiddleware, (req, res) => {
   const id = Number(req.params.id);
   const members = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ?').all(id);
+  deleteChatFiles(id);
   db.prepare('DELETE FROM chats WHERE id = ?').run(id);
   members.forEach(({ user_id }) => sendTo(user_id, { type: 'chat_deleted', chat_id: id }));
   res.json({ ok: true });

@@ -9,7 +9,7 @@ router.get('/chat/:chatId', authMiddleware, (req, res) => {
     return res.status(403).json({ error: 'Not a member' });
 
   const messages = db.prepare(`
-    SELECT m.id, m.chat_id, m.text, m.sent_at, m.edited_at, m.deleted,
+    SELECT m.id, m.chat_id, m.text, m.sent_at, m.edited_at, m.deleted, m.attachment,
       u.id as sender_id, u.display_name as sender_name,
       m.reply_to_id,
       rm.text as reply_text, rm.deleted as reply_deleted,
@@ -26,7 +26,9 @@ router.get('/chat/:chatId', authMiddleware, (req, res) => {
     const delivered = db.prepare('SELECT COUNT(*) as c FROM message_status WHERE message_id = ? AND delivered_at IS NOT NULL').get(m.id).c;
     const read = db.prepare('SELECT COUNT(*) as c FROM message_status WHERE message_id = ? AND read_at IS NOT NULL').get(m.id).c;
     const reactions = db.prepare('SELECT reaction, COUNT(*) as count FROM reactions WHERE message_id = ? GROUP BY reaction').all(m.id);
-    return { ...m, status: { delivered, read, total: memberCount - 1 }, reactions };
+    let attachment = null;
+    if (m.attachment) { try { attachment = JSON.parse(m.attachment); } catch {} }
+    return { ...m, attachment, status: { delivered, read, total: memberCount - 1 }, reactions };
   });
 
   res.json(result);
