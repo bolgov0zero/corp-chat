@@ -4,7 +4,7 @@ run-name: "Сборка и публикация ${{ github.ref_name }}"
 on:
   push:
     tags:
-      - 'v*'
+      - 'c*'
   workflow_dispatch:
 
 jobs:
@@ -57,7 +57,7 @@ jobs:
     name: Создать релиз
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/c')
     permissions:
       contents: write
     steps:
