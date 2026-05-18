@@ -1885,7 +1885,8 @@ async function doServerUpdateSettings() {
           if (bar) { bar.style.width = '100%'; bar.style.background = 'var(--c-green)'; }
           if (label) label.textContent = 'Обновление завершено';
           toast('Сервер обновлён и перезапущен', 'success');
-          setTimeout(() => renderSettings(), 1500);
+          // Перерисовываем настройки только если пользователь всё ещё на этой странице
+          setTimeout(() => { if (currentPage === 'settings') renderSettings(); }, 800);
         }
       } catch {}
     }, 1500);
