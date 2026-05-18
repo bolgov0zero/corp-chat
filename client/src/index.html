@@ -169,7 +169,7 @@
         <div class="av av-sm" id="me-av"></div>
         <div style="flex:1;overflow:hidden">
           <div class="me-name" id="me-name"></div>
-          <div class="me-status"><span class="me-status-dot"></span>онлайн</div>
+          <div class="me-status"><span class="me-status-dot" id="me-status-dot"></span><span id="me-status-text">онлайн</span></div>
         </div>
         <button class="icon-btn" id="theme-toggle-btn" title="Сменить тему" onclick="toggleTheme()">
           <svg id="theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
@@ -214,8 +214,8 @@
       </button>
     </div>
     <!-- Фиксированный профиль -->
-    <div style="padding:0 20px 14px;border-bottom:1px solid var(--border);flex-shrink:0">
-      <div style="display:flex;align-items:center;gap:16px">
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center">
+      <div style="display:flex;align-items:center;gap:16px;width:100%">
         <div class="profile-av-wrap" onclick="triggerAvatarUpload()" title="Сменить фото">
           <div class="av av-lg" id="settings-av" style="border-radius:14px"></div>
           <div class="profile-av-overlay" style="border-radius:14px">

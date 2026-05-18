@@ -140,18 +140,22 @@ window.addEventListener('DOMContentLoaded', async () => {
         updateUnreadTotal();
       }
       if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'set_status', status:'online'}));
+      updateSidebarStatus('online');
     } else {
       if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'set_status', status:'away'}));
+      updateSidebarStatus('away');
     }
   });
   // On window focus (e.g. Electron window receives focus) — ensure online status
   window.addEventListener('focus', () => {
     if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'set_status', status:'online'}));
+    updateSidebarStatus('online');
   });
   // blur окна → статус "отошёл" (все платформы)
   window.electron?.onWindowFocus?.(focused => {
     if (S.ws?.readyState===1)
       S.ws.send(JSON.stringify({type:'set_status', status: focused ? 'online' : 'away'}));
+    updateSidebarStatus(focused ? 'online' : 'away');
   });
 
   // ── Drag-and-drop изображений в окно чата ──
@@ -244,6 +248,16 @@ function updateMeAvatar() {
   };
   img.src = url;
   el.className = `av av-sm ${avatarColor(S.user.id)}`;
+}
+
+function updateSidebarStatus(status) {
+  const dot = document.getElementById('me-status-dot');
+  const txt = document.getElementById('me-status-text');
+  if (!dot || !txt) return;
+  const map = { online: { color: '#22c55e', label: 'онлайн' }, away: { color: '#eab308', label: 'отошёл' }, offline: { color: '#ef4444', label: 'не в сети' } };
+  const s = map[status] || map.online;
+  dot.style.background = s.color;
+  txt.textContent = s.label;
 }
 
 // ── SETTINGS ──
@@ -1380,8 +1394,9 @@ function connectWS() {
     loadChats();
     // Delay status send: at launch document.hidden may still be true while window is appearing
     setTimeout(() => {
-      if (ws.readyState === 1)
-        ws.send(JSON.stringify({ type: 'set_status', status: document.hidden ? 'away' : 'online' }));
+      const initStatus = document.hidden ? 'away' : 'online';
+      if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'set_status', status: initStatus }));
+      updateSidebarStatus(initStatus);
     }, 300);
     // Отправить метаданные клиента
     try {
