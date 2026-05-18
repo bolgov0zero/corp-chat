@@ -895,21 +895,21 @@ function renderMsgIRC(m, isGroup) {
       </button>
     </div>`;
 
-  // Show avatar only on first message in group; otherwise show time hint on left
   const avCol = isGroup
-    ? `<div style="width:28px;flex-shrink:0;display:flex;align-items:flex-start;justify-content:flex-end;padding-top:2px">
-        <span class="irc-time irc-time-hint"><span class="status-wrap">${statusIcon}</span>${time}</span>
-       </div>`
+    ? `<div style="width:28px;flex-shrink:0"></div>`
     : `<div class="irc-av av av-round ${avColor}" style="position:relative;flex-shrink:0">${avLetter}${avImg}</div>`;
 
   const ircTagHtml = (!isGroup && m.sender_tag) ? `<span class="bubble-tag bubble-tag-${avColor.replace('av-','')}" style="margin-left:6px">${esc(m.sender_tag)}</span>` : '';
-  const header = isGroup ? '' : `
-    <div class="irc-header">
-      <div style="display:flex;align-items:center;flex:1;min-width:0">
-        <span class="irc-name ${avColor}-text${mine?' mine':''}">${senderName}</span>${ircTagHtml}
-      </div>
-      <div class="irc-meta"><span class="status-wrap">${statusIcon}</span><span class="irc-time">${time}</span></div>
-    </div>`;
+  const header = isGroup
+    ? `<div class="irc-header irc-header-grouped">
+        <div class="irc-meta"><span class="status-wrap">${statusIcon}</span><span class="irc-time">${time}</span></div>
+       </div>`
+    : `<div class="irc-header">
+        <div style="display:flex;align-items:center;flex:1;min-width:0">
+          <span class="irc-name ${avColor}-text${mine?' mine':''}">${senderName}</span>${ircTagHtml}
+        </div>
+        <div class="irc-meta"><span class="status-wrap">${statusIcon}</span><span class="irc-time">${time}</span></div>
+       </div>`;
 
   const att = m.attachment;
   const attachHtml = (!isDeleted && att?.url) ? `<div class="bubble-image" style="margin:4px 0;max-width:260px" onclick="openLightbox('${httpProto()}://${S.server}${att.url}')"><img src="${httpProto()}://${S.server}${att.url}" loading="lazy"></div>` : '';
