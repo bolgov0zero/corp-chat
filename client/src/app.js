@@ -902,7 +902,7 @@ function renderMsgIRC(m, isGroup) {
        </div>`
     : `<div class="irc-av av av-round ${avColor}" style="position:relative;flex-shrink:0">${avLetter}${avImg}</div>`;
 
-  const ircTagHtml = (!mine && !isGroup && m.sender_tag) ? `<span class="bubble-tag bubble-tag-${avColor.replace('av-','')}" style="margin-left:6px">${esc(m.sender_tag)}</span>` : '';
+  const ircTagHtml = (!isGroup && m.sender_tag) ? `<span class="bubble-tag bubble-tag-${avColor.replace('av-','')}" style="margin-left:6px">${esc(m.sender_tag)}</span>` : '';
   const header = isGroup ? '' : `
     <div class="irc-header">
       <div style="display:flex;align-items:center;flex:1;min-width:0">
