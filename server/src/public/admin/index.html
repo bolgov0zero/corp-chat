@@ -318,6 +318,7 @@ tbody tr:hover td{background:var(--c-surface2)}
 .toast.success{background:#14532d;color:#bbf7d0;border-color:#166534}
 .toast.error{background:#7f1d1d;color:#fecaca;border-color:#991b1b}
 @keyframes toastIn{from{transform:translateY(6px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
 /* ── VERSION BADGES ── */
 .ver-ok{color:var(--c-green-text);font-family:var(--f-mono);font-size:11px;font-weight:600}
@@ -1050,7 +1051,12 @@ async function renderDashboard() {
             </div>
             <div class="status-row">
               <span class="status-key">Версия сервера</span>
-              <span class="status-val neutral" id="dash-server-version">—</span>
+              <span class="status-val neutral" style="display:flex;align-items:center;gap:6px">
+                <span id="dash-server-version">—</span>
+                <button id="btn-check-ver" onclick="checkServerUpdate(true)" title="Проверить обновления" style="border:none;background:none;cursor:pointer;color:var(--c-muted);padding:0;display:flex;align-items:center;transition:color .15s" onmouseover="this.style.color='var(--c-text)'" onmouseout="this.style.color='var(--c-muted)'">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                </button>
+              </span>
             </div>
           </div>
         </div>
@@ -1704,8 +1710,11 @@ async function checkServerUpdate(force = false) {
   const now = Date.now();
   if (!force && now - _lastVersionCheck < 600000) return; // раз в 10 минут
   _lastVersionCheck = now;
+  const btn = document.getElementById('btn-check-ver');
+  if (btn) btn.style.animation = 'spin 1s linear infinite';
   try {
     const data = await api('GET', '/api/admin/server/version');
+    if (btn) btn.style.animation = '';
     if (!data) return;
     const el = document.getElementById('dash-server-version');
     if (!el) return;
@@ -1717,7 +1726,7 @@ async function checkServerUpdate(force = false) {
     } else {
       el.textContent = data.current;
     }
-  } catch {}
+  } catch { if (btn) btn.style.animation = ''; }
 }
 
 async function doServerUpdate() {
