@@ -1297,7 +1297,6 @@ function connectWS() {
     if (data.type==='reaction_update') {
       const { message_id, counts } = data;
       S.reactions[message_id] = counts;
-      // Update reactions in DOM if message is visible
       if (S.activeChatId) {
         const msgEl = document.querySelector(`[data-msg-id="${message_id}"]`);
         if (msgEl) {
@@ -1308,6 +1307,11 @@ function connectWS() {
           } else if (reactionsHtml) {
             const target = msgEl.querySelector('.msg-bubble-row') || msgEl.querySelector('.irc-content');
             if (target) target.insertAdjacentHTML('beforeend', reactionsHtml);
+          }
+          // Прокрутить вниз если сообщение последнее
+          const container = document.getElementById('messages');
+          if (container && !msgEl.nextElementSibling) {
+            container.scrollTop = container.scrollHeight;
           }
         }
       }
