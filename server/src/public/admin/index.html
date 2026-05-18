@@ -346,9 +346,17 @@ tbody tr:hover td{background:var(--c-surface2)}
         <div style="font-size:11px;color:var(--c-muted)">Панель администратора</div>
       </div>
     </div>
-    <div class="fg"><label>Логин</label><input id="l-user" value="admin" autocomplete="username"></div>
+    <div class="fg"><label>Логин</label><input id="l-user" autocomplete="username"></div>
     <div class="fg"><label>Пароль</label><input id="l-pass" type="password" autocomplete="current-password"></div>
-    <button class="btn btn-primary btn-full" style="margin-top:6px" onclick="doLogin()">Войти</button>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+      <div class="toggle-wrap" id="l-remember-wrap" onclick="toggleRemember()" style="cursor:pointer;display:flex;align-items:center;gap:8px">
+        <div id="l-remember-track" style="width:32px;height:18px;border-radius:9px;background:var(--c-border);transition:background .2s;flex-shrink:0;position:relative">
+          <div id="l-remember-thumb" style="width:14px;height:14px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>
+        </div>
+        <span style="font-size:12px;color:var(--c-muted);user-select:none">Запомнить</span>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full" style="margin-top:2px" onclick="doLogin()">Войти</button>
     <div class="err" id="l-err"></div>
   </div>
 </div>
@@ -860,17 +868,32 @@ function startBgDashPolling() {
   window._bgDashInterval = setInterval(refreshDashboardData, 10000);
 }
 
+let _rememberMe = localStorage.getItem('admin_remember') === '1';
+function toggleRemember() {
+  _rememberMe = !_rememberMe;
+  localStorage.setItem('admin_remember', _rememberMe ? '1' : '0');
+  _applyRememberToggle();
+}
+function _applyRememberToggle() {
+  const track = document.getElementById('l-remember-track');
+  const thumb = document.getElementById('l-remember-thumb');
+  if (!track) return;
+  track.style.background = _rememberMe ? 'var(--c-primary)' : 'var(--c-border)';
+  thumb.style.left = _rememberMe ? '16px' : '2px';
+}
+
 async function doLogin() {
   document.getElementById('l-err').textContent = '';
-  const data = await api('POST','/api/auth/login',{
-    username: document.getElementById('l-user').value,
-    password: document.getElementById('l-pass').value
-  });
+  const username = document.getElementById('l-user').value;
+  const data = await api('POST','/api/auth/login',{ username, password: document.getElementById('l-pass').value });
   if (data.token) {
     if (!data.user.is_admin) { document.getElementById('l-err').textContent='Нет прав администратора'; return; }
     token=data.token; currentUser=data.user;
-    localStorage.setItem('admin_token',token);
-    localStorage.setItem('admin_user',JSON.stringify(currentUser));
+    localStorage.setItem('admin_last_user', username);
+    if (_rememberMe) {
+      localStorage.setItem('admin_token', token);
+      localStorage.setItem('admin_user', JSON.stringify(currentUser));
+    }
     enterApp(currentUser);
   } else { document.getElementById('l-err').textContent=data.error||'Ошибка входа'; }
 }
@@ -886,6 +909,11 @@ function logout() {
 }
 
 (async () => {
+  // Восстановить переключатель и последний логин
+  _applyRememberToggle();
+  const lastUser = localStorage.getItem('admin_last_user');
+  if (lastUser) document.getElementById('l-user').value = lastUser;
+
   const saved = localStorage.getItem('admin_token');
   if (saved) {
     token=saved;
