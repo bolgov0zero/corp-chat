@@ -91,6 +91,36 @@ function setup(server) {
     if (!clients.has(user.id)) clients.set(user.id, new Set());
     clients.get(user.id).add(ws);
     broadcastStatus(user.id, 'online');
+
+    // Авто-доставка: отметить как delivered все сообщения, которые ещё не были доставлены этому пользователю
+    {
+      const insert = db.prepare('INSERT OR IGNORE INTO message_status (message_id, user_id) VALUES (?, ?)');
+      const deliver = db.prepare('UPDATE message_status SET delivered_at = unixepoch() WHERE message_id = ? AND user_id = ? AND delivered_at IS NULL');
+      const undelivered = db.prepare(`
+        SELECT m.id, m.sender_id FROM messages m
+        JOIN chat_members cm ON cm.chat_id = m.chat_id AND cm.user_id = ?
+        LEFT JOIN message_status ms ON ms.message_id = m.id AND ms.user_id = ?
+        WHERE m.sender_id != ? AND m.deleted = 0 AND (ms.delivered_at IS NULL)
+      `).all(user.id, user.id, user.id);
+      const senders = new Set();
+      undelivered.forEach(({ id, sender_id }) => {
+        insert.run(id, user.id);
+        deliver.run(id, user.id);
+        senders.add(sender_id);
+      });
+      senders.forEach(senderId => {
+        const msgs = db.prepare(`
+          SELECT m.id FROM messages m
+          JOIN chat_members cm ON cm.chat_id = m.chat_id AND cm.user_id = ?
+          WHERE m.sender_id = ? AND m.deleted = 0
+        `).all(user.id, senderId);
+        msgs.forEach(({ id }) => {
+          const m = getMessageWithStatus(id, senderId);
+          if (m) sendTo(senderId, { type: 'status_update', message: m });
+        });
+      });
+    }
+
     const connId = ++connCounter;
     connMeta.set(connId, { ws, userId: user.id, username: user.username, displayName: user.display_name, hostname: '—', clientVersion: '—', osPlatform: '—', osRelease: '—', installScope: null, connectedAt: Date.now() });
     ws._connId = connId;

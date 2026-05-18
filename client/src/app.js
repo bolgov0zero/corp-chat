@@ -820,10 +820,10 @@ function renderStatus(status) {
   else                    { cls = 'status-sent';        title = 'Отправлено'; }
   const double = delivered > 0 || read > 0;
   return `<span class="msg-status ${cls}" title="${title}">
-    <svg width="13" height="9" viewBox="0 0 ${double?18:12} 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <svg width="13" height="9" viewBox="0 0 18 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       ${double
         ? '<polyline points="1,5.5 3.5,8 9,1"/><polyline points="7,5.5 9.5,8 15,1"/>'
-        : '<polyline points="1,5.5 3.5,8 11,1"/>'}
+        : '<polyline points="7,5.5 9.5,8 15,1"/>'}
     </svg>
   </span>`;
 }
