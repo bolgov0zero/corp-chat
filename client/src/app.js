@@ -1390,7 +1390,7 @@ function openGroupMembers(chatId) {
   document.getElementById('gm-title').textContent = chatName(chat);
   document.getElementById('gm-list').innerHTML = (chat.members||[]).map(m => `
     <div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border)">
-      <div class="av av-sm ${avatarColor(m.id)}" data-av-user="${m.id}">${initials(m.display_name)}</div>
+      <div class="av av-sm av-round ${avatarColor(m.id)}" data-av-user="${m.id}">${initials(m.display_name)}</div>
       <div>
         <div style="font-size:14px;font-weight:500">${esc(m.display_name)}</div>
         <div style="font-size:12px;color:var(--muted)">@${esc(m.username)}</div>
@@ -1671,7 +1671,7 @@ function renderModalUsers(containerId, multi, filter='') {
   const list = S.allUsers.filter(u=>!filter||u.display_name.toLowerCase().includes(filter)||u.username.toLowerCase().includes(filter));
   container.innerHTML = list.map(u=>`
     <div class="user-row" data-uid="${u.id}" onclick="${multi?`toggleModalUser(this,${u.id})`:`startDirect(${u.id})`}">
-      <div class="av av-sm ${avatarColor(u.id)}" data-av-user="${u.id}">${initials(u.display_name)}</div>
+      <div class="av av-sm av-round ${avatarColor(u.id)}" data-av-user="${u.id}">${initials(u.display_name)}</div>
       <div><div class="uname">${esc(u.display_name)}</div><div class="ulogin">@${esc(u.username)}</div></div>
     </div>`).join('') || '<div style="padding:12px;color:var(--muted);font-size:13px">Нет пользователей</div>';
   applyAvatars();
@@ -1735,7 +1735,7 @@ function renderEgMembers(members) {
   const container = document.getElementById('eg-members');
   container.innerHTML = members.filter(m=>m.id!==S.user.id&&!S.egRemovedIds.has(m.id)).map(m=>`
     <div class="member-remove-row" id="egm-${m.id}">
-      <div class="av av-sm ${avatarColor(m.id)}" data-av-user="${m.id}">${initials(m.display_name)}</div>
+      <div class="av av-sm av-round ${avatarColor(m.id)}" data-av-user="${m.id}">${initials(m.display_name)}</div>
       <div class="info"><div class="rname">${esc(m.display_name)}</div><div class="rlogin">@${esc(m.username)}</div></div>
       <button class="rm-btn" onclick="egRemoveMember(${m.id})">✕</button>
     </div>`).join('') || '<div style="font-size:13px;color:var(--muted)">Только вы</div>';
@@ -1748,7 +1748,7 @@ function renderEgAdd(existingMembers) {
   const available = S.allUsers.filter(u=>!existingIds.has(u.id)||S.egRemovedIds.has(u.id));
   container.innerHTML = available.map(u=>`
     <div class="user-row${S.egAddIds.has(u.id)?' selected':''}" data-uid="${u.id}" onclick="egToggleAdd(this,${u.id})">
-      <div class="av av-sm ${avatarColor(u.id)}" data-av-user="${u.id}">${initials(u.display_name)}</div>
+      <div class="av av-sm av-round ${avatarColor(u.id)}" data-av-user="${u.id}">${initials(u.display_name)}</div>
       <div><div class="uname">${esc(u.display_name)}</div><div class="ulogin">@${esc(u.username)}</div></div>
     </div>`).join('') || '<div style="font-size:13px;color:var(--muted)">Нет доступных</div>';
   applyAvatars();
