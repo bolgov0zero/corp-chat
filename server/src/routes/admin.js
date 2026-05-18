@@ -19,6 +19,10 @@ function getDirSize(dir) {
   return total;
 }
 
+function getDirCount(dir) {
+  try { return fs.readdirSync(dir).length; } catch { return 0; }
+}
+
 function deleteChatFiles(chatId) {
   const rows = db.prepare("SELECT attachment FROM messages WHERE chat_id = ? AND attachment IS NOT NULL").all(chatId);
   rows.forEach(r => {
@@ -79,6 +83,7 @@ router.get('/stats', (req, res) => {
     uptimeSeconds: Math.floor(process.uptime()),
     dbBytes: pageCount * pageSize,
     filesBytes: getDirSize(FILES_DIR),
+    filesCount: getDirCount(FILES_DIR),
     wsConnections: getConnCount(),
     serverVersion: getLocalVersion(),
   });

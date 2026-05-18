@@ -835,6 +835,7 @@ async function refreshDashboardData() {
     set('dash-stat-groups',   s.groups);
     set('dash-stat-chats',    s.chats);
     set('dash-stat-messages', s.messages);
+    set('dash-stat-files',    s.filesCount||0);
 
     // Status panel
     const latColor = latency < 100 ? 'var(--c-green)' : latency < 400 ? 'var(--c-orange)' : 'var(--c-red)';
@@ -984,6 +985,7 @@ async function renderDashboard() {
     { key:'groups',   icon:`<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`, val:s.groups,   lbl:'Групп',         bg:'var(--c-purple-dim)', color:'var(--c-purple-text)' },
     { key:'chats',    icon:`<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`, val:s.chats,    lbl:'Личных чатов',  bg:'var(--c-blue-dim)',   color:'var(--c-blue-text)' },
     { key:'messages', icon:`<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`, val:s.messages, lbl:'Сообщений',      bg:'var(--c-orange-dim)', color:'var(--c-orange-text)' },
+    { key:'files',    icon:`<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`, val:s.filesCount||0, lbl:'Файлов',      bg:'var(--c-green-dim)',  color:'var(--c-green-text)' },
   ].map(c=>`
     <div class="stat-card">
       <div class="stat-top">
