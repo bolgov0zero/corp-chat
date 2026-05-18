@@ -499,7 +499,7 @@ function renderChatRow(c) {
   const name = chatName(c);
   const u = S.unread[c.id]||0;
   const lm = c.last_message;
-  let preview = lm ? (lm.deleted?'Сообщение удалено':lm.text) : 'Нет сообщений';
+  let preview = lm ? (lm.deleted ? 'Сообщение удалено' : (lm.text || (lm.attachment ? '🖼 Изображение' : ''))) : 'Нет сообщений';
   if (preview.length>40) preview = preview.slice(0,40)+'…';
   const time = lm ? fmtTime(lm.sent_at) : '';
   const peerId = getPeerUserId(c);
@@ -1248,7 +1248,7 @@ function connectWS() {
         if (message.sender_id!==S.user.id) {
           const chat2 = S.chats.find(c=>c.id===chatId);
           const title = chatName(chat2) || 'Electron';
-          const body = `${message.sender_name}: ${message.text}`;
+          const body = `${message.sender_name}: ${message.text || (message.attachment ? '🖼 Изображение' : '')}`;
           window.electron?.notify(title, body, chatId);
           playNotificationSound();
         }
