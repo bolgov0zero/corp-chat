@@ -1665,8 +1665,8 @@ async function forceLogout(connId,name,hostname) {
 
 /* ── SETTINGS ── */
 async function renderSettings() {
-  const [settings, stats] = await Promise.all([api('GET','/api/admin/settings'), api('GET','/api/admin/stats')]);
-  const LOCAL_VERSION_DISPLAY = stats?.serverVersion || '—';
+  const [settings, verData] = await Promise.all([api('GET','/api/admin/settings'), api('GET','/api/admin/server/version')]);
+  const LOCAL_VERSION_DISPLAY = verData?.current || '—';
 
   document.getElementById('page-body').innerHTML=`
     <div class="settings-wrap">
