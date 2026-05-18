@@ -1270,10 +1270,17 @@ function connectWS() {
     if (data.type==='message_deleted') {
       const { message_id, chat_id } = data;
       const chat = S.chats.find(c=>c.id===chat_id);
-      if (chat?.last_message?.id===message_id) chat.last_message = {...chat.last_message, deleted:1, text:''};
+      if (chat?.last_message?.id===message_id) chat.last_message = {...chat.last_message, deleted:1, text:'', attachment:null};
       if (S.activeChatId===chat_id) {
         const el = document.querySelector(`[data-msg-id="${message_id}"]`);
-        if (el) { const b=el.querySelector('.bubble'); if(b){b.classList.add('deleted');b.querySelector('.bubble-text').innerHTML='Сообщение удалено';} }
+        if (el) {
+          const isChatGroup = chat?.type==='group' || chat?.type==='room';
+          const grouped = el.classList.contains('grouped') || el.classList.contains('irc-grouped');
+          const fakeMsg = { id:message_id, deleted:1, text:'', attachment:null,
+            sender_id:Number(el.dataset.senderId), sender_name:'', sent_at:Number(el.dataset.sentAt),
+            reply_to_id:null, edited_at:null, status:{delivered:0,read:0,total:0}, reactions:[] };
+          el.outerHTML = renderMsg(fakeMsg, isChatGroup, false, grouped);
+        }
       }
       renderChatList();
     }
