@@ -153,6 +153,32 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (S.ws?.readyState===1)
       S.ws.send(JSON.stringify({type:'set_status', status: focused ? 'online' : 'away'}));
   });
+
+  // ── Drag-and-drop изображений в окно чата ──
+  document.addEventListener('dragover', e => {
+    if (!S.activeChatId) return;
+    e.preventDefault();
+    document.getElementById('drag-overlay')?.classList.add('visible');
+  });
+  document.addEventListener('dragleave', e => {
+    if (e.relatedTarget && document.body.contains(e.relatedTarget)) return;
+    document.getElementById('drag-overlay')?.classList.remove('visible');
+  });
+  document.addEventListener('drop', async e => {
+    e.preventDefault();
+    document.getElementById('drag-overlay')?.classList.remove('visible');
+    if (!S.activeChatId) return;
+    const file = Array.from(e.dataTransfer.files).find(f => f.type.startsWith('image/'));
+    if (file) await uploadImageFile(file);
+  });
+
+  // ── Вставка изображения из буфера обмена ──
+  document.addEventListener('paste', async e => {
+    if (!S.activeChatId) return;
+    const file = Array.from(e.clipboardData.items)
+      .find(i => i.type.startsWith('image/'))?.getAsFile();
+    if (file) { e.preventDefault(); await uploadImageFile(file); }
+  });
 });
 
 // ── LOGIN ──
@@ -1004,6 +1030,11 @@ async function onImagePicked(input) {
   const file = input.files?.[0];
   if (!file) return;
   input.value = '';
+  await uploadImageFile(file);
+}
+
+async function uploadImageFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
 
   const formData = new FormData();
   formData.append('file', file);
