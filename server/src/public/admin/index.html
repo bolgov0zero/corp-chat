@@ -849,7 +849,7 @@ async function refreshDashboardData() {
     set('dash-files-size', fmtBytes(s.filesBytes || 0));
     set('dash-uptime',  fmtUptime(s.uptimeSeconds));
     if (s.serverVersion) set('dash-server-version', s.serverVersion);
-    checkServerUpdate();
+    checkServerUpdate(true);
 
     // Active users
     const active = users.filter(u => u.status === 'online' || u.status === 'away');
@@ -1700,9 +1700,9 @@ function setTopbarActions(html) {
 }
 
 let _lastVersionCheck = 0;
-async function checkServerUpdate() {
+async function checkServerUpdate(force = false) {
   const now = Date.now();
-  if (now - _lastVersionCheck < 600000) return; // раз в 10 минут
+  if (!force && now - _lastVersionCheck < 600000) return; // раз в 10 минут
   _lastVersionCheck = now;
   try {
     const data = await api('GET', '/api/admin/server/version');
