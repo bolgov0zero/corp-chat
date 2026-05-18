@@ -596,13 +596,13 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
 .bubble-sender.av-purple { color: #a78bfa; }
 .bubble-sender.av-orange { color: #fb923c; }
 
-/* Серия пузырей — срезаем внутренние углы */
-.theirs .bubble-first { border-top-left-radius: 4px; }
-.theirs .bubble-mid   { border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
-.theirs .bubble-last  { border-bottom-left-radius: 4px; }
-.mine .bubble-first   { border-top-right-radius: 4px; }
+/* Серия пузырей — хвостик только у последнего и одиночных */
+.theirs .bubble-first { border-top-left-radius: 4px; border-bottom-left-radius: 16px; } /* без хвостика */
+.theirs .bubble-mid   { border-top-left-radius: 4px; border-bottom-left-radius: 4px; }  /* без хвостика */
+.theirs .bubble-last  { border-top-left-radius: 4px; }                                   /* хвостик из дефолта */
+.mine .bubble-first   { border-top-right-radius: 4px; border-bottom-right-radius: 16px; }
 .mine .bubble-mid     { border-top-right-radius: 4px; border-bottom-right-radius: 4px; }
-.mine .bubble-last    { border-bottom-right-radius: 4px; }
+.mine .bubble-last    { border-top-right-radius: 4px; }                                   /* хвостик из дефолта */
 
 .msg-bubble-row {
   display: flex; align-items: flex-end; gap: 8px;
