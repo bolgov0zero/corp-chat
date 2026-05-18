@@ -459,6 +459,7 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
 }
 .av-sm  { width: 32px; height: 32px; font-size: 13px; border-radius: 8px; }
 .av-md  { width: 40px; height: 40px; font-size: 16px; border-radius: 12px; }
+.av-round { border-radius: 50% !important; }
 .av-lg  { width: 44px; height: 44px; font-size: 17px; border-radius: 12px; }
 .av-xl  { width: 64px; height: 64px; font-size: 22px; border-radius: 18px; }
 
