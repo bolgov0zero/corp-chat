@@ -595,10 +595,10 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
 .bubble-sender { font-size: 11px; font-weight: 700; margin-bottom: 3px; display: block; }
 
 .bubble-tag {
-  position: absolute; top: 7px; right: 10px;
+  display: inline-block;
   font-size: 9px; font-weight: 700;
   padding: 1px 5px; border-radius: 5px;
-  line-height: 1.4; pointer-events: none;
+  line-height: 1.4; white-space: nowrap; flex-shrink: 0;
 }
 .bubble-tag-blue   { background: rgba(96,165,250,0.2);  color: #60a5fa; }
 .bubble-tag-green  { background: rgba(52,211,153,0.2);  color: #34d399; }
