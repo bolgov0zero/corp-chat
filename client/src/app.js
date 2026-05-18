@@ -837,8 +837,13 @@ function renderMsg(m, isChatGroup, hideTime = false, grouped = false, isLast = t
   const avColor = avatarColor(m.sender_id);
   const avLetter = initials(m.sender_name||'').slice(0,1);
   const avImg = `<img src="${httpProto()}://${S.server}/api/users/${m.sender_id}/avatar" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:10px" onerror="this.style.display='none'">`;
-  const avatarHtml = (!mine && isLast) ? `<div class="av av-sm ${avColor}" style="position:relative;flex-shrink:0;align-self:flex-end;margin-bottom:2px">${avLetter}${avImg}</div>` : (!mine ? `<div style="width:32px;flex-shrink:0"></div>` : '');
-  const senderNameHtml = (!mine && !grouped && isChatGroup) ? `<span class="bubble-sender ${avColor}">${esc(m.sender_name)}</span>` : '';
+  const avatarHtml = isChatGroup
+    ? ((!mine && isLast)
+        ? `<div class="av av-sm ${avColor}" style="position:relative;flex-shrink:0;align-self:flex-end;margin-bottom:2px">${avLetter}${avImg}</div>`
+        : (!mine ? `<div style="width:32px;flex-shrink:0"></div>` : ''))
+    : '';
+  const colorKey = avColor.replace('av-', '');
+  const senderNameHtml = (!mine && !grouped && isChatGroup) ? `<span class="bubble-sender bubble-sender-${colorKey}">${esc(m.sender_name)}</span>` : '';
   const bubblePositionClass = !grouped && isLast ? '' : (!grouped ? ' bubble-first' : (isLast ? ' bubble-last' : ' bubble-mid'));
   return `<div class="msg-group ${mine?'mine':'theirs'}${grouped?' grouped':''}${m._optimistic?' msg-optimistic':''}" data-msg-id="${m.id}" data-sender-id="${m.sender_id}" data-sent-at="${m.sent_at}"${m._optimistic?' data-optimistic="1"':''}>
     <div class="msg-bubble-row">
