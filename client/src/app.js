@@ -857,7 +857,7 @@ function renderMsg(m, isChatGroup, hideTime = false, grouped = false, isLast = t
           ${replyHtml}
           ${attachHtml}
           ${m.text ? `<div class="bubble-text">${bodyText}</div>` : (isDeleted ? `<div class="bubble-text">${bodyText}</div>` : '')}
-          <div class="bubble-meta">${time}${statusIcon}</div>
+          <div class="bubble-meta">${time}<span class="status-wrap">${statusIcon}</span></div>
         </div>
       </div>
     </div>
@@ -898,7 +898,7 @@ function renderMsgIRC(m, isGroup) {
   // Show avatar only on first message in group; otherwise show time hint on left
   const avCol = isGroup
     ? `<div style="width:28px;flex-shrink:0;display:flex;align-items:flex-start;justify-content:flex-end;padding-top:2px">
-        <span class="irc-time irc-time-hint">${statusIcon}${time}</span>
+        <span class="irc-time irc-time-hint"><span class="status-wrap">${statusIcon}</span>${time}</span>
        </div>`
     : `<div class="irc-av av av-round ${avColor}" style="position:relative;flex-shrink:0">${avLetter}${avImg}</div>`;
 
@@ -908,7 +908,7 @@ function renderMsgIRC(m, isGroup) {
       <div style="display:flex;align-items:center;flex:1;min-width:0">
         <span class="irc-name ${avColor}-text${mine?' mine':''}">${senderName}</span>${ircTagHtml}
       </div>
-      <div class="irc-meta">${statusIcon}<span class="irc-time">${time}</span></div>
+      <div class="irc-meta"><span class="status-wrap">${statusIcon}</span><span class="irc-time">${time}</span></div>
     </div>`;
 
   const att = m.attachment;
@@ -1560,15 +1560,8 @@ function connectWS() {
     if (data.type==='status_update') {
       const m = data.message;
       if (S.activeChatId===m.chat_id && m.sender_id===S.user.id) {
-        const el = document.querySelector(`[data-msg-id="${m.id}"] .msg-status`);
-        const html = renderStatus(m.status);
-        if (el) {
-          el.outerHTML = html;
-        } else if (html) {
-          // иконки ещё не было (total был 0) — вставляем перед временем
-          const meta = document.querySelector(`[data-msg-id="${m.id}"] .irc-meta, [data-msg-id="${m.id}"] .irc-time-hint, [data-msg-id="${m.id}"] .bubble-meta`);
-          if (meta) meta.insertAdjacentHTML('afterbegin', html);
-        }
+        const wrap = document.querySelector(`[data-msg-id="${m.id}"] .status-wrap`);
+        if (wrap) wrap.innerHTML = renderStatus(m.status);
       }
     }
 
