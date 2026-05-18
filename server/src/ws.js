@@ -219,6 +219,30 @@ function setup(server) {
     });
 
     ws.send(JSON.stringify({ type: 'connected', user_id: user.id }));
+
+    // Авто-доставка при подключении: безопасно, после регистрации всех обработчиков
+    setImmediate(() => {
+      try {
+        const undelivered = db.prepare(`
+          SELECT m.id, m.sender_id FROM messages m
+          JOIN chat_members cm ON cm.chat_id = m.chat_id AND cm.user_id = ?
+          LEFT JOIN message_status ms ON ms.message_id = m.id AND ms.user_id = ?
+          WHERE m.sender_id != ? AND m.deleted = 0 AND ms.delivered_at IS NULL
+        `).all(user.id, user.id, user.id);
+        if (!undelivered.length) return;
+        const ins = db.prepare('INSERT OR IGNORE INTO message_status (message_id, user_id) VALUES (?, ?)');
+        const upd = db.prepare('UPDATE message_status SET delivered_at = unixepoch() WHERE message_id = ? AND user_id = ? AND delivered_at IS NULL');
+        const senders = new Set();
+        undelivered.forEach(({ id, sender_id }) => { ins.run(id, user.id); upd.run(id, user.id); senders.add(sender_id); });
+        const getMsgs = db.prepare('SELECT id FROM messages WHERE chat_id IN (SELECT chat_id FROM chat_members WHERE user_id = ?) AND sender_id = ? AND deleted = 0');
+        senders.forEach(senderId => {
+          getMsgs.all(user.id, senderId).forEach(({ id }) => {
+            const m = getMessageWithStatus(id, senderId);
+            if (m) sendTo(senderId, { type: 'status_update', message: m });
+          });
+        });
+      } catch (e) { console.error('auto-deliver error:', e); }
+    });
   });
 }
 
