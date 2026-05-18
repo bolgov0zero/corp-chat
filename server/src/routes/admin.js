@@ -42,26 +42,17 @@ function getLocalVersion() {
   try { return JSON.parse(fs.readFileSync(VERSION_FILE, 'utf8')).version; } catch { return '0.0.0'; }
 }
 
-let cachedRemoteVersion = null;
-let lastRemoteCheck = 0;
-
 function fetchRemoteVersion() {
   return new Promise((resolve) => {
-    const now = Date.now();
-    if (cachedRemoteVersion && now - lastRemoteCheck < 300000) return resolve(cachedRemoteVersion);
     const req = https.request({
       hostname: 'raw.githubusercontent.com',
       path: '/bolgov0zero/corp-chat/main/server/version.json',
-      headers: { 'User-Agent': 'Electron-Server' },
+      headers: { 'User-Agent': 'Electron-Server', 'Cache-Control': 'no-cache' },
     }, res => {
       let data = '';
       res.on('data', c => data += c);
       res.on('end', () => {
-        try {
-          cachedRemoteVersion = JSON.parse(data).version;
-          lastRemoteCheck = Date.now();
-          resolve(cachedRemoteVersion);
-        } catch { resolve(null); }
+        try { resolve(JSON.parse(data).version); } catch { resolve(null); }
       });
     });
     req.on('error', () => resolve(null));
@@ -305,7 +296,6 @@ router.post('/server/update', (req, res) => {
     systemctl restart electron
   `;
   res.json({ ok: true });
-  cachedRemoteVersion = null; // сбросить кеш
   setTimeout(() => exec(script), 300);
 });
 
