@@ -1119,7 +1119,8 @@ function hideCtxMenu() {
 function ctxEdit() {
   hideCtxMenu();
   if (!S.ctx.canEdit) return;
-  const el = document.querySelector(`[data-msg-id="${S.ctx.messageId}"] .bubble-text`);
+  const el = document.querySelector(`[data-msg-id="${S.ctx.messageId}"] .bubble-text`)
+           || document.querySelector(`[data-msg-id="${S.ctx.messageId}"] .irc-text`);
   const text = el?.textContent?.replace(' изм.','').trim()||'';
   S.editingMessageId = S.ctx.messageId;
   const bar = document.getElementById('edit-bar');
