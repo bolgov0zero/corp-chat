@@ -836,10 +836,10 @@ function renderMsg(m, isChatGroup, hideTime = false, grouped = false, isLast = t
   const attachHtml = (!isDeleted && att?.url) ? `<div class="bubble-image" onclick="openLightbox('${httpProto()}://${S.server}${att.url}')"><img src="${httpProto()}://${S.server}${att.url}" loading="lazy"></div>` : '';
   const avColor = avatarColor(m.sender_id);
   const avLetter = initials(m.sender_name||'').slice(0,1);
-  const avImg = `<img src="${httpProto()}://${S.server}/api/users/${m.sender_id}/avatar" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:10px" onerror="this.style.display='none'">`;
+  const avImg = `<img src="${httpProto()}://${S.server}/api/users/${m.sender_id}/avatar" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.style.display='none'">`;
   const avatarHtml = isChatGroup
     ? ((!mine && isLast)
-        ? `<div class="av av-sm ${avColor}" style="position:relative;flex-shrink:0;align-self:flex-end;margin-bottom:2px">${avLetter}${avImg}</div>`
+        ? `<div class="av av-sm av-round ${avColor}" style="position:relative;flex-shrink:0;align-self:flex-end;margin-bottom:2px">${avLetter}${avImg}</div>`
         : (!mine ? `<div style="width:32px;flex-shrink:0"></div>` : ''))
     : '';
   const colorKey = avColor.replace('av-', '');
@@ -872,7 +872,7 @@ function renderMsgIRC(m, isGroup) {
   const senderName = esc(m.sender_name);
   const avColor = avatarColor(m.sender_id);
   const avLetter = initials(m.sender_name).slice(0,1);
-  const avImg = `<img src="${httpProto()}://${S.server}/api/users/${m.sender_id}/avatar" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:8px" onerror="this.style.display='none'">`;
+  const avImg = `<img src="${httpProto()}://${S.server}/api/users/${m.sender_id}/avatar" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.style.display='none'">`;
   const replyHtml = m.reply_to_id ? `
     <div style="border-left:2px solid var(--accent);padding:2px 0 2px 10px;margin-bottom:4px;color:var(--muted);font-size:13px" onclick="scrollToMsg(${m.reply_to_id})">
       <span style="color:var(--accent);font-weight:600;margin-right:6px">↳ ${esc(m.reply_sender_name || '')}</span>
@@ -897,7 +897,7 @@ function renderMsgIRC(m, isGroup) {
     ? `<div style="width:28px;flex-shrink:0;display:flex;align-items:flex-start;justify-content:flex-end;padding-top:2px">
         <span class="irc-time" style="opacity:0;font-size:10px;padding-right:2px">${time}</span>
        </div>`
-    : `<div class="irc-av av ${avColor}" style="position:relative;flex-shrink:0">${avLetter}${avImg}</div>`;
+    : `<div class="irc-av av av-round ${avColor}" style="position:relative;flex-shrink:0">${avLetter}${avImg}</div>`;
 
   const header = isGroup ? '' : `
     <div class="irc-header">
