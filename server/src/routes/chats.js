@@ -140,6 +140,7 @@ router.post('/:id/avatar', authMiddleware, (req, res) => {
     fs.writeFileSync(path2.join(AVATAR_DIR, `chat_${req.params.id}.jpg`), buf);
     res.json({ ok: true, url: `/api/chats/${req.params.id}/avatar` });
   } catch (e) {
+    console.error('chat avatar upload error:', e.stack || e);
     res.status(500).json({ error: 'Failed to save avatar' });
   }
 });

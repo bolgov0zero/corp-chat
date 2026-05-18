@@ -10,6 +10,8 @@ const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
+db.pragma('cache_size = -8000'); // 8 MB page cache
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,6 +67,12 @@ db.exec(`
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
   );
+
+  CREATE INDEX IF NOT EXISTS idx_messages_chat_sent    ON messages(chat_id, sent_at);
+  CREATE INDEX IF NOT EXISTS idx_chat_members_user     ON chat_members(user_id);
+  CREATE INDEX IF NOT EXISTS idx_chat_members_chat     ON chat_members(chat_id);
+  CREATE INDEX IF NOT EXISTS idx_message_status_msg    ON message_status(message_id);
+  CREATE INDEX IF NOT EXISTS idx_reactions_msg         ON reactions(message_id);
 `);
 
 fs.mkdirSync(path.join(path.dirname(DB_PATH), 'avatar'), { recursive: true });
@@ -86,5 +94,9 @@ if (userCount.c === 0) {
     .run('admin', hash, 'Administrator');
   console.log('Created default admin: admin / admin');
 }
+
+// Periodically let SQLite tune its own query planner stats (safe, read-only analysis)
+db.pragma('optimize');
+setInterval(() => db.pragma('optimize'), 3_600_000); // every hour
 
 module.exports = db;

@@ -48,6 +48,7 @@ router.post('/me/avatar', authMiddleware, (req, res) => {
     sendTo(req.user.id, { type: 'avatar_updated', user_id: req.user.id });
     res.json({ ok: true, url: `/api/users/${req.user.id}/avatar` });
   } catch (e) {
+    console.error('avatar upload error:', e.stack || e);
     res.status(500).json({ error: 'Failed to save avatar' });
   }
 });

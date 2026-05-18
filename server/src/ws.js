@@ -72,7 +72,6 @@ function getMessageWithStatus(msgId, viewerId) {
   if (!msg) return null;
   if (msg.attachment) try { msg.attachment = JSON.parse(msg.attachment); } catch { msg.attachment = null; }
 
-  const chat = db.prepare('SELECT type FROM chats WHERE id = ?').get(msg.chat_id);
   const memberCount = db.prepare('SELECT COUNT(*) as c FROM chat_members WHERE chat_id = ? AND user_id != ?').get(msg.chat_id, msg.sender_id).c;
   const delivered = db.prepare('SELECT COUNT(*) as c FROM message_status WHERE message_id = ? AND delivered_at IS NOT NULL').get(msgId).c;
   const read = db.prepare('SELECT COUNT(*) as c FROM message_status WHERE message_id = ? AND read_at IS NOT NULL').get(msgId).c;
