@@ -286,8 +286,7 @@ tbody tr:hover td{background:var(--c-surface2)}
 .empty-state small{font-size:11px;margin-top:4px;display:block}
 
 /* ── MODAL ── */
-.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
-.modal-bg.open{display:flex}
+/* modal-bg теперь управляется через .open и .closing классы — см. ниже */
 .modal{background:var(--c-surface);border:1px solid var(--c-border);border-radius:14px;width:480px;max-height:88vh;display:flex;flex-direction:column;box-shadow:var(--shadow-md);overflow:hidden}
 .modal-sm{width:380px}
 .modal-head{padding:16px 20px;border-bottom:1px solid var(--c-border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
@@ -319,6 +318,51 @@ tbody tr:hover td{background:var(--c-surface2)}
 .toast.error{background:#7f1d1d;color:#fecaca;border-color:#991b1b}
 @keyframes toastIn{from{transform:translateY(6px);opacity:0}to{transform:translateY(0);opacity:1}}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+/* ── PAGE TRANSITION ── */
+@keyframes pageIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.page-enter{animation:pageIn 180ms ease-out}
+
+/* ── MODAL ANIMATIONS ── */
+@keyframes modalBgIn{from{opacity:0}to{opacity:1}}
+@keyframes modalBgOut{from{opacity:1}to{opacity:0}}
+@keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(6px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes modalOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.96)}}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-bg.open{display:flex;animation:modalBgIn 160ms ease}
+.modal-bg.open .modal{animation:modalIn 220ms cubic-bezier(0.34,1.56,0.64,1)}
+.modal-bg.closing{display:flex;animation:modalBgOut 140ms ease forwards}
+.modal-bg.closing .modal{animation:modalOut 140ms ease forwards}
+
+/* ── TOAST EXIT ── */
+@keyframes toastOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(10px)}}
+.toast.removing{animation:toastOut 200ms ease forwards}
+
+/* ── SERVER DOT PULSE ── */
+@keyframes serverPulse{0%,100%{box-shadow:0 0 0 0 var(--c-green-dim)}60%{box-shadow:0 0 0 5px rgba(16,185,129,0)}}
+.server-dot{animation:serverPulse 2.4s ease-in-out infinite}
+
+/* ── NAV ACTIVE INDICATOR ── */
+.nav-item.active{border-left:2px solid var(--c-sb-act);padding-left:6px}
+.nav-item{border-left:2px solid transparent;transition:all .12s}
+
+/* ── TABLE ROWS ── */
+tbody tr{transition:background-color 100ms ease}
+
+/* ── STAT CARD LIFT ── */
+.stat-card{transition:box-shadow .18s ease,transform .18s ease}
+.stat-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+
+/* ── QUICK ACTIONS ── */
+.qa-item{transition:background 120ms ease,padding-left 120ms ease}
+.qa-item:hover{padding-left:20px}
+
+/* ── TABLE ACTIONS FADE ── */
+.td-actions{opacity:.3;transition:opacity 150ms ease}
+tr:hover .td-actions{opacity:1}
+
+/* ── BADGE PULSE (online) ── */
+.badge-green{animation:none}
 
 /* ── VERSION BADGES ── */
 .ver-ok{color:var(--c-green-text);font-family:var(--f-mono);font-size:11px;font-weight:600}
@@ -685,7 +729,11 @@ function toast(msg, type='') {
   const icon = type==='success'?'✓':type==='error'?'✕':'ℹ';
   el.innerHTML = `<span style="font-size:13px">${icon}</span><span>${msg}</span>`;
   document.getElementById('toast-container').appendChild(el);
-  setTimeout(() => el.remove(), 3200);
+  setTimeout(() => {
+    el.classList.add('removing');
+    el.addEventListener('animationend', () => el.remove(), { once: true });
+    setTimeout(() => el.remove(), 300); // fallback
+  }, 3000);
 }
 
 /* ── SPARKLINE ── */
@@ -943,11 +991,29 @@ function nav(page) {
   const ta = document.getElementById('topbar-actions');
   ta.innerHTML=`<div class="server-status"><div class="server-dot"></div><span>server online</span><span class="server-time" id="clock">—</span></div>`;
 
+  // Анимация входа страницы
+  const pb = document.getElementById('page-body');
+  pb.classList.remove('page-enter');
+  void pb.offsetWidth; // force reflow
+  pb.classList.add('page-enter');
+
   pageRenders[page]();
 }
 
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('closing');
+  el.classList.add('open');
+}
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('closing');
+  const cleanup = () => { el.classList.remove('open', 'closing'); };
+  el.addEventListener('animationend', cleanup, { once: true });
+  setTimeout(cleanup, 300); // fallback если animationend не сработает
+}
 
 function confirm(title, text, onOk) {
   document.getElementById('confirm-title').textContent=title;
