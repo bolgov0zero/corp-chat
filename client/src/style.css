@@ -632,12 +632,11 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
    first/mid — внутренняя сторона 4px (нет хвостика)
    last      — верхний внутренний 4px, нижний 0 (хвостик из дефолта)
    одиночный — нет класса, нижний хвостиковый угол 0 из дефолта */
-.theirs .bubble-first { border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
-.theirs .bubble-mid   { border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
-.theirs .bubble-last  { border-top-left-radius: 4px; border-bottom-left-radius: 0; }
-.mine .bubble-first   { border-top-right-radius: 4px; border-bottom-right-radius: 4px; }
-.mine .bubble-mid     { border-top-right-radius: 4px; border-bottom-right-radius: 4px; }
-.mine .bubble-last    { border-top-right-radius: 4px; border-bottom-right-radius: 0; }
+/* В серии все углы 16px кроме хвостикового (0 из дефолта) */
+.theirs .bubble-first,
+.theirs .bubble-mid   { border-bottom-left-radius: 16px; } /* перекрыть дефолтный 0 */
+.mine .bubble-first,
+.mine .bubble-mid     { border-bottom-right-radius: 16px; }
 
 /* Треугольник-хвостик для одиночных и последних в серии */
 .theirs .bubble:not(.bubble-first):not(.bubble-mid)::before {
