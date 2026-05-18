@@ -1455,6 +1455,19 @@ function connectWS() {
       removeChatLocally(data.chat_id);
     }
 
+    if (data.type==='chat_cleared') {
+      const chat = S.chats.find(c => c.id === data.chat_id);
+      if (chat) { chat.last_message = null; renderChatList(); }
+      // Если чат открыт — очищаем историю сообщений на экране
+      if (S.activeChatId === data.chat_id) {
+        S.messages = [];
+        S.chatHasMore = false;
+        S.chatOldestId = null;
+        const container = document.getElementById('messages');
+        if (container) container.innerHTML = '';
+      }
+    }
+
     if (data.type==='reaction_update') {
       const { message_id, counts } = data;
       S.reactions[message_id] = counts;

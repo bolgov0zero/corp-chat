@@ -193,7 +193,11 @@ router.delete('/admin/:id', authMiddleware, adminMiddleware, (req, res) => {
 
 // Admin: clear history
 router.delete('/admin/:id/messages', authMiddleware, adminMiddleware, (req, res) => {
-  db.prepare('DELETE FROM messages WHERE chat_id = ?').run(req.params.id);
+  const chatId = Number(req.params.id);
+  db.prepare('DELETE FROM messages WHERE chat_id = ?').run(chatId);
+  // Уведомляем всех участников чата — очистить историю и обновить превью в списке
+  const members = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ?').all(chatId);
+  members.forEach(m => sendTo(m.user_id, { type: 'chat_cleared', chat_id: chatId }));
   res.json({ ok: true });
 });
 
