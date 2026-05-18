@@ -37,10 +37,13 @@ function deleteChatFiles(chatId) {
 }
 
 // ── Версия сервера ──
+// Читаем один раз при старте — после git pull файл меняется, но сервер ещё старый.
+// Это позволяет корректно детектировать обновление: local=старая, remote=новая.
 const VERSION_FILE = path.join(__dirname, '..', '..', 'version.json');
-function getLocalVersion() {
+const LOCAL_VERSION = (() => {
   try { return JSON.parse(fs.readFileSync(VERSION_FILE, 'utf8')).version; } catch { return '0.0.0'; }
-}
+})();
+function getLocalVersion() { return LOCAL_VERSION; }
 
 function fetchRemoteVersion() {
   return new Promise((resolve) => {
