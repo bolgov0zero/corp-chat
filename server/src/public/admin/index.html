@@ -1788,10 +1788,16 @@ async function checkServerUpdate(force = false) {
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="17 11 12 6 7 11"/><line x1="12" y1="6" x2="12" y2="18"/></svg>
         ${data.latest}
       </button>`;
-    } else {
-      el.textContent = data.current;
+    } else if (data.current) {
+      // Явный фидбек что проверка прошла и версия актуальна
+      el.innerHTML = `${data.current} <span style="color:var(--c-green-text);font-size:10px;font-weight:600">✓</span>`;
+      setTimeout(() => { const e = document.getElementById('dash-server-version'); if (e) e.textContent = data.current; }, 2500);
     }
-  } catch { if (btn) btn.style.animation = ''; }
+  } catch {
+    if (btn) btn.style.animation = '';
+    const el = document.getElementById('dash-server-version');
+    if (el) el.innerHTML = `${el.textContent} <span style="color:var(--c-red-text);font-size:10px">✕ нет связи</span>`;
+  }
 }
 
 async function doServerUpdate() {
