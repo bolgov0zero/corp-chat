@@ -897,7 +897,6 @@ async function refreshDashboardData() {
     set('dash-files-size', fmtBytes(s.filesBytes || 0));
     set('dash-uptime',  fmtUptime(s.uptimeSeconds));
     if (s.serverVersion) set('dash-server-version', s.serverVersion);
-    checkServerUpdate(true);
 
     // Active users
     const active = users.filter(u => u.status === 'online' || u.status === 'away');
@@ -1116,12 +1115,7 @@ async function renderDashboard() {
             </div>
             <div class="status-row">
               <span class="status-key">Версия сервера</span>
-              <span class="status-val neutral" style="display:flex;align-items:center;gap:6px">
-                <span id="dash-server-version">—</span>
-                <button id="btn-check-ver" onclick="checkServerUpdate(true)" title="Проверить обновления" style="border:none;background:none;cursor:pointer;color:var(--c-muted);padding:0;display:flex;align-items:center;transition:color .15s" onmouseover="this.style.color='var(--c-text)'" onmouseout="this.style.color='var(--c-muted)'">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-                </button>
-              </span>
+              <span class="status-val neutral" id="dash-server-version">—</span>
             </div>
           </div>
         </div>
@@ -1186,7 +1180,6 @@ async function renderDashboard() {
   setEl('dash-files-size', fmtBytes(s.filesBytes || 0));
   setEl('dash-uptime', fmtUptime(s.uptimeSeconds));
   if (s.serverVersion) setEl('dash-server-version', s.serverVersion);
-  checkServerUpdate();
 
   // Draw sparkline with real data — timeout ensures grid layout is settled
   setTimeout(() => fetchAndRenderSparkline('sparkline-svg', sparkRange), 50);
@@ -1672,10 +1665,37 @@ async function forceLogout(connId,name,hostname) {
 
 /* ── SETTINGS ── */
 async function renderSettings() {
-  const settings=await api('GET','/api/admin/settings');
+  const [settings, stats] = await Promise.all([api('GET','/api/admin/settings'), api('GET','/api/admin/stats')]);
+  const LOCAL_VERSION_DISPLAY = stats?.serverVersion || '—';
 
   document.getElementById('page-body').innerHTML=`
     <div class="settings-wrap">
+
+      <!-- Обновление сервера -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3>Обновление сервера</h3>
+            <div class="card-sub">Текущая версия: <span style="font-family:var(--f-mono);font-weight:600">${LOCAL_VERSION_DISPLAY}</span></div>
+          </div>
+        </div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <button class="btn btn-ghost" id="su-check-btn" onclick="checkServerUpdateSettings()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              Проверить
+            </button>
+            <span id="su-status"></span>
+          </div>
+          <div id="su-progress" style="display:none">
+            <div style="height:4px;border-radius:2px;background:var(--c-border);overflow:hidden;margin-bottom:6px">
+              <div class="su-bar" style="height:100%;width:0%;background:var(--c-primary);border-radius:2px;transition:width 1.8s ease"></div>
+            </div>
+            <div class="su-progress-label" style="font-size:11px;color:var(--c-muted)"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-head"><h3>GitHub API</h3></div>
         <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
@@ -1770,44 +1790,105 @@ function setTopbarActions(html) {
     ${html}`;
 }
 
-let _lastVersionCheck = 0;
-async function checkServerUpdate(force = false) {
-  const now = Date.now();
-  if (!force && now - _lastVersionCheck < 600000) return; // раз в 10 минут
-  _lastVersionCheck = now;
-  const btn = document.getElementById('btn-check-ver');
-  if (btn) btn.style.animation = 'spin 1s linear infinite';
+/* ── SERVER UPDATE (Settings) ── */
+let _updateCheckData = null; // { current, latest, hasUpdate }
+
+async function checkServerUpdateSettings() {
+  const btn = document.getElementById('su-check-btn');
+  const statusEl = document.getElementById('su-status');
+  if (!btn || !statusEl) return;
+
+  btn.disabled = true;
+  btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 1s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Проверяю…`;
+  statusEl.innerHTML = '';
+
   try {
     const data = await api('GET', '/api/admin/server/version');
-    if (btn) btn.style.animation = '';
-    if (!data) return;
-    const el = document.getElementById('dash-server-version');
-    if (!el) return;
+    _updateCheckData = data;
+
+    if (!data) throw new Error('no data');
+
     if (data.hasUpdate) {
-      el.innerHTML = `<button class="btn-update" onclick="doServerUpdate()" title="Обновить с ${data.current} до ${data.latest}">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="17 11 12 6 7 11"/><line x1="12" y1="6" x2="12" y2="18"/></svg>
-        ${data.latest}
-      </button>`;
-    } else if (data.current) {
-      // Явный фидбек что проверка прошла и версия актуальна
-      el.innerHTML = `${data.current} <span style="color:var(--c-green-text);font-size:10px;font-weight:600">✓</span>`;
-      setTimeout(() => { const e = document.getElementById('dash-server-version'); if (e) e.textContent = data.current; }, 2500);
+      btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="17 11 12 6 7 11"/><line x1="12" y1="6" x2="12" y2="18"/></svg> Обновить до ${data.latest}`;
+      btn.className = 'btn btn-success';
+      btn.disabled = false;
+      btn.onclick = doServerUpdateSettings;
+      statusEl.innerHTML = `<span style="color:var(--c-orange-text);font-size:12px">Доступна версия ${data.latest}</span>`;
+    } else {
+      btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Проверить`;
+      btn.className = 'btn btn-ghost';
+      btn.disabled = false;
+      btn.onclick = checkServerUpdateSettings;
+      statusEl.innerHTML = `<span style="color:var(--c-green-text);font-size:12px;display:flex;align-items:center;gap:5px">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        Установлена актуальная версия сервера
+      </span>`;
     }
   } catch {
-    if (btn) btn.style.animation = '';
-    const el = document.getElementById('dash-server-version');
-    if (el) el.innerHTML = `${el.textContent} <span style="color:var(--c-red-text);font-size:10px">✕ нет связи</span>`;
+    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Проверить`;
+    btn.className = 'btn btn-ghost';
+    btn.disabled = false;
+    btn.onclick = checkServerUpdateSettings;
+    statusEl.innerHTML = `<span style="color:var(--c-red-text);font-size:12px">Не удалось проверить обновления</span>`;
   }
 }
 
-async function doServerUpdate() {
-  const btn = document.querySelector('.btn-update');
-  if (btn) { btn.textContent = '…'; btn.disabled = true; }
-  try {
+async function doServerUpdateSettings() {
+  const btn = document.getElementById('su-check-btn');
+  const statusEl = document.getElementById('su-status');
+  const progressEl = document.getElementById('su-progress');
+  if (!btn) return;
+
+  btn.disabled = true;
+  btn.innerHTML = '…';
+
+  // Показываем прогресс-бар
+  if (progressEl) {
+    progressEl.style.display = 'block';
+    let pct = 0;
+    const bar = progressEl.querySelector('.su-bar');
+    const label = progressEl.querySelector('.su-progress-label');
+    const steps = [
+      { pct: 15, text: 'Получение обновления с GitHub…' },
+      { pct: 45, text: 'Установка зависимостей…' },
+      { pct: 75, text: 'Сборка…' },
+      { pct: 90, text: 'Перезапуск службы…' },
+    ];
+    let stepIdx = 0;
+    const advance = setInterval(() => {
+      if (stepIdx < steps.length) {
+        pct = steps[stepIdx].pct;
+        if (label) label.textContent = steps[stepIdx].text;
+        stepIdx++;
+      }
+      if (bar) bar.style.width = pct + '%';
+    }, 2000);
+
     await api('POST', '/api/admin/server/update');
-    showToast('Обновление запущено. Сервер перезапустится через несколько секунд.');
-  } catch {
-    showToast('Ошибка при запуске обновления');
+    if (statusEl) statusEl.innerHTML = '';
+
+    // Ждём пока сервер вернётся
+    const startedAt = Date.now();
+    const poll = setInterval(async () => {
+      if (Date.now() - startedAt > 60000) {
+        clearInterval(poll);
+        clearInterval(advance);
+        if (label) label.textContent = 'Сервер не ответил за 60 сек';
+        if (bar) { bar.style.width = '100%'; bar.style.background = 'var(--c-red)'; }
+        return;
+      }
+      try {
+        const res = await fetch('/api/admin/stats', { headers: { Authorization: 'Bearer ' + token, 'Cache-Control': 'no-cache' } });
+        if (res.ok) {
+          clearInterval(poll);
+          clearInterval(advance);
+          if (bar) { bar.style.width = '100%'; bar.style.background = 'var(--c-green)'; }
+          if (label) label.textContent = 'Обновление завершено';
+          toast('Сервер обновлён и перезапущен', 'success');
+          setTimeout(() => renderSettings(), 1500);
+        }
+      } catch {}
+    }, 1500);
   }
 }
 </script>
