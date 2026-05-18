@@ -515,6 +515,7 @@ tr:hover .td-actions{opacity:1}
     <div class="modal-body">
       <div class="fg"><label>Логин</label><input id="u-username" placeholder="username" autocomplete="off"></div>
       <div class="fg"><label>Отображаемое имя</label><input id="u-display" placeholder="Иван Иванов"></div>
+      <div class="fg"><label>Тег <span style="color:var(--c-muted);font-weight:400;text-transform:none;letter-spacing:0">(необязательно)</span></label><input id="u-tag" placeholder="например: CEO, Dev, HR" maxlength="20" autocomplete="off"></div>
       <div class="fg">
         <label>Пароль <span id="u-pass-hint" style="color:var(--c-muted);font-weight:400;text-transform:none;letter-spacing:0">(оставьте пустым, чтобы не менять)</span></label>
         <input id="u-password" type="password" placeholder="••••••••" autocomplete="new-password">
@@ -1349,7 +1350,7 @@ function openCreateUser() {
   document.getElementById('user-modal-title').textContent='Создать пользователя';
   document.getElementById('u-save-btn').textContent='Создать';
   document.getElementById('u-pass-hint').style.display='none';
-  ['u-username','u-display','u-password'].forEach(id=>document.getElementById(id).value='');
+  ['u-username','u-display','u-password','u-tag'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('u-admin').checked=false;
   document.getElementById('u-err').textContent='';
   openModal('modal-user');
@@ -1364,6 +1365,7 @@ function openEditUser(id) {
   document.getElementById('u-pass-hint').style.display='';
   document.getElementById('u-username').value=u.username;
   document.getElementById('u-display').value=u.display_name;
+  document.getElementById('u-tag').value=u.tag||'';
   document.getElementById('u-password').value='';
   document.getElementById('u-admin').checked=!!u.is_admin;
   document.getElementById('u-err').textContent='';
@@ -1377,7 +1379,8 @@ async function saveUser() {
   const is_admin=document.getElementById('u-admin').checked;
   document.getElementById('u-err').textContent='';
   if (editingUserId) {
-    const data=await api('PATCH','/api/users/'+editingUserId,{username,display_name,is_admin});
+    const tag=document.getElementById('u-tag').value.trim()||null;
+    const data=await api('PATCH','/api/users/'+editingUserId,{username,display_name,is_admin,tag});
     if (password) await api('PATCH','/api/users/'+editingUserId+'/password',{password});
     if (data.ok) { closeModal('modal-user'); toast('Пользователь обновлён','success'); renderUsers(); }
     else document.getElementById('u-err').textContent=data.error||'Ошибка';

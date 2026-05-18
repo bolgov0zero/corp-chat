@@ -15,7 +15,7 @@ router.get('/chat/:chatId', authMiddleware, (req, res) => {
   const rows = before
     ? db.prepare(`
         SELECT m.id, m.chat_id, m.text, m.sent_at, m.edited_at, m.deleted, m.attachment,
-          u.id as sender_id, u.display_name as sender_name,
+          u.id as sender_id, u.display_name as sender_name, u.tag as sender_tag,
           m.reply_to_id,
           rm.text as reply_text, rm.deleted as reply_deleted,
           ru.display_name as reply_sender_name
@@ -27,7 +27,7 @@ router.get('/chat/:chatId', authMiddleware, (req, res) => {
       `).all(chatId, before, limit)
     : db.prepare(`
         SELECT m.id, m.chat_id, m.text, m.sent_at, m.edited_at, m.deleted, m.attachment,
-          u.id as sender_id, u.display_name as sender_name,
+          u.id as sender_id, u.display_name as sender_name, u.tag as sender_tag,
           m.reply_to_id,
           rm.text as reply_text, rm.deleted as reply_deleted,
           ru.display_name as reply_sender_name

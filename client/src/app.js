@@ -844,12 +844,14 @@ function renderMsg(m, isChatGroup, hideTime = false, grouped = false, isLast = t
     : '';
   const colorKey = avColor.replace('av-', '');
   const senderNameHtml = (!mine && !grouped && isChatGroup) ? `<span class="bubble-sender bubble-sender-${colorKey}">${esc(m.sender_name)}</span>` : '';
+  const tagHtml = (!mine && isChatGroup && m.sender_tag) ? `<span class="bubble-tag bubble-tag-${colorKey}">${esc(m.sender_tag)}</span>` : '';
   const bubblePositionClass = !grouped && isLast ? '' : (!grouped ? ' bubble-first' : (isLast ? ' bubble-last' : ' bubble-mid'));
   return `<div class="msg-group ${mine?'mine':'theirs'}${grouped?' grouped':''}${m._optimistic?' msg-optimistic':''}" data-msg-id="${m.id}" data-sender-id="${m.sender_id}" data-sent-at="${m.sent_at}"${m._optimistic?' data-optimistic="1"':''}>
     <div class="msg-bubble-row">
       ${avatarHtml}
       <div class="msg-row">
         <div class="bubble${isDeleted?' deleted':''}${bubblePositionClass}" oncontextmenu="${!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at},${mine})`:'event.preventDefault()'}" ondblclick="${!isDeleted?`dblReply(${m.id})`:''}">
+          ${tagHtml}
           ${senderNameHtml}
           ${replyHtml}
           ${attachHtml}
@@ -899,9 +901,10 @@ function renderMsgIRC(m, isGroup) {
        </div>`
     : `<div class="irc-av av av-round ${avColor}" style="position:relative;flex-shrink:0">${avLetter}${avImg}</div>`;
 
+  const ircTagHtml = (!mine && !isGroup && m.sender_tag) ? `<span class="bubble-tag bubble-tag-${avColor.replace('av-','')}">${esc(m.sender_tag)}</span>` : '';
   const header = isGroup ? '' : `
     <div class="irc-header">
-      <span class="irc-name ${avColor}-text${mine?' mine':''}">${senderName}</span>
+      <span class="irc-name ${avColor}-text${mine?' mine':''}">${senderName}</span>${ircTagHtml}
       <div class="irc-meta">${statusIcon}<span class="irc-time">${time}</span></div>
     </div>`;
 

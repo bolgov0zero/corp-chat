@@ -73,12 +73,12 @@ router.post('/', authMiddleware, adminMiddleware, (req, res) => {
 
 // Admin: edit user
 router.patch('/:id', authMiddleware, adminMiddleware, (req, res) => {
-  const { username, display_name, is_admin } = req.body;
+  const { username, display_name, is_admin, tag } = req.body;
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
   if (!user) return res.status(404).json({ error: 'Not found' });
   try {
-    db.prepare('UPDATE users SET username = ?, display_name = ?, is_admin = ? WHERE id = ?')
-      .run(username?.trim() || user.username, display_name?.trim() || user.display_name, is_admin !== undefined ? (is_admin ? 1 : 0) : user.is_admin, req.params.id);
+    db.prepare('UPDATE users SET username = ?, display_name = ?, is_admin = ?, tag = ? WHERE id = ?')
+      .run(username?.trim() || user.username, display_name?.trim() || user.display_name, is_admin !== undefined ? (is_admin ? 1 : 0) : user.is_admin, tag !== undefined ? (tag?.trim() || null) : user.tag, req.params.id);
     res.json({ ok: true });
   } catch { res.status(409).json({ error: 'Username already exists' }); }
 });

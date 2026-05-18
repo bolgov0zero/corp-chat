@@ -593,6 +593,17 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
 }
 
 .bubble-sender { font-size: 11px; font-weight: 700; margin-bottom: 3px; display: block; }
+
+.bubble-tag {
+  position: absolute; top: 7px; right: 10px;
+  font-size: 9px; font-weight: 700;
+  padding: 1px 5px; border-radius: 5px;
+  line-height: 1.4; pointer-events: none;
+}
+.bubble-tag-blue   { background: rgba(96,165,250,0.2);  color: #60a5fa; }
+.bubble-tag-green  { background: rgba(52,211,153,0.2);  color: #34d399; }
+.bubble-tag-purple { background: rgba(167,139,250,0.2); color: #a78bfa; }
+.bubble-tag-orange { background: rgba(251,146,60,0.2);  color: #fb923c; }
 .bubble-sender-blue   { color: #60a5fa; }
 .bubble-sender-green  { color: #34d399; }
 .bubble-sender-purple { color: #a78bfa; }
@@ -686,7 +697,7 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
   display: inline-flex; align-items: center; gap: 3px;
   float: right; clear: right;
   margin-left: 8px; margin-top: 2px;
-  font-size: 11px; font-variant-numeric: tabular-nums;
+  font-size: 10px; font-variant-numeric: tabular-nums;
   color: rgba(255,255,255,.65);
 }
 .theirs .bubble-meta { color: var(--muted); }
