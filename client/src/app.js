@@ -148,7 +148,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('focus', () => {
     if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'set_status', status:'online'}));
   });
-  // На Windows: blur окна → статус "отошёл"
+  // blur окна → статус "отошёл" (все платформы)
   window.electron?.onWindowFocus?.(focused => {
     if (S.ws?.readyState===1)
       S.ws.send(JSON.stringify({type:'set_status', status: focused ? 'online' : 'away'}));

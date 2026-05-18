@@ -277,7 +277,7 @@ function createWindow() {
     mainWindow.webContents.send('window-focus', true);
   });
   mainWindow.on('blur', () => {
-    if (process.platform === 'win32') mainWindow.webContents.send('window-focus', false);
+    mainWindow.webContents.send('window-focus', false);
   });
 }
 
