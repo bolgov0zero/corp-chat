@@ -47,19 +47,30 @@ function getLocalVersion() { return LOCAL_VERSION; }
 
 function fetchRemoteVersion() {
   return new Promise((resolve) => {
-    const req = https.request({
-      hostname: 'raw.githubusercontent.com',
-      path: '/bolgov0zero/corp-chat/main/server/version.json',
-      headers: { 'User-Agent': 'Electron-Server', 'Cache-Control': 'no-cache' },
-    }, res => {
-      let data = '';
-      res.on('data', c => data += c);
-      res.on('end', () => {
-        try { resolve(JSON.parse(data).version); } catch { resolve(null); }
+    try {
+      const token = db.prepare("SELECT value FROM settings WHERE key = 'github_token'").get()?.value;
+      const headers = { 'User-Agent': 'Electron-Server', 'Accept': 'application/vnd.github.v3+json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      // Используем GitHub API — не кешируется CDN, в отличие от raw.githubusercontent.com
+      const req = https.request({
+        hostname: 'api.github.com',
+        path: '/repos/bolgov0zero/corp-chat/contents/server/version.json',
+        headers,
+      }, res => {
+        let data = '';
+        res.on('data', c => data += c);
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            // Контент закодирован в base64
+            const content = Buffer.from(json.content, 'base64').toString('utf8');
+            resolve(JSON.parse(content).version);
+          } catch { resolve(null); }
+        });
       });
-    });
-    req.on('error', () => resolve(null));
-    req.end();
+      req.on('error', () => resolve(null));
+      req.end();
+    } catch { resolve(null); }
   });
 }
 
