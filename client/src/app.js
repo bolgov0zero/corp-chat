@@ -753,13 +753,17 @@ function renderMsgIRC(m, isGroup) {
       <div class="irc-meta">${statusIcon}<span class="irc-time">${time}</span></div>
     </div>`;
 
+  const att = m.attachment;
+  const attachHtml = (!isDeleted && att?.url) ? `<div class="bubble-image" style="margin:4px 0;max-width:260px" onclick="openLightbox('${httpProto()}://${S.server}${att.url}')"><img src="${httpProto()}://${S.server}${att.url}" loading="lazy"></div>` : '';
+
   return `<div class="irc-msg${isGroup?' irc-grouped':''}" data-msg-id="${m.id}" data-sender-id="${m.sender_id}" data-sent-at="${m.sent_at}"
     oncontextmenu="${!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at},${mine})`:'event.preventDefault()'}">
     ${avCol}
     <div class="irc-content" ondblclick="${!isDeleted?`dblReply(${m.id})`:''}">
       ${header}
       ${replyHtml}
-      <div class="irc-text${isDeleted?' irc-deleted':''}">${bodyText}</div>
+      ${attachHtml}
+      ${m.text || isDeleted ? `<div class="irc-text${isDeleted?' irc-deleted':''}">${bodyText}</div>` : ''}
       ${reactionsHtml}
     </div>
     ${actionsHtml}
