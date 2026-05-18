@@ -152,6 +152,7 @@ do_update() {
   fi
 
   echo -e "  ${YELLOW}→ Применение изменений...${NC}"
+  git checkout -- . -q 2>/dev/null
   git pull origin main -q
 
   echo -e "  ${YELLOW}→ Установка зависимостей...${NC}"
