@@ -367,9 +367,9 @@ tr:hover .td-actions{opacity:1}
 .ver-ok{color:var(--c-green-text);font-family:var(--f-mono);font-size:11px;font-weight:600}
 .ver-old{color:var(--c-orange-text);font-family:var(--f-mono);font-size:11px;font-weight:700}
 .clients-refresh{font-size:11px;color:var(--c-muted);font-family:var(--f-mono)}
-.ver-wrap{display:inline-flex;align-items:center;gap:5px}
-.ver-update-btn{display:inline-flex;align-items:center;color:var(--c-green-text);cursor:default;position:relative}
-.ver-update-btn:hover .ver-tooltip{opacity:1;transform:translateY(0)}
+.ver-wrap{display:inline-flex;align-items:center;gap:5px;position:relative}
+.ver-update-btn{display:inline-flex;align-items:center;color:var(--c-green-text);cursor:default}
+.ver-wrap:hover .ver-tooltip{opacity:1;transform:translateX(-50%) translateY(0)}
 .ver-tooltip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%) translateY(4px);background:var(--c-surface2);border:1px solid var(--c-border);border-radius:6px;padding:5px 10px;font-size:11px;font-family:var(--f-mono);font-weight:600;color:var(--c-text);white-space:nowrap;opacity:0;transition:opacity .15s,transform .15s;pointer-events:none;z-index:10}
 .ver-tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--c-border)}
 
