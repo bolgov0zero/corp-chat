@@ -18,6 +18,11 @@ const S = {
 
 const SESSION_KEY = 'electron_v2';
 
+// ── AVATAR CACHE ──
+const _avatarCache = new Map(); // url -> true (loaded) | false (error)
+
+let _fetchController = new AbortController();
+
 // ── UTILS ──
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
@@ -64,10 +69,14 @@ async function api(method, path, body) {
       method,
       headers: { 'Content-Type':'application/json', ...(S.token?{Authorization:'Bearer '+S.token}:{}) },
       body: body ? JSON.stringify(body) : undefined,
+      signal: _fetchController.signal,
     });
     if (res.status === 401) { logout(); return null; }
     return res.json();
-  } catch { return null; }
+  } catch(e) {
+    if (e?.name === 'AbortError') return null;
+    return null;
+  }
 }
 
 // ── SESSION ──
@@ -146,11 +155,6 @@ window.addEventListener('DOMContentLoaded', async () => {
       updateSidebarStatus('away');
     }
   });
-  // On window focus (e.g. Electron window receives focus) — ensure online status
-  window.addEventListener('focus', () => {
-    if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'set_status', status:'online'}));
-    updateSidebarStatus('online');
-  });
   // blur окна → статус "отошёл" (все платформы)
   window.electron?.onWindowFocus?.(focused => {
     if (S.ws?.readyState===1)
@@ -207,6 +211,8 @@ async function doLogin() {
 }
 
 function logout() {
+  _fetchController.abort();
+  _fetchController = new AbortController();
   closeSettings();
   if (S.ws) S.ws.close();
   if (S.server) {
@@ -396,20 +402,23 @@ async function onAvatarFileChange(input) {
 }
 
 // ── NOTIFICATION SOUND ──
+let _audioCtx = null;
 function playNotificationSound() {
   if (S.settings.soundEnabled === false) return;
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    if (!_audioCtx || _audioCtx.state === 'closed') {
+      _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    const osc = _audioCtx.createOscillator();
+    const gain = _audioCtx.createGain();
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(_audioCtx.destination);
     osc.frequency.value = 880;
     osc.type = 'sine';
-    gain.gain.setValueAtTime(0.25, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.3);
+    gain.gain.setValueAtTime(0.25, _audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, _audioCtx.currentTime + 0.3);
+    osc.start(_audioCtx.currentTime);
+    osc.stop(_audioCtx.currentTime + 0.3);
   } catch(e) {}
 }
 
@@ -441,14 +450,29 @@ function chatIcon(chat) {
 
 // Try loading real photo into an .av element; fall back to initials if 404
 function tryLoadAvatar(el, url, fallbackText) {
+  const cached = _avatarCache.get(url);
+  if (cached === true) {
+    el.style.backgroundImage = `url('${url}')`;
+    el.style.backgroundSize = 'cover';
+    el.style.backgroundPosition = 'center';
+    el.textContent = '';
+    return;
+  }
+  if (cached === false) {
+    el.style.backgroundImage = '';
+    el.textContent = fallbackText;
+    return;
+  }
   const img = new Image();
   img.onload = () => {
+    _avatarCache.set(url, true);
     el.style.backgroundImage = `url('${url}')`;
     el.style.backgroundSize = 'cover';
     el.style.backgroundPosition = 'center';
     el.textContent = '';
   };
   img.onerror = () => {
+    _avatarCache.set(url, false);
     el.style.backgroundImage = '';
     el.textContent = fallbackText;
   };
@@ -625,8 +649,18 @@ async function openChat(chatId) {
   const sendBtn = document.getElementById('send-btn');
   if (sendBtn) { sendBtn.style.background='transparent'; sendBtn.style.color='var(--muted)'; sendBtn.style.boxShadow='none'; }
   if (S.ws && !document.hidden) S.ws.send(JSON.stringify({type:'read', chat_id: chatId}));
+  // Показать скелетон пока грузятся сообщения
+  const msgsEl = document.getElementById('messages');
+  if (msgsEl) {
+    msgsEl.innerHTML = `<div class="skeleton-wrap">${[200,280,160,240,120].map((w,i) =>
+      `<div class="skeleton-msg ${i%2===0?'theirs':'mine'}">
+        <div class="skeleton-av"></div>
+        <div class="skeleton-bubble" style="width:${w}px"></div>
+      </div>`).join('')}</div>`;
+  }
   const msgs = await api('GET', `/messages/chat/${chatId}`);
-  if (msgs) renderMessages(msgs);
+  // Игнорируем ответ если пока грузились — переключились на другой чат
+  if (msgs && S.activeChatId === chatId) renderMessages(msgs);
   document.getElementById('msg-input')?.focus();
 }
 
@@ -733,7 +767,7 @@ function renderMsg(m, isChatGroup, hideTime = false, grouped = false) {
   const avImg = `<img src="${httpProto()}://${S.server}/api/users/${m.sender_id}/avatar" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:10px" onerror="this.style.display='none'">`;
   const avatarHtml = (!mine && !grouped) ? `<div class="av av-sm ${avColor}" style="position:relative;flex-shrink:0;align-self:flex-end;margin-bottom:2px">${avLetter}${avImg}</div>` : (!mine ? `<div style="width:32px;flex-shrink:0"></div>` : '');
   const senderNameHtml = (!mine && !grouped && isChatGroup) ? `<div class="msg-sender">${esc(m.sender_name)}</div>` : '';
-  return `<div class="msg-group ${mine?'mine':'theirs'}${grouped?' grouped':''}" data-msg-id="${m.id}" data-sender-id="${m.sender_id}" data-sent-at="${m.sent_at}">
+  return `<div class="msg-group ${mine?'mine':'theirs'}${grouped?' grouped':''}${m._optimistic?' msg-optimistic':''}" data-msg-id="${m.id}" data-sender-id="${m.sender_id}" data-sent-at="${m.sent_at}"${m._optimistic?' data-optimistic="1"':''}>
     ${senderNameHtml}
     <div class="msg-bubble-row">
       ${avatarHtml}
@@ -796,7 +830,7 @@ function renderMsgIRC(m, isGroup) {
   const att = m.attachment;
   const attachHtml = (!isDeleted && att?.url) ? `<div class="bubble-image" style="margin:4px 0;max-width:260px" onclick="openLightbox('${httpProto()}://${S.server}${att.url}')"><img src="${httpProto()}://${S.server}${att.url}" loading="lazy"></div>` : '';
 
-  return `<div class="irc-msg${isGroup?' irc-grouped':''}" data-msg-id="${m.id}" data-sender-id="${m.sender_id}" data-sent-at="${m.sent_at}"
+  return `<div class="irc-msg${isGroup?' irc-grouped':''}${m._optimistic?' msg-optimistic':''}" data-msg-id="${m.id}" data-sender-id="${m.sender_id}" data-sent-at="${m.sent_at}"${m._optimistic?' data-optimistic="1"':''}
     oncontextmenu="${!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at},${mine})`:'event.preventDefault()'}">
     ${avCol}
     <div class="irc-content" ondblclick="${!isDeleted?`dblReply(${m.id})`:''}">
@@ -832,18 +866,23 @@ function appendMsg(m) {
   const container = document.getElementById('messages');
   if (!container) return;
   const chat = S.chats.find(c=>c.id===S.activeChatId);
-  // Check if previous message is from same sender → grouped (no avatar, etc.)
   const allMsgs = [...container.querySelectorAll('[data-msg-id]')];
   const lastEl = allMsgs[allMsgs.length - 1];
   let grouped = false;
   if (lastEl && !m.deleted) {
     const prevSenderId = parseInt(lastEl.dataset.senderId || '0');
     const prevTime = parseInt(lastEl.dataset.sentAt || '0');
-    const prevMsg = { sender_id: prevSenderId, sent_at: prevTime };
-    grouped = sameTimeGroup(prevMsg, m);
+    grouped = sameTimeGroup({ sender_id: prevSenderId, sent_at: prevTime }, m);
   }
   container.insertAdjacentHTML('beforeend', renderMsg(m, chat?.type==='group', false, grouped));
-  container.scrollTop = container.scrollHeight;
+  const newEl = container.lastElementChild;
+  if (newEl && !m._optimistic) newEl.classList.add('msg-new');
+
+  // Умный скролл: прокручиваем только если пользователь у дна
+  const dist = container.scrollHeight - container.scrollTop - container.clientHeight;
+  if (dist < 120) {
+    container.scrollTo({ top: container.scrollHeight, behavior: m._optimistic ? 'instant' : 'smooth' });
+  }
 }
 
 function updateMsgInDOM(m) {
@@ -933,6 +972,28 @@ function sendOrEdit() {
   const payload = { type:'message', chat_id:S.activeChatId, text: text || '' };
   if (S.replyTo) payload.reply_to_id = S.replyTo.id;
   if (_pendingAttachment) payload.attachment = _pendingAttachment;
+
+  // Optimistic: показать сообщение сразу, не дожидаясь echo от сервера
+  const tempMsg = {
+    id: -(Date.now()),
+    chat_id: S.activeChatId,
+    sender_id: S.user.id,
+    sender_name: S.user.display_name,
+    text: text || '',
+    sent_at: Math.floor(Date.now() / 1000),
+    edited_at: null,
+    deleted: 0,
+    reply_to_id: S.replyTo?.id || null,
+    reply_text: S.replyTo?.text || null,
+    reply_sender_name: S.replyTo?.senderName || null,
+    reply_deleted: false,
+    attachment: _pendingAttachment || null,
+    status: { delivered: 0, read: 0, total: 1 },
+    reactions: [],
+    _optimistic: true,
+  };
+  appendMsg(tempMsg);
+
   S.ws.send(JSON.stringify(payload));
   hideReplyBar();
   clearImagePreview();
@@ -1255,6 +1316,10 @@ function connectWS() {
       const chat = S.chats.find(c=>c.id===chatId);
       if (chat) chat.last_message = message;
       if (S.activeChatId===chatId && !document.hidden) {
+        // Убираем optimistic-заглушку если она есть (только для своих сообщений)
+        if (message.sender_id === S.user.id) {
+          document.querySelector('[data-optimistic="1"]')?.remove();
+        }
         appendMsg(message);
         if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'read', chat_id:chatId}));
         if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'delivered', message_id:message.id}));
@@ -1338,16 +1403,17 @@ function connectWS() {
 
     if (data.type==='presence') {
       S.presence[data.user_id] = data.status;
-      renderChatList();
+      const color = data.status==='online'?'#22c55e':data.status==='away'?'#eab308':'#ef4444';
+      // Точечно обновляем все presence-dot с этим user_id — без полного renderChatList
+      document.querySelectorAll(`.presence-dot[data-user-id="${data.user_id}"]`).forEach(dot => {
+        dot.style.background = color;
+        dot.title = data.status;
+      });
       if (S.activeChatId) {
         const chat = S.chats.find(c=>c.id===S.activeChatId);
         if (chat && getPeerUserId(chat) === data.user_id) {
           const dotEl = document.querySelector('.chat-header .presence-dot');
-          if (dotEl) {
-            const color = data.status==='online'?'#22c55e':data.status==='away'?'#eab308':'#ef4444';
-            dotEl.style.background = color;
-            dotEl.title = data.status;
-          }
+          if (dotEl) { dotEl.style.background = color; dotEl.title = data.status; }
         }
       }
     }
@@ -1362,6 +1428,7 @@ function connectWS() {
 
     if (data.type==='avatar_updated') {
       S.avatarTs = Date.now();
+      _avatarCache.clear();
       updateMeAvatar();
       renderChatList();
     }
@@ -1430,7 +1497,7 @@ async function loadPresence() {
 function presenceDot(userId) {
   const s = S.presence[userId] || 'offline';
   const color = s === 'online' ? '#22c55e' : s === 'away' ? '#eab308' : '#ef4444';
-  return `<span class="presence-dot" style="background:${color}" title="${s}"></span>`;
+  return `<span class="presence-dot" data-user-id="${userId}" style="background:${color}" title="${s}"></span>`;
 }
 
 function getPeerUserId(chat) {

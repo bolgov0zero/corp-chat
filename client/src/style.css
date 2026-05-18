@@ -1560,3 +1560,70 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
   display: flex; flex-direction: column; align-items: center; gap: 12px;
   color: var(--accent); font-size: 15px; font-weight: 600;
 }
+
+/* ── Оптимизация рендеринга ── */
+.messages {
+  will-change: scroll-position;
+}
+.chat-item {
+  contain: layout style;
+  transition: background-color 100ms ease;
+}
+.msg-group, .irc-msg {
+  contain: layout style;
+}
+
+/* ── Анимация новых сообщений ── */
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.msg-new {
+  animation: msgIn 150ms ease-out;
+}
+
+/* ── Optimistic message ── */
+.msg-optimistic {
+  opacity: 0.6;
+}
+
+/* ── Presence dot transition ── */
+.presence-dot {
+  transition: background-color 300ms ease;
+}
+
+/* ── Skeleton loader ── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.skeleton-wrap {
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.skeleton-msg {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+.skeleton-msg.mine {
+  flex-direction: row-reverse;
+}
+.skeleton-av {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, var(--hover-row) 25%, var(--border) 50%, var(--hover-row) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+.skeleton-bubble {
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, var(--hover-row) 25%, var(--border) 50%, var(--hover-row) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
