@@ -14,9 +14,14 @@ const S = {
   newGroupAvatarBase64: null,
   presence: {}, // userId -> 'online'|'away'|'offline'
   reactions: {}, // messageId -> [{reaction, count}]
+  chatHasMore: false,   // есть ли ещё сообщения выше
+  chatOldestId: null,   // id самого старого загруженного сообщения
 };
 
 const SESSION_KEY = 'electron_v2';
+
+// ── PAGINATION ──
+let _loadingMore = false; // флаг чтобы не делать двойной запрос
 
 // ── AVATAR CACHE ──
 const _avatarCache = new Map(); // url -> true (loaded) | false (error)
@@ -567,6 +572,9 @@ function filterChats() { renderChatList(); }
 // ── OPEN CHAT ──
 async function openChat(chatId) {
   S.activeChatId = chatId;
+  S.chatHasMore = false;
+  S.chatOldestId = null;
+  _loadingMore = false;
   S.unread[chatId] = 0;
   updateUnreadTotal();
   renderChatList();
@@ -658,9 +666,16 @@ async function openChat(chatId) {
         <div class="skeleton-bubble" style="width:${w}px"></div>
       </div>`).join('')}</div>`;
   }
-  const msgs = await api('GET', `/messages/chat/${chatId}`);
+  const data = await api('GET', `/messages/chat/${chatId}?limit=50`);
   // Игнорируем ответ если пока грузились — переключились на другой чат
-  if (msgs && S.activeChatId === chatId) renderMessages(msgs);
+  if (data && S.activeChatId === chatId) {
+    S.chatHasMore = data.hasMore;
+    S.chatOldestId = data.messages[0]?.id ?? null;
+    renderMessages(data.messages);
+    // Вешаем слушатель скролла для подгрузки старых сообщений
+    const msgsEl = document.getElementById('messages');
+    if (msgsEl) msgsEl.addEventListener('scroll', onMessagesScroll, { passive: true });
+  }
   document.getElementById('msg-input')?.focus();
 }
 
@@ -736,6 +751,59 @@ function renderMessages(msgs) {
   });
   container.innerHTML = html;
   container.scrollTop = container.scrollHeight;
+}
+
+// ── PAGINATION: подгрузка старых сообщений ──
+function onMessagesScroll() {
+  const container = document.getElementById('messages');
+  if (!container || !S.chatHasMore || _loadingMore) return;
+  if (container.scrollTop < 80) loadMoreMessages();
+}
+
+async function loadMoreMessages() {
+  if (_loadingMore || !S.chatHasMore || !S.activeChatId || !S.chatOldestId) return;
+  _loadingMore = true;
+  const chatId = S.activeChatId;
+  const data = await api('GET', `/messages/chat/${chatId}?before=${S.chatOldestId}&limit=50`);
+  _loadingMore = false;
+  if (!data || S.activeChatId !== chatId) return;
+  const { messages, hasMore } = data;
+  if (!messages.length) { S.chatHasMore = false; return; }
+  S.chatHasMore = hasMore;
+  S.chatOldestId = messages[0].id;
+  prependMessages(messages, chatId);
+}
+
+function prependMessages(msgs, chatId) {
+  const container = document.getElementById('messages');
+  if (!container) return;
+  const chat = S.chats.find(c => c.id === chatId);
+  const isChatGroup = chat?.type === 'group';
+  msgs.forEach(m => { if (m.reactions?.length) S.reactions[m.id] = m.reactions; });
+
+  let html = '';
+  let lastDate = '';
+  let lastSenderId = null;
+  let lastSentAt = 0;
+  msgs.forEach((m, i) => {
+    const dateStr = fmtDate(m.sent_at);
+    const dayChanged = dateStr !== lastDate;
+    if (dayChanged) {
+      html += `<div class="date-divider"><span>${dateStr}</span></div>`;
+      lastDate = dateStr;
+      lastSenderId = null;
+    }
+    const grouped = !dayChanged && m.sender_id === lastSenderId && (m.sent_at - lastSentAt) < 300;
+    html += renderMsg(m, isChatGroup, false, grouped);
+    lastSenderId = m.sender_id;
+    lastSentAt = m.sent_at;
+  });
+
+  // Компенсируем скролл — чтобы экран не прыгал
+  const prevHeight = container.scrollHeight;
+  const prevTop = container.scrollTop;
+  container.insertAdjacentHTML('afterbegin', html);
+  container.scrollTop = prevTop + (container.scrollHeight - prevHeight);
 }
 
 function renderReactions(msgId) {

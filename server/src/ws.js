@@ -111,19 +111,27 @@ function setup(server) {
         }
 
         const attJson = attachment ? JSON.stringify(attachment) : null;
-        const result = db.prepare('INSERT INTO messages (chat_id, sender_id, text, reply_to_id, attachment) VALUES (?, ?, ?, ?, ?)').run(chat_id, user.id, (text||'').trim(), reply_to_id || null, attJson);
-        const msgId = result.lastInsertRowid;
 
-        // Пометить как delivered тем участникам, которые сейчас онлайн (кроме отправителя)
-        const members = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ? AND user_id != ?').all(chat_id, user.id);
-        const insStatus = db.prepare('INSERT OR IGNORE INTO message_status (message_id, user_id) VALUES (?, ?)');
-        const updDelivered = db.prepare('UPDATE message_status SET delivered_at = COALESCE(delivered_at, unixepoch()) WHERE message_id = ? AND user_id = ?');
-        members.forEach(({ user_id }) => {
-          if (clients.has(user_id) && clients.get(user_id).size > 0) {
-            insStatus.run(msgId, user_id);
-            updDelivered.run(msgId, user_id);
-          }
-        });
+        // Подготавливаем стейтменты вне транзакции — db.prepare нельзя вызывать внутри неё
+        const stmtInsertMsg = db.prepare('INSERT INTO messages (chat_id, sender_id, text, reply_to_id, attachment) VALUES (?, ?, ?, ?, ?)');
+        const stmtGetMembers = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ? AND user_id != ?');
+        const stmtInsStatus = db.prepare('INSERT OR IGNORE INTO message_status (message_id, user_id) VALUES (?, ?)');
+        const stmtUpdDelivered = db.prepare('UPDATE message_status SET delivered_at = COALESCE(delivered_at, unixepoch()) WHERE message_id = ? AND user_id = ?');
+
+        // Вставка сообщения и статусов доставки в одной транзакции
+        const msgId = db.transaction(() => {
+          const result = stmtInsertMsg.run(chat_id, user.id, (text||'').trim(), reply_to_id || null, attJson);
+          const newMsgId = result.lastInsertRowid;
+          // Пометить как delivered тем участникам, которые сейчас онлайн (кроме отправителя)
+          const members = stmtGetMembers.all(chat_id, user.id);
+          members.forEach(({ user_id }) => {
+            if (clients.has(user_id) && clients.get(user_id).size > 0) {
+              stmtInsStatus.run(newMsgId, user_id);
+              stmtUpdDelivered.run(newMsgId, user_id);
+            }
+          });
+          return newMsgId;
+        })();
 
         const msg = getMessageWithStatus(msgId, user.id);
         broadcast(chat_id, { type: 'message', message: msg });
@@ -143,10 +151,14 @@ function setup(server) {
         const { chat_id } = data;
         if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chat_id, user.id)) return;
         const unread = db.prepare('SELECT id, sender_id FROM messages WHERE chat_id = ? AND sender_id != ? AND deleted = 0').all(chat_id, user.id);
-        const insert = db.prepare('INSERT OR IGNORE INTO message_status (message_id, user_id) VALUES (?, ?)');
-        const update = db.prepare('UPDATE message_status SET delivered_at = COALESCE(delivered_at, unixepoch()), read_at = COALESCE(read_at, unixepoch()) WHERE message_id = ? AND user_id = ?');
+        // Подготавливаем стейтменты вне транзакции
+        const stmtReadInsert = db.prepare('INSERT OR IGNORE INTO message_status (message_id, user_id) VALUES (?, ?)');
+        const stmtReadUpdate = db.prepare('UPDATE message_status SET delivered_at = COALESCE(delivered_at, unixepoch()), read_at = COALESCE(read_at, unixepoch()) WHERE message_id = ? AND user_id = ?');
         const senders = new Set();
-        unread.forEach(({ id, sender_id }) => { insert.run(id, user.id); update.run(id, user.id); senders.add(sender_id); });
+        // Обновляем статусы всех непрочитанных сообщений в одной транзакции
+        db.transaction(() => {
+          unread.forEach(({ id, sender_id }) => { stmtReadInsert.run(id, user.id); stmtReadUpdate.run(id, user.id); senders.add(sender_id); });
+        })();
         senders.forEach(senderId => {
           const msgs = db.prepare('SELECT id FROM messages WHERE chat_id = ? AND sender_id = ?').all(chat_id, senderId);
           msgs.forEach(({ id }) => { const m = getMessageWithStatus(id, senderId); if (m) sendTo(senderId, { type: 'status_update', message: m }); });
