@@ -898,7 +898,7 @@ function renderMsgIRC(m, isGroup) {
   // Show avatar only on first message in group; otherwise show time hint on left
   const avCol = isGroup
     ? `<div style="width:28px;flex-shrink:0;display:flex;align-items:flex-start;justify-content:flex-end;padding-top:2px">
-        <span class="irc-time irc-time-hint" style="font-size:10px;padding-right:2px">${statusIcon}${time}</span>
+        <span class="irc-time irc-time-hint" style="font-size:10px">${statusIcon}${time}</span>
        </div>`
     : `<div class="irc-av av av-round ${avColor}" style="position:relative;flex-shrink:0">${avLetter}${avImg}</div>`;
 
