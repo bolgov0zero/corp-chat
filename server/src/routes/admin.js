@@ -292,6 +292,7 @@ router.post('/server/update', (req, res) => {
   const appDir = path.join(__dirname, '..', '..', '..');
   const script = `
     cd "${appDir}" && \
+    git checkout -- . && \
     git pull origin main && \
     cd server && \
     npm install --omit=dev && \
