@@ -367,6 +367,11 @@ tr:hover .td-actions{opacity:1}
 .ver-ok{color:var(--c-green-text);font-family:var(--f-mono);font-size:11px;font-weight:600}
 .ver-old{color:var(--c-orange-text);font-family:var(--f-mono);font-size:11px;font-weight:700}
 .clients-refresh{font-size:11px;color:var(--c-muted);font-family:var(--f-mono)}
+.ver-wrap{display:inline-flex;align-items:center;gap:5px}
+.ver-update-btn{display:inline-flex;align-items:center;color:var(--c-green-text);cursor:default;position:relative}
+.ver-update-btn:hover .ver-tooltip{opacity:1;transform:translateY(0)}
+.ver-tooltip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%) translateY(4px);background:var(--c-surface2);border:1px solid var(--c-border);border-radius:6px;padding:5px 10px;font-size:11px;font-family:var(--f-mono);font-weight:600;color:var(--c-text);white-space:nowrap;opacity:0;transition:opacity .15s,transform .15s;pointer-events:none;z-index:10}
+.ver-tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--c-border)}
 
 /* ── SETTINGS ── */
 .settings-wrap{max-width:540px;display:flex;flex-direction:column;gap:16px}
@@ -694,14 +699,7 @@ function fmtOS(platform, release, installScope) {
   const name = names[platform] || platform;
   const icon = icons[platform] || '';
   const ver = release && release !== '—' ? `<span style="color:var(--c-muted);font-size:10px;font-family:var(--f-mono);margin-left:4px">${esc(release)}</span>` : '';
-  let scopeTag = '';
-  if (platform === 'win32' && installScope) {
-    const isSystem = installScope === 'system';
-    const color = isSystem ? 'var(--c-green-text)' : 'var(--c-orange-text)';
-    const bg = isSystem ? 'var(--c-green-dim)' : 'var(--c-orange-dim)';
-    scopeTag = `<span style="margin-left:5px;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700;background:${bg};color:${color}">${isSystem?'system':'profile'}</span>`;
-  }
-  return `<div style="display:flex;align-items:center;gap:5px">${icon}<span style="font-size:12px">${name}</span>${ver}${scopeTag}</div>`;
+  return `<div style="display:flex;align-items:center;gap:5px">${icon}<span style="font-size:12px">${name}</span>${ver}</div>`;
 }
 
 function avHtml(name, size=32, radius=8, userId=null, status=null, _hasAvatar=false) {
@@ -1589,6 +1587,23 @@ async function loadClients(force=false) {
     updateAllBtn.onclick = () => forceUpdateAll(outdated, latestVersion);
   }
 
+  function fmtDuration(ms) {
+    const s = Math.floor(ms / 1000);
+    if (s < 60) return `${s}с`;
+    const m = Math.floor(s / 60);
+    if (m < 60) return `${m}м`;
+    const h = Math.floor(m / 60), rm = m % 60;
+    return rm ? `${h}ч ${rm}м` : `${h}ч`;
+  }
+
+  function fmtScopeTag(platform, installScope) {
+    if (!installScope) return '';
+    const isSystem = installScope === 'system';
+    const color = isSystem ? 'var(--c-green-text)' : 'var(--c-orange-text)';
+    const bg = isSystem ? 'var(--c-green-dim)' : 'var(--c-orange-dim)';
+    return `<span style="display:inline-block;margin-top:3px;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700;background:${bg};color:${color}">${isSystem?'system':'user'}</span>`;
+  }
+
   wrap.innerHTML=`<table>
     <thead><tr>
       <th>Пользователь</th>
@@ -1596,8 +1611,7 @@ async function loadClients(force=false) {
       <th>ОС</th>
       <th>Статус</th>
       <th>Версия</th>
-      <th>Доступна</th>
-      <th>Подключён</th>
+      <th>Онлайн</th>
       <th></th>
     </tr></thead>
     <tbody>
@@ -1607,12 +1621,10 @@ async function loadClients(force=false) {
         :c.status==='away'?'<span class="badge badge-orange">отошёл</span>'
         :'<span class="badge badge-gray">офлайн</span>';
       const verBadge=hasUpdate
-        ?`<span class="ver-old">${esc(c.clientVersion)}</span>`
+        ?`<span class="ver-wrap"><span class="ver-old">${esc(c.clientVersion)}</span><span class="ver-update-btn"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg><span class="ver-tooltip">Доступна ${esc(latestVersion)}</span></span></span>`
         :`<span class="ver-ok">${esc(c.clientVersion)}</span>`;
-      const latestBadge=hasUpdate
-        ?`<span class="ver-old">${esc(latestVersion)} ↑</span>`
-        :`<span style="color:var(--c-muted);font-size:11px;font-family:var(--f-mono)">—</span>`;
-      const connTime=new Date(c.connectedAt).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
+      const duration = fmtDuration(Date.now() - c.connectedAt);
+      const ip = c.clientIp && c.clientIp !== '—' ? `<div style="font-size:10px;color:var(--c-muted);font-family:var(--f-mono);margin-top:2px">${esc(c.clientIp)}</div>` : '';
       const dispName=c.displayName||c.username||'?';
       return `<tr>
         <td>
@@ -1624,12 +1636,17 @@ async function loadClients(force=false) {
             </div>
           </div>
         </td>
-        <td style="font-family:var(--f-mono);font-size:11px;color:var(--c-text2)">${esc(c.hostname)}</td>
-        <td>${fmtOS(c.osPlatform,c.osRelease,c.installScope)}</td>
+        <td>
+          <div style="font-family:var(--f-mono);font-size:11px;color:var(--c-text2)">${esc(c.hostname)}</div>
+          ${ip}
+        </td>
+        <td>
+          <div>${fmtOS(c.osPlatform,c.osRelease)}</div>
+          ${fmtScopeTag(c.osPlatform, c.installScope)}
+        </td>
         <td>${statusBadgeHtml}</td>
         <td>${verBadge}</td>
-        <td>${latestBadge}</td>
-        <td style="color:var(--c-muted);font-size:11px;font-family:var(--f-mono)">${connTime}</td>
+        <td style="color:var(--c-muted);font-size:11px;font-family:var(--f-mono)">${duration}</td>
         <td>
           <div class="td-actions">
             <button class="btn btn-danger btn-xs" onclick="forceLogout(${c.connId},'${esc(c.displayName||c.username)}','${esc(c.hostname)}')">

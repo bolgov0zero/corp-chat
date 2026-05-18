@@ -92,7 +92,8 @@ function setup(server) {
     broadcastStatus(user.id, 'online');
 
     const connId = ++connCounter;
-    connMeta.set(connId, { ws, userId: user.id, username: user.username, displayName: user.display_name, hostname: '—', clientVersion: '—', osPlatform: '—', osRelease: '—', installScope: null, connectedAt: Date.now() });
+    const clientIp = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || '—';
+    connMeta.set(connId, { ws, userId: user.id, username: user.username, displayName: user.display_name, hostname: '—', clientVersion: '—', osPlatform: '—', osRelease: '—', installScope: null, connectedAt: Date.now(), clientIp });
     ws._connId = connId;
 
     ws.on('message', raw => {
@@ -269,6 +270,7 @@ function getClients() {
     osRelease: m.osRelease,
     installScope: m.installScope,
     connectedAt: m.connectedAt,
+    clientIp: m.clientIp,
     status: userStatus.get(m.userId) || 'online',
   }));
 }
