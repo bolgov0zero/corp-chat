@@ -1424,7 +1424,7 @@ function openGroupMembers(chatId) {
     if (canManage) {
       document.getElementById('gm-list').insertAdjacentHTML('beforeend', `
         <div style="padding:10px 4px 4px">
-          <button onclick="openAddMember(${chatId})" class="btn btn-primary" style="width:100%">+ Добавить участника</button>
+          <button onclick="openAddMember(${chatId})" class="modal-btn-primary" style="width:100%">+ Добавить участника</button>
         </div>`);
     }
     applyAvatars();
