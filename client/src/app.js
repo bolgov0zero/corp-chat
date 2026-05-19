@@ -1393,18 +1393,89 @@ function removeChatLocally(chatId) {
 function openGroupMembers(chatId) {
   const chat = S.chats.find(c=>c.id===chatId);
   if (!chat) return;
+  const isCreator = chat.created_by === S.user.id;
+  const isAdmin = S.user.is_admin;
+  const canManage = isCreator || isAdmin;
+
+  function renderGmList() {
+    const c = S.chats.find(x=>x.id===chatId);
+    document.getElementById('gm-list').innerHTML = (c?.members||[]).map(m => {
+      const isOwner = c.created_by === m.id;
+      const kickBtn = canManage && !isOwner ? `
+        <button onclick="kickMember(${chatId},${m.id})" title="Исключить"
+          style="margin-left:auto;border:none;background:none;cursor:pointer;color:var(--muted);padding:4px;border-radius:6px;display:flex;align-items:center"
+          onmouseover="this.style.color='var(--danger,#e05)'" onmouseout="this.style.color='var(--muted)'">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            <line x1="17" y1="11" x2="23" y2="11"/>
+          </svg>
+        </button>` : (isOwner ? `<span style="margin-left:auto;font-size:11px;color:var(--muted);background:var(--card-bg);padding:2px 8px;border-radius:10px">создатель</span>` : '');
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border)">
+          <div class="av av-sm av-round ${avatarColor(m.id)}" data-av-user="${m.id}">${initials(m.display_name)}</div>
+          <div>
+            <div style="font-size:14px;font-weight:500">${esc(m.display_name)}</div>
+            <div style="font-size:12px;color:var(--muted)">@${esc(m.username)}</div>
+          </div>
+          ${kickBtn}
+        </div>`;
+    }).join('') || '<div style="color:var(--muted);text-align:center;padding:20px">Нет участников</div>';
+
+    if (canManage) {
+      document.getElementById('gm-list').insertAdjacentHTML('beforeend', `
+        <div style="padding:10px 4px 4px">
+          <button onclick="openAddMember(${chatId})" class="btn btn-primary" style="width:100%">+ Добавить участника</button>
+        </div>`);
+    }
+    applyAvatars();
+  }
+
   document.getElementById('gm-title').textContent = chatName(chat);
-  document.getElementById('gm-list').innerHTML = (chat.members||[]).map(m => `
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border)">
-      <div class="av av-sm av-round ${avatarColor(m.id)}" data-av-user="${m.id}">${initials(m.display_name)}</div>
-      <div>
-        <div style="font-size:14px;font-weight:500">${esc(m.display_name)}</div>
-        <div style="font-size:12px;color:var(--muted)">@${esc(m.username)}</div>
-      </div>
-      ${chat.created_by===m.id?'<span style="margin-left:auto;font-size:11px;color:var(--muted);background:var(--card-bg);padding:2px 8px;border-radius:10px">создатель</span>':''}
-    </div>`).join('') || '<div style="color:var(--muted);text-align:center;padding:20px">Нет участников</div>';
+  renderGmList();
   openModal('modal-group-members');
+}
+
+async function kickMember(chatId, userId) {
+  const ok = await showConfirm('Исключить участника из группы?', 'Исключить');
+  if (!ok) return;
+  const res = await api('DELETE', `/chats/${chatId}/members/${userId}`);
+  if (res.ok) {
+    await loadChats();
+    openGroupMembers(chatId);
+  }
+}
+
+async function openAddMember(chatId) {
+  const chat = S.chats.find(c=>c.id===chatId);
+  const memberIds = new Set((chat?.members||[]).map(m=>m.id));
+  const all = await api('GET', '/users');
+  const available = all.filter(u => !memberIds.has(u.id));
+  if (!available.length) { await showConfirm('Все пользователи уже в группе', 'OK'); return; }
+
+  // Показываем список для добавления прямо в модальном окне
+  const list = document.getElementById('gm-list');
+  list.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 4px 12px;border-bottom:1px solid var(--border)">
+      <button onclick="openGroupMembers(${chatId})" class="btn" style="flex-shrink:0">← Назад</button>
+      <span style="font-size:13px;color:var(--muted)">Выберите пользователя</span>
+    </div>
+    ${available.map(u => `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border);cursor:pointer"
+           onclick="addMember(${chatId},${u.id})"
+           onmouseover="this.style.background='var(--hover-row)'" onmouseout="this.style.background=''">
+        <div class="av av-sm av-round ${avatarColor(u.id)}" data-av-user="${u.id}">${initials(u.display_name)}</div>
+        <div>
+          <div style="font-size:14px;font-weight:500">${esc(u.display_name)}</div>
+          <div style="font-size:12px;color:var(--muted)">@${esc(u.username)}</div>
+        </div>
+      </div>`).join('')}`;
   applyAvatars();
+}
+
+async function addMember(chatId, userId) {
+  await api('POST', `/chats/${chatId}/members`, { user_id: userId });
+  await loadChats();
+  openGroupMembers(chatId);
 }
 
 async function leaveGroup(chatId) {

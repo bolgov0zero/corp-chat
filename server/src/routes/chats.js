@@ -104,6 +104,10 @@ router.post('/:id/members', authMiddleware, (req, res) => {
   try {
     db.prepare('INSERT INTO chat_members (chat_id, user_id) VALUES (?, ?)').run(req.params.id, user_id);
   } catch {}
+  // Notify all members (including newly added) to reload chats
+  const members = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ?').all(req.params.id);
+  members.forEach(({ user_id: uid }) => sendTo(uid, { type: 'reload_chats' }));
+  sendTo(Number(user_id), { type: 'reload_chats' });
   res.json({ ok: true });
 });
 
@@ -114,7 +118,12 @@ router.delete('/:id/members/:userId', authMiddleware, (req, res) => {
   const isMember = db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(req.params.id, req.user.id);
   const isAdmin = req.user.is_admin;
   if (!isMember && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
-  db.prepare('DELETE FROM chat_members WHERE chat_id = ? AND user_id = ?').run(req.params.id, req.params.userId);
+  const kickedId = Number(req.params.userId);
+  // Notify remaining members to reload, kicked user gets chat_deleted
+  const members = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ? AND user_id != ?').all(req.params.id, kickedId);
+  db.prepare('DELETE FROM chat_members WHERE chat_id = ? AND user_id = ?').run(req.params.id, kickedId);
+  members.forEach(({ user_id: uid }) => sendTo(uid, { type: 'reload_chats' }));
+  sendTo(kickedId, { type: 'chat_deleted', chat_id: Number(req.params.id) });
   res.json({ ok: true });
 });
 
