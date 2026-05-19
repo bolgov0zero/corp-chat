@@ -1456,7 +1456,7 @@ async function openAddMember(chatId) {
   const list = document.getElementById('gm-list');
   list.innerHTML = `
     <div style="display:flex;align-items:center;gap:8px;padding:8px 4px 12px;border-bottom:1px solid var(--border)">
-      <button onclick="openGroupMembers(${chatId})" class="btn" style="flex-shrink:0">← Назад</button>
+      <button onclick="openGroupMembers(${chatId})" class="modal-btn-primary" style="flex-shrink:0">← Назад</button>
       <span style="font-size:13px;color:var(--muted)">Выберите пользователя</span>
     </div>
     ${available.map(u => `
