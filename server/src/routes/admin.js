@@ -174,7 +174,7 @@ router.get('/users', (req, res) => {
   const fs = require('fs');
   const path = require('path');
   const avatarDir = path.join(__dirname, '..', '..', '..', 'chat_db', 'avatar');
-  const users = db.prepare('SELECT id, username, display_name, is_admin, created_at FROM users ORDER BY created_at DESC').all();
+  const users = db.prepare('SELECT id, username, display_name, is_admin, tag, created_at FROM users ORDER BY created_at DESC').all();
   res.json(users.map(u => ({
     ...u,
     status: getStatus(u.id),
