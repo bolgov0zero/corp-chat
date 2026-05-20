@@ -6,7 +6,7 @@ const S = {
   chats: [], activeChatId: null,
   ws: null, wsRetry: 0,
   unread: {}, allUsers: [],
-  settings: { theme: 'light', fontSize: 'medium', chatView: 'bubbles' },
+  settings: { theme: 'dark', fontSize: 'medium', chatView: 'irc' },
   ctx: { messageId: null, canEdit: false, isMine: false, replyText: '', replySenderName: '' },
   editingMessageId: null,
   replyTo: null, // { id, text, senderName }
