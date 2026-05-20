@@ -1500,14 +1500,16 @@ function connectWS() {
       const chatId = message.chat_id;
       const chat = S.chats.find(c=>c.id===chatId);
       if (chat) chat.last_message = message;
-      if (S.activeChatId===chatId && !document.hidden) {
+      if (S.activeChatId===chatId) {
         // Убираем optimistic-заглушку если она есть (только для своих сообщений)
         if (message.sender_id === S.user.id) {
           document.querySelector('[data-optimistic="1"]')?.remove();
         }
         appendMsg(message);
-        if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'read', chat_id:chatId}));
-        if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'delivered', message_id:message.id}));
+        if (!document.hidden && S.ws?.readyState===1) {
+          S.ws.send(JSON.stringify({type:'read', chat_id:chatId}));
+          S.ws.send(JSON.stringify({type:'delivered', message_id:message.id}));
+        }
       } else {
         S.unread[chatId] = (S.unread[chatId]||0)+1;
         if (message.sender_id!==S.user.id) {
