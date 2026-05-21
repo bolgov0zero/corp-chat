@@ -1507,8 +1507,17 @@ function connectWS() {
         }
         appendMsg(message);
         if (!document.hidden && S.ws?.readyState===1) {
+          // Окно видимо — отмечаем прочитанным
           S.ws.send(JSON.stringify({type:'read', chat_id:chatId}));
           S.ws.send(JSON.stringify({type:'delivered', message_id:message.id}));
+        } else if (document.hidden && message.sender_id !== S.user.id) {
+          // Окно скрыто/свёрнуто — уведомляем, не отмечаем прочитанным
+          S.unread[chatId] = (S.unread[chatId]||0)+1;
+          const title = chatName(chat) || 'Electron';
+          const body = `${message.sender_name}: ${message.text || (message.attachment ? '🖼 Изображение' : '')}`;
+          window.electron?.notify(title, body, chatId);
+          playNotificationSound();
+          if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'delivered', message_id:message.id}));
         }
       } else {
         S.unread[chatId] = (S.unread[chatId]||0)+1;
