@@ -1,7 +1,9 @@
 'use strict';
 
-const CACHE = 'corp-chat-v3';
-const STATIC = ['/chat/', '/chat/app.js', '/chat/style.css', '/chat/manifest.json', '/chat/icons/icon.svg'];
+const CACHE = 'corp-chat-v4';
+// index.html (/chat/) намеренно не прекэшируем — он всегда из сети,
+// иначе закэшированная страница может рендериться без актуального viewport/вёрстки
+const STATIC = ['/chat/app.js', '/chat/style.css', '/chat/manifest.json', '/chat/icons/icon.svg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -23,6 +25,12 @@ self.addEventListener('fetch', e => {
   // Не перехватываем API, WebSocket и запросы к другим хостам
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/ws')) return;
   if (url.origin !== self.location.origin) return;
+
+  // Навигация (index.html) — всегда из сети, без кэширования страницы
+  if (e.request.mode === 'navigate') {
+    e.respondWith(fetch(e.request));
+    return;
+  }
 
   e.respondWith(
     fetch(e.request)

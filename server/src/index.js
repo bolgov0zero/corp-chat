@@ -22,6 +22,11 @@ app.get('/chat/manifest.json', (req, res) => {
   res.setHeader('Content-Type', 'application/manifest+json');
   res.sendFile(path.join(__dirname, 'public/chat/manifest.json'));
 });
+// index.html — всегда свежий (без HTTP-кэша), иначе PWA рендерит старую вёрстку
+app.get(['/chat', '/chat/', '/chat/index.html'], (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.sendFile(path.join(__dirname, 'public/chat/index.html'));
+});
 app.use('/chat', express.static(path.join(__dirname, 'public/chat')));
 app.use('/files', express.static(FILES_DIR));
 
