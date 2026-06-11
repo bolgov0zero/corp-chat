@@ -1644,7 +1644,7 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
 }
 
 /* ── Mobile layout (≤767px) ── */
-@media (max-width: 767px) {
+@media (max-width: 767px), (pointer: coarse) {
   :root { --sidebar-w: 100vw; }
 
   #screen-main {
@@ -1721,6 +1721,6 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
 }
 
 /* Desktop: hide mobile-only elements */
-@media (min-width: 768px) {
+@media (min-width: 768px) and (pointer: fine) {
   .mobile-back-btn { display: none !important; }
 }
