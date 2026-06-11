@@ -285,8 +285,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   const urlParams = new URLSearchParams(location.search);
   const chatIdParam = urlParams.get('chatId');
   if (chatIdParam && session?.token) {
-    // Wait for chats to load then open
     S._pendingOpenChatId = parseInt(chatIdParam);
+    // Убираем параметр из URL чтобы при следующем открытии PWA чат не открывался автоматически
+    history.replaceState(null, '', location.pathname);
   }
 });
 
