@@ -639,7 +639,6 @@ async function openChat(chatId) {
     </div>`;
 
   applyAvatars();
-  updateViewToggleIcon();
   const sendBtn = document.getElementById('send-btn');
   if (sendBtn) { sendBtn.style.background='transparent'; sendBtn.style.color='var(--muted)'; sendBtn.style.boxShadow='none'; }
   if (S.ws && !document.hidden) S.ws.send(JSON.stringify({type:'read', chat_id: chatId}));
