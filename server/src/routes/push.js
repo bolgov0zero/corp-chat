@@ -19,12 +19,18 @@ function getOrCreateVapidKeys() {
   return keys;
 }
 
+const VAPID_CONTACT = 'mailto:bolgov@me.com';
+
 const vapidKeys = getOrCreateVapidKeys();
-webpush.setVapidDetails(
-  'mailto:admin@localhost',
-  vapidKeys.publicKey,
-  vapidKeys.privateKey
-);
+
+// Если контакт сменился — все старые подписки невалидны, сбрасываем
+const savedContact = db.prepare("SELECT value FROM settings WHERE key = 'vapid_contact'").get()?.value;
+if (savedContact !== VAPID_CONTACT) {
+  db.prepare('DELETE FROM push_subscriptions').run();
+  db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('vapid_contact', ?)").run(VAPID_CONTACT);
+}
+
+webpush.setVapidDetails(VAPID_CONTACT, vapidKeys.publicKey, vapidKeys.privateKey);
 
 // Экспортируем для использования в ws.js
 function sendPushToUser(userId, payload) {

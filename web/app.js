@@ -133,12 +133,27 @@ async function subscribePush() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
   try {
     const reg = await navigator.serviceWorker.ready;
-    // Получаем VAPID public key с сервера
     const data = await fetch(`${httpProto()}://${S.server}/api/push/vapid-public-key`).then(r => r.json());
     if (!data?.key) return;
-    const sub = await reg.pushManager.subscribe({
+    const appServerKey = urlBase64ToUint8Array(data.key);
+
+    // Если уже есть подписка — проверяем что ключ совпадает, иначе переподписываемся
+    let existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      const existingKey = existing.options?.applicationServerKey;
+      const existingKeyB64 = existingKey
+        ? btoa(String.fromCharCode(...new Uint8Array(existingKey)))
+        : null;
+      const newKeyB64 = btoa(String.fromCharCode(...appServerKey));
+      if (existingKeyB64 !== newKeyB64) {
+        await existing.unsubscribe();
+        existing = null;
+      }
+    }
+
+    const sub = existing || await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(data.key),
+      applicationServerKey: appServerKey,
     });
     await api('POST', '/push/subscribe', {
       endpoint: sub.endpoint,
@@ -147,7 +162,7 @@ async function subscribePush() {
         auth:   btoa(String.fromCharCode(...new Uint8Array(sub.getKey('auth')))),
       },
     });
-  } catch(e) {}
+  } catch(e) { console.warn('Push subscribe failed:', e); }
 }
 
 function urlBase64ToUint8Array(base64String) {
