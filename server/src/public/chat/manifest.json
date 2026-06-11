@@ -1,0 +1,15 @@
+{
+  "name": "Electron Chat",
+  "short_name": "Electron",
+  "description": "Корпоративный мессенджер",
+  "start_url": "/chat/",
+  "scope": "/chat/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0b0d14",
+  "theme_color": "#6366f1",
+  "icons": [
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
