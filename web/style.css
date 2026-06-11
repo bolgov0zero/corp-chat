@@ -300,7 +300,6 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
    MAIN LAYOUT
    ══════════════════════════════════════════ */
 #screen-main {
-  display: grid;
   grid-template-columns: var(--sidebar-w) 1fr;
   position: relative;
   overflow: hidden;
@@ -309,6 +308,7 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
   padding-right: env(safe-area-inset-right, 0px);
   box-sizing: border-box;
 }
+#screen-main.active { display: grid; }
 
 /* ══════════════════════════════════════════
    SIDEBAR
