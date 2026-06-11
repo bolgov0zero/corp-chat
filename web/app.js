@@ -193,6 +193,7 @@ function mobileBack() {
   const sidebar = document.querySelector('.sidebar');
   chatMain?.classList.remove('mobile-open');
   sidebar?.classList.remove('mobile-hidden');
+  document.getElementById('chat-input-bar').style.display = 'none';
   S.activeChatId = null;
 }
 
@@ -203,11 +204,28 @@ function openMobileChat() {
   sidebar?.classList.add('mobile-hidden');
 }
 
-// ── KEYBOARD HEIGHT (iOS/Android: двигаем контейнер чата снизу) ──
+function syncInputBarHeight() {
+  const inputBar = document.getElementById('chat-input-bar');
+  if (!inputBar || inputBar.style.display === 'none') return;
+  const kh = window.visualViewport
+    ? Math.max(0, window.innerHeight - window.visualViewport.offsetTop - window.visualViewport.height)
+    : 0;
+  inputBar.style.bottom = kh + 'px';
+  document.documentElement.style.setProperty('--chat-bottom', (kh + inputBar.offsetHeight) + 'px');
+}
+
+// ── KEYBOARD HEIGHT (iOS/Android) ──
+// #chat-input-bar — отдельный fixed элемент, двигается через style.bottom
+// #chat-main — уменьшается снизу через --chat-bottom (высота input-bar + клавиатура)
 if (window.visualViewport) {
   const onVP = () => {
     const kh = Math.max(0, window.innerHeight - window.visualViewport.offsetTop - window.visualViewport.height);
-    document.documentElement.style.setProperty('--keyboard-h', kh + 'px');
+    const inputBar = document.getElementById('chat-input-bar');
+    if (inputBar) {
+      inputBar.style.bottom = kh + 'px';
+      const inputH = inputBar.offsetHeight;
+      document.documentElement.style.setProperty('--chat-bottom', (kh + inputH) + 'px');
+    }
   };
   window.visualViewport.addEventListener('resize', onVP);
   window.visualViewport.addEventListener('scroll', onVP);
@@ -692,7 +710,12 @@ async function openChat(chatId) {
     <div id="typing-indicator" class="typing-indicator" style="display:none">
       <span class="typing-dots"><span></span><span></span><span></span></span>
       <span class="typing-name"></span><span class="typing-label"> печатает…</span>
-    </div>
+    </div>`;
+
+  // Поле ввода — отдельный fixed-элемент вне chat-main (чтобы iOS не двигал весь экран при фокусе)
+  const inputBar = document.getElementById('chat-input-bar');
+  inputBar.style.display = '';
+  inputBar.innerHTML = `
     <div class="chat-input-wrap" id="input-wrap">
       <div class="composer-inner">
         <div id="image-preview-bar" style="display:none" class="input-reply-bar">
@@ -736,6 +759,7 @@ async function openChat(chatId) {
       </div>
     </div>`;
 
+  requestAnimationFrame(syncInputBarHeight);
   applyAvatars();
   updateViewToggleIcon();
   const sendBtn = document.getElementById('send-btn');
