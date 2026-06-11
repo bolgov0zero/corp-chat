@@ -203,16 +203,6 @@ function openMobileChat() {
   sidebar?.classList.add('mobile-hidden');
 }
 
-// ── VISUAL VIEWPORT (keyboard resize on mobile) ──
-if (window.visualViewport) {
-  const updateChatVh = () => {
-    document.documentElement.style.setProperty('--chat-vh', window.visualViewport.height + 'px');
-  };
-  window.visualViewport.addEventListener('resize', updateChatVh);
-  window.visualViewport.addEventListener('scroll', updateChatVh);
-  updateChatVh();
-}
-
 // ── INIT ──
 window.addEventListener('DOMContentLoaded', async () => {
   const session = loadSession();

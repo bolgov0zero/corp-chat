@@ -1798,11 +1798,7 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
   }
 
   .chat-main {
-    position: fixed;
-    left: 0; right: 0;
-    top: 0;
-    height: var(--chat-vh, 100dvh);
-    z-index: 20;
+    position: fixed; inset: 0; z-index: 20;
     display: none;
     padding-top: env(safe-area-inset-top, 0px);
     box-sizing: border-box;
@@ -1815,7 +1811,7 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
   }
 
   .messages { padding: 12px 12px 8px; }
-  .chat-input-wrap { padding: 6px 12px 14px; }
+  .chat-input-wrap { padding: 6px 12px max(14px, calc(env(safe-area-inset-bottom) + 6px)); }
 
   /* Prevent iOS zoom on input focus (font-size must be ≥16px) */
   .composer-pill textarea,
