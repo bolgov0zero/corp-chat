@@ -44,8 +44,8 @@ self.addEventListener('push', e => {
   const title = data.title || 'Новое сообщение';
   const options = {
     body: data.body || '',
-    icon: '/icons/icon.svg',
-    badge: '/icons/icon.svg',
+    icon: '/chat/icons/icon.svg',
+    badge: '/chat/icons/icon.svg',
     tag: data.chatId ? `chat-${data.chatId}` : 'msg',
     renotify: true,
     data: { chatId: data.chatId },
