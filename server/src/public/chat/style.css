@@ -1643,6 +1643,12 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
   /* Скрываем hover-панель в IRC на тач-устройствах (вызывается через long press) */
   .irc-msg:hover .irc-actions { opacity: 0; pointer-events: none; }
   .irc-msg.touch-ctx .irc-actions { opacity: 1; pointer-events: auto; }
+  /* Long-press не должен выделять текст и вызывать системное меню */
+  .irc-msg, .irc-msg *, .chat-item, .chat-item * {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
 }
 
 /* ══════════════════════════════════════════
@@ -1665,10 +1671,13 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
     overscroll-behavior: none;
   }
 
-  /* Экран — флекс-колонка высотой в visual viewport */
+  /* Экран — флекс-колонка высотой в visual viewport, привязанная к нему сверху */
   #screen-main.active {
     display: flex;
     flex-direction: column;
+    position: fixed;
+    top: var(--app-top, 0px);
+    left: 0; right: 0;
     height: var(--app-height, 100dvh);
     overflow: hidden;
   }

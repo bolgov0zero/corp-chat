@@ -218,6 +218,9 @@ function updateAppHeight() {
   const kbOpen = (_maxVH - h) > 80;
   const root = document.documentElement.style;
   root.setProperty('--app-height', h + 'px');
+  // iOS сдвигает весь WebView вверх при фокусе на нижнем поле — компенсируем,
+  // чтобы шапка стояла на месте, а двигалось только поле ввода/сообщения
+  root.setProperty('--app-top', (vv ? vv.offsetTop : 0) + 'px');
   // Когда клавиатура открыта — home indicator скрыт, safe-area снизу не нужен
   root.setProperty('--input-safe-bottom', kbOpen ? '0px' : 'env(safe-area-inset-bottom, 0px)');
   // iOS иногда прокручивает всю страницу при фокусе — возвращаем на место
@@ -848,16 +851,25 @@ function addSwipeReply(container) {
 // ── LONG PRESS → CONTEXT MENU (touch) ──
 let _longPressTimer = null;
 document.addEventListener('touchstart', e => {
+  const touch = e.touches[0];
   const msgEl = e.target.closest('[data-msg-id]');
-  if (!msgEl) return;
-  _longPressTimer = setTimeout(() => {
-    const msgId = parseInt(msgEl.dataset.msgId);
-    const sentAt = parseInt(msgEl.dataset.sentAt || '0');
-    const isMine = parseInt(msgEl.dataset.senderId) === S.user?.id;
-    // Simulate context menu at touch position
-    const touch = e.touches[0];
-    showCtxMenu({ clientX: touch.clientX, clientY: touch.clientY, preventDefault: ()=>{} }, msgId, sentAt, isMine);
-  }, 600);
+  if (msgEl) {
+    _longPressTimer = setTimeout(() => {
+      const msgId = parseInt(msgEl.dataset.msgId);
+      const sentAt = parseInt(msgEl.dataset.sentAt || '0');
+      const isMine = parseInt(msgEl.dataset.senderId) === S.user?.id;
+      showCtxMenu({ clientX: touch.clientX, clientY: touch.clientY, preventDefault: ()=>{} }, msgId, sentAt, isMine);
+    }, 600);
+    return;
+  }
+  // Long-press по элементу списка чатов — меню удаления
+  const chatEl = e.target.closest('[data-chat-id]');
+  if (chatEl) {
+    _longPressTimer = setTimeout(() => {
+      const chatId = parseInt(chatEl.dataset.chatId);
+      showChatCtx({ clientX: touch.clientX, clientY: touch.clientY, preventDefault: ()=>{}, stopPropagation: ()=>{} }, chatId);
+    }, 600);
+  }
 }, { passive: true });
 document.addEventListener('touchend', () => { clearTimeout(_longPressTimer); _longPressTimer = null; }, { passive: true });
 document.addEventListener('touchmove', () => { clearTimeout(_longPressTimer); _longPressTimer = null; }, { passive: true });
