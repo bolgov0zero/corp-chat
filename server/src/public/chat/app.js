@@ -218,8 +218,9 @@ function updateAppHeight() {
   const kbOpen = (_maxVH - h) > 80;
   const root = document.documentElement.style;
   // Экран растянут через inset (top+bottom), без фикс. высоты — низ всегда у края.
-  // Клавиатура поднимает нижнюю границу на свою высоту.
-  const kbHeight = kbOpen ? (_maxVH - h) : 0;
+  // Клавиатура поднимает нижнюю границу на свою высоту (+небольшой запас, чтобы
+  // поле гарантированно не перекрывалось краем клавиатуры).
+  const kbHeight = kbOpen ? (_maxVH - h + 10) : 0;
   root.setProperty('--kb-height', kbHeight + 'px');
   // iOS сдвигает весь WebView вверх при фокусе на нижнем поле — компенсируем,
   // чтобы шапка стояла на месте, а двигалось только поле ввода/сообщения
