@@ -215,10 +215,14 @@ function syncInputBarHeight() {
 }
 
 // ── KEYBOARD HEIGHT (iOS/Android) ──
-// #chat-input-bar — отдельный fixed элемент, двигается через style.bottom
-// #chat-main — уменьшается снизу через --chat-bottom (высота input-bar + клавиатура)
+// iOS при открытии клавиатуры скроллит window (scrollY > 0), из-за чего
+// position:fixed элементы визуально уезжают вверх.
+// Сбрасываем scroll в 0 и двигаем layout через CSS-переменную.
 if (window.visualViewport) {
   const onVP = () => {
+    // Сбрасываем iOS-скролл страницы — именно он двигает fixed-элементы
+    if (window.scrollY !== 0) window.scrollTo(0, 0);
+
     const kh = Math.max(0, window.innerHeight - window.visualViewport.offsetTop - window.visualViewport.height);
     const inputBar = document.getElementById('chat-input-bar');
     if (inputBar) {
@@ -230,6 +234,13 @@ if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', onVP);
   window.visualViewport.addEventListener('scroll', onVP);
 }
+
+// Дополнительная защита: сбрасываем scroll при фокусе на textarea/input
+document.addEventListener('focusin', e => {
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') {
+    setTimeout(() => { if (window.scrollY !== 0) window.scrollTo(0, 0); }, 100);
+  }
+});
 
 // ── INIT ──
 window.addEventListener('DOMContentLoaded', async () => {

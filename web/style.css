@@ -138,8 +138,11 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Text', system-ui, sans-serif;
   background: var(--app-bg);
   color: var(--text);
-  height: 100vh;
+  height: 100vh; height: 100dvh;
   overflow: hidden;
+  /* Запрещаем iOS скроллить body при открытии клавиатуры */
+  position: fixed;
+  width: 100%;
   transition: background .25s, color .25s;
 }
 
