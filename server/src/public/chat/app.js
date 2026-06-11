@@ -753,7 +753,7 @@ async function openChat(chatId) {
           </button>
           <input type="file" id="img-file-input" accept="image/*" style="display:none" onchange="onImagePicked(this)">
           <textarea id="msg-input" rows="1" placeholder="Сообщение…" onkeydown="handleKey(event)" oninput="onMsgInput(this)"></textarea>
-          <button class="send-btn" id="send-btn" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault();sendOrEdit()">
+          <button class="send-btn" id="send-btn" onmousedown="event.preventDefault()" onclick="sendOrEdit()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
         </div>
