@@ -1666,7 +1666,9 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
   /* Страница целиком не скроллится — скроллится только список сообщений */
   html, body {
     position: fixed; inset: 0;
-    width: 100%; height: 100%;
+    width: 100%;
+    height: 100%;
+    height: -webkit-fill-available;
     overflow: hidden;
     overscroll-behavior: none;
     background: var(--app-bg);
@@ -1679,11 +1681,11 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
     flex-direction: column;
     position: fixed;
     top: var(--app-top, 0px);
-    left: 0; right: 0;
-    /* Растягиваем под home-индикатор (bottom:0 упирается лишь в край safe-area).
-       Поле ввода держит свой отступ через --input-safe-bottom. */
-    bottom: calc(0px - env(safe-area-inset-bottom, 0px));
-    height: auto; /* перебиваем .screen{height:100dvh}, иначе bottom игнорируется */
+    left: 0; right: 0; bottom: 0;
+    /* -webkit-fill-available тянется до реального низа экрана (под индикатор),
+       в отличие от 100dvh/fixed bottom:0, которые упираются в край safe-area */
+    height: 100dvh;
+    height: -webkit-fill-available;
     padding-bottom: var(--kb-height, 0px);
     box-sizing: border-box;
     overflow: hidden;
@@ -1694,7 +1696,8 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
      (где виден body) не контрастировала и не выглядела полосой. */
   .sidebar {
     position: fixed; inset: 0;
-    bottom: calc(0px - env(safe-area-inset-bottom, 0px));
+    height: 100%;
+    height: -webkit-fill-available;
     width: 100%; z-index: 30;
     transition: transform .25s ease;
     padding-top: env(safe-area-inset-top, 0px);
