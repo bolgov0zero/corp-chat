@@ -1666,13 +1666,11 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
 
   .chat-main {
     position: fixed;
-    top: 0; left: 0; right: 0;
-    bottom: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     z-index: 20;
     display: none;
     padding-top: env(safe-area-inset-top, 0px);
     box-sizing: border-box;
-    transition: bottom 0.22s ease;
   }
   .chat-main.mobile-open { display: flex; }
 
@@ -1685,10 +1683,6 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
     /* safe-area-inset-bottom управляется через JS: только когда клавиатура закрыта */
     padding-bottom: var(--input-safe-bottom, env(safe-area-inset-bottom, 0px));
     box-sizing: border-box;
-    transition: bottom 0.22s ease;
-  }
-
-  .chat-main {
     transition: bottom 0.22s ease;
   }
 

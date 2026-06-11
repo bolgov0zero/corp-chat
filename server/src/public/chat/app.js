@@ -226,8 +226,11 @@ function _applyKeyboardHeight() {
     inputBar.style.bottom = kh + 'px';
     // Убираем safe-area-inset-bottom когда клавиатура открыта (home bar не видна)
     document.documentElement.style.setProperty('--input-safe-bottom', kh > 0 ? '0px' : 'env(safe-area-inset-bottom, 0px)');
-    const chatMain = document.getElementById('chat-main');
-    if (chatMain) chatMain.style.bottom = (kh + inputBar.offsetHeight) + 'px';
+    // Прокручиваем сообщения вниз, чтобы последнее не скрылось за клавиатурой
+    if (kh > 0) {
+      const msgs = document.getElementById('messages');
+      if (msgs) msgs.scrollTop = msgs.scrollHeight;
+    }
   }
 }
 
