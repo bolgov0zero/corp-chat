@@ -33,12 +33,6 @@
   --accent-soft:   rgba(99,102,241,0.12);
   --accent-shadow: rgba(99,102,241,0.25);
 
-  /* Bubbles */
-  --bubble-mine:        #4080bf;
-  --bubble-mine-solid:  #4080bf;
-  --bubble-other:       #ffffff;
-  --bubble-shadow-other: 0 2px 8px rgba(15,23,42,0.07);
-
   /* Danger */
   --danger:        #ef4444;
   --danger-bg:     rgba(239,68,68,0.05);
@@ -93,11 +87,6 @@ html.dark {
 
   --accent-soft:   rgba(99,102,241,0.18);
   --accent-shadow: rgba(99,102,241,0.35);
-
-  --bubble-mine:        #4080bf;
-  --bubble-mine-solid:  #4080bf;
-  --bubble-other:       #1e2d3d;
-  --bubble-shadow-other: 0 2px 8px rgba(0,0,0,0.28);
 
   --danger-bg:     rgba(239,68,68,0.08);
   --danger-border: rgba(239,68,68,0.30);
@@ -536,7 +525,6 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
 }
 
 /* Разрешить выделение только там где нужно */
-.bubble-text,
 .irc-text,
 .reply-quote-text,
 .update-notes,
@@ -576,24 +564,6 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
   font-size: 12px; color: var(--muted);
 }
 
-/* ── BUBBLES ── */
-.msg-group {
-  display: flex; flex-direction: column;
-  margin: 2px 0; max-width: 100%;
-}
-.msg-group.mine  { align-items: flex-end;   align-self: flex-end; max-width: 70%; }
-.msg-group.theirs { align-items: flex-start; align-self: flex-start; max-width: 70%; }
-.msg-group + .msg-group { margin-top: 1px; }
-.msg-group.grouped { margin-top: 0; }
-
-.msg-sender {
-  font-size: 12px; font-weight: 600;
-  color: var(--muted);
-  margin-bottom: 3px;
-}
-
-.bubble-sender { font-size: 11px; font-weight: 700; margin-bottom: 3px; display: block; }
-
 .bubble-tag {
   display: inline-block;
   font-size: 9px; font-weight: 700;
@@ -604,81 +574,12 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
 .bubble-tag-green  { background: rgba(52,211,153,0.2);  color: #34d399; }
 .bubble-tag-purple { background: rgba(167,139,250,0.2); color: #a78bfa; }
 .bubble-tag-orange { background: rgba(251,146,60,0.2);  color: #fb923c; }
-.bubble-sender-blue   { color: #60a5fa; }
-.bubble-sender-green  { color: #34d399; }
-.bubble-sender-purple { color: #a78bfa; }
-.bubble-sender-orange { color: #fb923c; }
 
-.msg-bubble-row {
-  display: flex; align-items: flex-end; gap: 8px;
-  width: 100%;
-}
-.mine .msg-bubble-row   { flex-direction: row-reverse; }
-.theirs .msg-bubble-row { flex-direction: row; }
-
-.msg-row { display: flex; align-items: flex-end; flex: 1; min-width: 0; }
-
-/* Bubble */
-.bubble {
-  padding: 8px 12px 6px;
-  border-radius: 16px;
-  position: relative;
-  word-break: break-word;
-  line-height: 1.5;
-  display: flow-root; /* contains floats without overflow:hidden */
-}
-.mine .bubble {
-  background: var(--bubble-mine);
-  color: #fff;
-  border-bottom-right-radius: 0; /* хвостиковый угол = 0, чтобы треугольник прилегал без зазора */
-  box-shadow: 0 4px 14px var(--accent-shadow);
-}
-.theirs .bubble {
-  background: var(--bubble-other);
-  color: var(--text);
-  border-bottom-left-radius: 0; /* хвостиковый угол = 0 */
-  box-shadow: var(--bubble-shadow-other);
-}
-
-/* Серия пузырей:
-   first/mid — внутренняя сторона 4px (нет хвостика)
-   last      — верхний внутренний 4px, нижний 0 (хвостик из дефолта)
-   одиночный — нет класса, нижний хвостиковый угол 0 из дефолта */
-/* В серии все углы 16px кроме хвостикового (0 из дефолта) */
-.theirs .bubble-first,
-.theirs .bubble-mid   { border-bottom-left-radius: 16px; } /* перекрыть дефолтный 0 */
-.mine .bubble-first,
-.mine .bubble-mid     { border-bottom-right-radius: 16px; }
-
-/* Треугольник-хвостик для одиночных и последних в серии */
-.theirs .bubble:not(.bubble-first):not(.bubble-mid)::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: -7px;
-  width: 0; height: 0;
-  border-style: solid;
-  border-width: 0 0 8px 8px;
-  border-color: transparent transparent var(--bubble-other) transparent;
-}
-.mine .bubble:not(.bubble-first):not(.bubble-mid)::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  right: -7px;
-  width: 0; height: 0;
-  border-style: solid;
-  border-width: 8px 0 0 8px;
-  border-color: transparent transparent transparent var(--bubble-mine-solid);
-}
-.bubble.deleted { opacity: .5; font-style: italic; }
 .edited-tag { font-size: 10px; opacity: .55; margin-left: 4px; color: var(--muted); }
-.bubble-text { font-size: 1rem; white-space: pre-wrap; word-break: break-word; }
 
-/* Image in bubble */
-.bubble-image { margin: -2px -8px 4px; cursor: zoom-in; border-radius: 10px; overflow: hidden; max-width: 280px; min-height: 160px; background: var(--hover-row); }
+/* Image attachment */
+.bubble-image { margin: 4px 0; cursor: zoom-in; border-radius: 10px; overflow: hidden; max-width: 280px; min-height: 160px; background: var(--hover-row); }
 .bubble-image img { display: block; width: 100%; max-height: 300px; min-height: 160px; object-fit: cover; }
-.bubble:has(.bubble-image) { padding: 6px 8px 6px; }
 
 /* Lightbox */
 #lightbox { display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,.85); align-items: center; justify-content: center; cursor: zoom-out; }
@@ -691,16 +592,6 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
 @keyframes lbImgIn  { from { opacity: 0; transform: scale(.88); }          to { opacity: 1; transform: scale(1); } }
 @keyframes lbImgOut { from { opacity: 1; transform: scale(1); }            to { opacity: 0; transform: scale(.88); } }
 #lightbox img { max-width: 92vw; max-height: 92vh; border-radius: 8px; object-fit: contain; box-shadow: 0 8px 40px rgba(0,0,0,.6); }
-
-/* Meta (time + status) — inside bubble as float-right */
-.bubble-meta {
-  display: inline-flex; align-items: center; gap: 3px;
-  float: right; clear: right;
-  margin-left: 8px; margin-top: 2px;
-  font-size: 10px; font-variant-numeric: tabular-nums;
-  color: rgba(255,255,255,.65);
-}
-.theirs .bubble-meta { color: var(--muted); }
 
 /* Legacy msg-meta hidden (kept for appendMsg compat) */
 .msg-meta { display: none; }
@@ -719,45 +610,10 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
 }
 .msg-status svg { display: block; }
 
-/* Inside mine bubble (dark gradient bg) */
-.mine .status-sent      { color: rgba(255,255,255,.40); }
-.mine .status-delivered { color: rgba(255,255,255,.65); }
-.mine .status-read      { color: #93c5fd; } /* pastel blue */
-
-/* Inside theirs bubble (light bg) — shouldn't appear, but just in case */
-.theirs .status-sent      { color: var(--muted); opacity: .5; }
-.theirs .status-delivered { color: var(--muted); }
-.theirs .status-read      { color: var(--accent); }
-
 /* IRC mode — shown in irc-meta */
 .irc-meta .status-sent      { color: var(--muted); opacity: .45; }
 .irc-meta .status-delivered { color: var(--muted); }
 .irc-meta .status-read      { color: var(--accent); }
-
-/* Reply inside bubble */
-.reply-quote {
-  border-left: 3px solid rgba(255,255,255,.55);
-  background: rgba(0,0,0,.12);
-  border-radius: 6px;
-  padding: 5px 8px; margin-bottom: 6px;
-  cursor: pointer; overflow: hidden;
-  transition: background .15s;
-}
-.theirs .reply-quote {
-  border-left-color: var(--accent);
-  background: var(--reply-bg);
-}
-.reply-quote-name {
-  font-size: 11px; font-weight: 700;
-  color: rgba(255,255,255,.9); margin-bottom: 2px;
-}
-.theirs .reply-quote-name { color: var(--accent); }
-.reply-quote-text {
-  font-size: 12px; color: rgba(255,255,255,.75);
-  white-space: pre-wrap; overflow: hidden;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-}
-.theirs .reply-quote-text { color: var(--muted); }
 
 /* ── IRC VIEW ── */
 .irc-msg {

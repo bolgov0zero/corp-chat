@@ -279,7 +279,6 @@ function applySettings() {
   document.documentElement.classList.add('font-'+S.settings.fontSize);
   document.querySelectorAll('#theme-seg button').forEach(b => b.classList.toggle('active', b.textContent.trim()===(S.settings.theme==='light'?'Светлая':'Тёмная')));
   document.querySelectorAll('#font-seg button').forEach(b => b.classList.toggle('active', b.textContent.trim()===S.settings.fontSize[0].toUpperCase()));
-  document.querySelectorAll('#chatview-seg button').forEach(b => b.classList.toggle('active', b.dataset.view===(S.settings.chatView||'bubbles')));
   // Sidebar theme toggle icon
   const sunIcon = document.getElementById('theme-icon-sun');
   const moonIcon = document.getElementById('theme-icon-moon');
@@ -289,19 +288,6 @@ function applySettings() {
 function setTheme(t) { S.settings.theme=t; applySettings(); saveSession(); }
 function toggleTheme() { setTheme(S.settings.theme === 'dark' ? 'light' : 'dark'); }
 function setFontSize(f) { S.settings.fontSize=f; applySettings(); saveSession(); }
-function setChatView(v) { S.settings.chatView=v; applySettings(); saveSession(); if (S.activeChatId) openChat(S.activeChatId); }
-function toggleChatView() {
-  setChatView(S.settings.chatView === 'irc' ? 'bubbles' : 'irc');
-  updateViewToggleIcon();
-}
-function updateViewToggleIcon() {
-  const ircIcon = document.getElementById('header-irc-icon');
-  const bubbleIcon = document.getElementById('header-bubble-icon');
-  if (!ircIcon) return;
-  const isIRC = (S.settings.chatView||'bubbles') === 'irc';
-  ircIcon.style.display = isIRC ? 'none' : '';
-  bubbleIcon.style.display = isIRC ? '' : 'none';
-}
 async function openSettings() {
   document.getElementById('modal-settings').classList.add('open');
   const dn = document.getElementById('settings-display-name');
@@ -820,49 +806,7 @@ function renderReactions(msgId) {
 }
 
 function renderMsg(m, isChatGroup, hideTime = false, grouped = false, isLast = true) {
-  if ((S.settings.chatView||'bubbles') === 'irc') return renderMsgIRC(m, grouped);
-  const mine = m.sender_id===S.user.id;
-  const time = fmtTime(m.sent_at);
-  const isDeleted = m.deleted;
-  const bodyText = isDeleted ? 'Сообщение удалено' : linkifyText(m.text) + (m.edited_at?` <span class="edited-tag">изм.</span>`:'');
-  const statusIcon = mine && !isDeleted ? renderStatus(m.status) : '';
-  const reactionsHtml = isDeleted ? '' : renderReactions(m.id);
-  const replyHtml = m.reply_to_id ? `
-    <div class="reply-quote" onclick="scrollToMsg(${m.reply_to_id})">
-      <div class="reply-quote-name">${esc(m.reply_sender_name || '')}</div>
-      <div class="reply-quote-text">${m.reply_deleted ? 'Сообщение удалено' : esc((m.reply_text||'').slice(0,80))}</div>
-    </div>` : '';
-  const att = m.attachment;
-  const attachHtml = (!isDeleted && att?.url) ? `<div class="bubble-image" onclick="openLightbox('${httpProto()}://${S.server}${att.url}')"><img src="${httpProto()}://${S.server}${att.url}" loading="lazy"></div>` : '';
-  const avColor = avatarColor(m.sender_id);
-  const avLetter = initials(m.sender_name||'').slice(0,1);
-  const avImg = `<img src="${httpProto()}://${S.server}/api/users/${m.sender_id}/avatar" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.style.display='none'">`;
-  const avatarHtml = isChatGroup
-    ? ((!mine && isLast)
-        ? `<div class="av av-sm av-round ${avColor}" style="position:relative;flex-shrink:0;align-self:flex-end;margin-bottom:2px">${avLetter}${avImg}</div>`
-        : (!mine ? `<div style="width:32px;flex-shrink:0"></div>` : ''))
-    : '';
-  const colorKey = avColor.replace('av-', '');
-  const tagHtml = (!mine && isChatGroup && m.sender_tag) ? `<span class="bubble-tag bubble-tag-${colorKey}">${esc(m.sender_tag)}</span>` : '';
-  const senderNameHtml = (!mine && !grouped && isChatGroup)
-    ? `<div style="display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:3px"><span class="bubble-sender bubble-sender-${colorKey}">${esc(m.sender_name)}</span>${tagHtml}</div>`
-    : (tagHtml && !grouped ? `<div style="display:flex;justify-content:flex-end;margin-bottom:3px">${tagHtml}</div>` : '');
-  const bubblePositionClass = !grouped && isLast ? '' : (!grouped ? ' bubble-first' : (isLast ? ' bubble-last' : ' bubble-mid'));
-  return `<div class="msg-group ${mine?'mine':'theirs'}${grouped?' grouped':''}${m._optimistic?' msg-optimistic':''}" data-msg-id="${m.id}" data-sender-id="${m.sender_id}" data-sent-at="${m.sent_at}"${m._optimistic?' data-optimistic="1"':''}>
-    <div class="msg-bubble-row">
-      ${avatarHtml}
-      <div class="msg-row">
-        <div class="bubble${isDeleted?' deleted':''}${bubblePositionClass}" oncontextmenu="${!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at},${mine})`:'event.preventDefault()'}" ondblclick="${!isDeleted?`dblReply(${m.id})`:''}">
-          ${senderNameHtml}
-          ${replyHtml}
-          ${attachHtml}
-          ${m.text ? `<div class="bubble-text">${bodyText}</div>` : (isDeleted ? `<div class="bubble-text">${bodyText}</div>` : '')}
-          <div class="bubble-meta">${time}<span class="status-wrap">${statusIcon}</span></div>
-        </div>
-      </div>
-    </div>
-    ${reactionsHtml}
-  </div>`;
+  return renderMsgIRC(m, grouped);
 }
 
 function renderMsgIRC(m, isGroup) {
