@@ -756,11 +756,12 @@ function addSwipeReply(container) {
     const dx = e.touches[0].clientX - startX;
     const dy = e.touches[0].clientY - startY;
     if (Math.abs(dy) > Math.abs(dx)) { swipeEl = null; return; }
-    if (dx > 8 && dx < 60) {
+    if (dx > 8 && dx < 80) {
+      e.preventDefault(); // блокируем iOS системный swipe-back
       swipeEl.style.transform = `translateX(${dx * 0.5}px)`;
       swipeEl.style.transition = 'none';
     }
-  }, { passive: true });
+  }, { passive: false });
   container.addEventListener('touchend', e => {
     if (!swipeEl) return;
     const dx = e.changedTouches[0].clientX - startX;

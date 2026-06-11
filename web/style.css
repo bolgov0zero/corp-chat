@@ -1814,6 +1814,24 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
   .messages { padding: 12px 12px 8px; }
   .chat-input-wrap { padding: 6px 12px 14px; }
 
+  /* Prevent iOS zoom on input focus (font-size must be ≥16px) */
+  .composer-pill textarea,
+  .field input, .field textarea,
+  input[type="text"], input[type="password"], input[type="search"] {
+    font-size: 16px !important;
+  }
+
+  /* Emoji picker: bottom sheet on mobile */
+  .emoji-picker {
+    left: 0 !important; right: 0 !important;
+    bottom: 0 !important;
+    border-radius: 16px 16px 0 0;
+    grid-template-columns: repeat(6, 1fr);
+    padding: 12px 8px calc(12px + env(safe-area-inset-bottom, 0px));
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+
   .modal {
     width: calc(100vw - 24px) !important;
     max-height: 90vh !important;
