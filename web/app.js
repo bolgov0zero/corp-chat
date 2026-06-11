@@ -203,6 +203,16 @@ function openMobileChat() {
   sidebar?.classList.add('mobile-hidden');
 }
 
+// ── KEYBOARD HEIGHT (iOS/Android: двигаем контейнер чата снизу) ──
+if (window.visualViewport) {
+  const onVP = () => {
+    const kh = Math.max(0, window.innerHeight - window.visualViewport.offsetTop - window.visualViewport.height);
+    document.documentElement.style.setProperty('--keyboard-h', kh + 'px');
+  };
+  window.visualViewport.addEventListener('resize', onVP);
+  window.visualViewport.addEventListener('scroll', onVP);
+}
+
 // ── INIT ──
 window.addEventListener('DOMContentLoaded', async () => {
   const session = loadSession();
