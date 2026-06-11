@@ -1680,19 +1680,24 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
     position: fixed;
     top: var(--app-top, 0px);
     left: 0; right: 0;
-    bottom: 0;
-    height: auto; /* перебиваем .screen{height:100dvh}, иначе bottom:0 игнорируется */
+    /* Растягиваем под home-индикатор (bottom:0 упирается лишь в край safe-area).
+       Поле ввода держит свой отступ через --input-safe-bottom. */
+    bottom: calc(0px - env(safe-area-inset-bottom, 0px));
+    height: auto; /* перебиваем .screen{height:100dvh}, иначе bottom игнорируется */
     padding-bottom: var(--kb-height, 0px);
     box-sizing: border-box;
     overflow: hidden;
   }
 
-  /* Сайдбар — оверлей поверх всего, вне флекс-потока */
+  /* Сайдбар — оверлей поверх всего, вне флекс-потока.
+     Растягиваем под home-индикатор, контент списка отступаем наверх. */
   .sidebar {
     position: fixed; inset: 0;
+    bottom: calc(0px - env(safe-area-inset-bottom, 0px));
     width: 100%; z-index: 30;
     transition: transform .25s ease;
     padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     box-sizing: border-box;
   }
   .sidebar.mobile-hidden {
