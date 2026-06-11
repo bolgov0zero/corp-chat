@@ -18,6 +18,10 @@ app.use((req, res, next) => {
 
 app.use(express.json({ limit: '10mb' }));
 app.use('/admin', express.static(path.join(__dirname, 'public/admin')));
+app.get('/chat/manifest.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/manifest+json');
+  res.sendFile(path.join(__dirname, 'public/chat/manifest.json'));
+});
 app.use('/chat', express.static(path.join(__dirname, 'public/chat')));
 app.use('/files', express.static(FILES_DIR));
 
