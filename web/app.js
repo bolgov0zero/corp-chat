@@ -215,15 +215,14 @@ function syncInputBarHeight() {
 }
 
 // ── KEYBOARD HEIGHT (iOS/Android) ──
-// iOS при открытии клавиатуры скроллит window (scrollY > 0), из-за чего
-// position:fixed элементы визуально уезжают вверх.
-// Сбрасываем scroll в 0 и двигаем layout через CSS-переменную.
+// Правильная формула: kh = window.innerHeight - visualViewport.height
+// (offsetTop не вычитаем — он равен скроллу страницы, который мы сами сбрасываем)
 if (window.visualViewport) {
   const onVP = () => {
-    // Сбрасываем iOS-скролл страницы — именно он двигает fixed-элементы
+    // iOS скроллит window при открытии клавиатуры — сбрасываем немедленно
     if (window.scrollY !== 0) window.scrollTo(0, 0);
 
-    const kh = Math.max(0, window.innerHeight - window.visualViewport.offsetTop - window.visualViewport.height);
+    const kh = Math.max(0, window.innerHeight - window.visualViewport.height);
     const inputBar = document.getElementById('chat-input-bar');
     if (inputBar) {
       inputBar.style.bottom = kh + 'px';
@@ -235,10 +234,9 @@ if (window.visualViewport) {
   window.visualViewport.addEventListener('scroll', onVP);
 }
 
-// Дополнительная защита: сбрасываем scroll при фокусе на textarea/input
 document.addEventListener('focusin', e => {
   if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') {
-    setTimeout(() => { if (window.scrollY !== 0) window.scrollTo(0, 0); }, 100);
+    setTimeout(() => { if (window.scrollY !== 0) window.scrollTo(0, 0); }, 50);
   }
 });
 
