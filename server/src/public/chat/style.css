@@ -496,6 +496,8 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
 /* Отдельный fixed-элемент для поля ввода (десктоп — внутри grid, поэтому не fixed) */
 #chat-input-bar {
   background: var(--app-bg);
+  position: relative;
+  z-index: 1; /* выше декоративных .blob (z-index:0) */
 }
 
 .empty-state {

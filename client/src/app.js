@@ -1462,15 +1462,16 @@ function connectWS() {
           playNotificationSound();
           if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'delivered', message_id:message.id}));
         }
+      } else if (message.sender_id === S.user.id) {
+        // Своё сообщение, отправленное с другого устройства — чат прочитан мной
+        S.unread[chatId] = 0;
       } else {
         S.unread[chatId] = (S.unread[chatId]||0)+1;
-        if (message.sender_id!==S.user.id) {
-          const chat2 = S.chats.find(c=>c.id===chatId);
-          const title = chatName(chat2) || 'Electron';
-          const body = `${message.sender_name}: ${message.text || (message.attachment ? '🖼 Изображение' : '')}`;
-          window.electron?.notify(title, body, chatId);
-          playNotificationSound();
-        }
+        const chat2 = S.chats.find(c=>c.id===chatId);
+        const title = chatName(chat2) || 'Electron';
+        const body = `${message.sender_name}: ${message.text || (message.attachment ? '🖼 Изображение' : '')}`;
+        window.electron?.notify(title, body, chatId);
+        playNotificationSound();
         if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'delivered', message_id:message.id}));
       }
       updateUnreadTotal();
@@ -1512,6 +1513,13 @@ function connectWS() {
     // Fix 1: handle chat_deleted WS event
     if (data.type==='chat_deleted') {
       removeChatLocally(data.chat_id);
+    }
+
+    if (data.type==='chat_read') {
+      // Чат прочитан на другом устройстве этого пользователя
+      S.unread[data.chat_id] = 0;
+      updateUnreadTotal();
+      renderChatList();
     }
 
     if (data.type==='chat_cleared') {

@@ -184,6 +184,8 @@ function setup(server) {
           const msgs = db.prepare('SELECT id FROM messages WHERE chat_id = ? AND sender_id = ?').all(chat_id, senderId);
           msgs.forEach(({ id }) => { const m = getMessageWithStatus(id, senderId); if (m) sendTo(senderId, { type: 'status_update', message: m }); });
         });
+        // Синхронизация прочтения между устройствами самого пользователя
+        getConn(user.id).forEach(w => { if (w !== ws && w.readyState === 1) w.send(JSON.stringify({ type: 'chat_read', chat_id })); });
       }
 
       if (data.type === 'edit_message') {
