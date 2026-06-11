@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#6366f1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Electron">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon.svg">
+<title>Electron</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Drag overlay -->
+<div id="drag-overlay">
+  <div class="drag-overlay-inner">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+    <span>Отпустите для отправки</span>
+  </div>
+</div>
+
+<!-- Login -->
+<div id="screen-login" class="screen active">
+  <div class="blob blob1"></div>
+  <div class="blob blob2"></div>
+  <div class="login-wrap">
+    <div class="login-icon">
+      <div class="login-logo">
+        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </div>
+    </div>
+    <h1>Electron</h1>
+    <p class="login-sub">Корпоративный мессенджер</p>
+    <div class="field"><label>Адрес сервера</label><input id="l-server" placeholder="192.168.1.10:3000" autocomplete="off" spellcheck="false"></div>
+    <div class="field"><label>Логин</label><input id="l-username" placeholder="username" autocomplete="username"></div>
+    <div class="field"><label>Пароль</label><input id="l-password" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+    <button class="btn-login" id="l-btn" onclick="doLogin()">Войти</button>
+    <div class="login-err" id="l-err"></div>
+    <div class="login-copy">2026 © bolgov0zero</div>
+  </div>
+</div>
+
+<!-- Link confirm modal -->
+<div class="modal-bg" id="modal-link">
+  <div class="modal link-modal">
+    <div class="link-modal-icon">
+      <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </div>
+    <div class="link-modal-title">Внешняя ссылка</div>
+    <div class="link-modal-desc">Эта страница может быть потенциально опасной. Вы уверены, что хотите её открыть?</div>
+    <div id="link-modal-url" class="link-modal-url"></div>
+    <div class="link-modal-footer">
+      <button class="ha-btn-cancel" onclick="closeModal('modal-link')">Отмена</button>
+      <button class="ha-btn-apply" onclick="confirmLink()">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Открыть
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Main -->
+<div id="screen-main" class="screen">
+  <div class="blob blob1" style="z-index:0"></div>
+  <div class="blob blob2" style="z-index:0"></div>
+
+  <!-- Notification permission banner -->
+  <div id="notif-banner" class="notif-banner" style="display:none">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    <span>Разрешите уведомления, чтобы получать сообщения в фоне</span>
+    <button onclick="requestNotificationPermission()">Разрешить</button>
+    <button class="notif-banner-close" onclick="dismissNotifBanner()">✕</button>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="sidebar-me" id="sidebar-me">
+        <div class="av av-sm" id="me-av"></div>
+        <div style="flex:1;overflow:hidden">
+          <div class="me-name" id="me-name"></div>
+          <div class="me-status"><span class="me-status-dot" id="me-status-dot"></span><span id="me-status-text">онлайн</span></div>
+        </div>
+        <button class="icon-btn" id="theme-toggle-btn" title="Сменить тему" onclick="toggleTheme()">
+          <svg id="theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          <svg id="theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <button class="icon-btn" title="Настройки" onclick="openSettings()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <button class="icon-btn" title="Новый чат" onclick="openNewChat()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+      </div>
+      <div class="search-wrap">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="search" placeholder="Поиск" oninput="filterChats()">
+      </div>
+    </div>
+    <div class="chats-list" id="chats-list"></div>
+  </aside>
+
+  <!-- Chat area -->
+  <main class="chat-main" id="chat-main">
+    <div class="empty-state">
+      <div class="empty-icon">💬</div>
+      <div class="empty-title">Electron</div>
+      <div class="empty-sub">Выберите чат или создайте новый</div>
+    </div>
+  </main>
+</div>
+
+<!-- Settings modal -->
+<div class="modal-bg" id="modal-settings" onclick="if(event.target===this)closeSettings()">
+  <div class="modal" style="width:500px;max-height:88vh;display:flex;flex-direction:column">
+    <div class="modal-hdr" style="padding:14px 20px 12px;flex-shrink:0">
+      <span style="font-size:18px;font-weight:600">Настройки</span>
+      <button class="icon-btn" onclick="closeSettings()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center">
+      <div style="display:flex;align-items:center;gap:16px;width:100%">
+        <div class="profile-av-wrap" onclick="triggerAvatarUpload()" title="Сменить фото">
+          <div class="av av-lg" id="settings-av" style="border-radius:14px"></div>
+          <div class="profile-av-overlay" style="border-radius:14px">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <input id="settings-display-name" class="settings-name-input" readonly>
+          <div style="font-size:13px;color:var(--muted);margin-top:2px" id="settings-username"></div>
+        </div>
+        <button id="settings-edit-btn" onclick="openNameEdit()" style="padding:6px 12px;border-radius:8px;background:var(--accent-soft);color:var(--accent);border:none;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit;flex-shrink:0">Изменить</button>
+      </div>
+    </div>
+    <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="onAvatarFileChange(this)">
+    <div style="flex:1;overflow-y:auto;padding:14px 20px;display:flex;flex-direction:column;gap:12px">
+      <div>
+        <div class="settings-group-label" style="margin-bottom:5px">Внешний вид</div>
+        <div class="settings-group" style="border-radius:12px">
+          <div class="setting-row" style="border:none">
+            <span>Тема</span>
+            <div class="seg" id="theme-seg">
+              <button onclick="setTheme('light')">Светлая</button>
+              <button onclick="setTheme('dark')">Тёмная</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <span>Размер текста</span>
+            <div class="seg" id="font-seg">
+              <button onclick="setFontSize('small')">S</button>
+              <button onclick="setFontSize('medium')">M</button>
+              <button onclick="setFontSize('large')">L</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <span>Стиль</span>
+            <div class="seg" id="chatview-seg">
+              <button data-view="bubbles" onclick="setChatView('bubbles')">Пузыри</button>
+              <button data-view="irc" onclick="setChatView('irc')">IRC</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="settings-group-label" style="margin-bottom:5px">Система</div>
+        <div class="settings-group" style="border-radius:12px">
+          <div class="setting-row" style="border:none">
+            <span>Звук сообщений</span>
+            <label class="toggle">
+              <input type="checkbox" id="sound-chk" onchange="S.settings.soundEnabled=this.checked;saveSession()" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="flex-shrink:0;border-top:1px solid var(--border);padding:12px 20px;display:flex;flex-direction:column;gap:8px">
+      <button class="setting-logout" onclick="logout()" style="border-radius:12px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Выйти из аккаунта
+      </button>
+      <div style="font-size:11px;color:var(--muted);text-align:center">2026 © bolgov0zero</div>
+    </div>
+  </div>
+</div>
+
+<!-- New chat modal -->
+<div class="modal-bg" id="modal-new-chat">
+  <div class="modal" style="width:420px;max-height:85vh">
+    <div class="modal-hdr">
+      <span id="nc-title">Новый чат</span>
+      <button class="icon-btn" onclick="closeModal('modal-new-chat')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="nc-type-row">
+      <button class="nc-type-btn active" id="nc-btn-direct" onclick="switchTab('direct')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Личный
+      </button>
+      <button class="nc-type-btn" id="nc-btn-group" onclick="switchTab('group')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 1-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Группа
+      </button>
+    </div>
+    <div id="nc-group-settings" style="display:none;padding:0 14px 0">
+      <div class="nc-group-top">
+        <div class="profile-av-wrap" onclick="triggerGroupAvatarUpload()" title="Фото группы">
+          <div class="av av-md av-green" id="new-group-av" style="cursor:pointer">G</div>
+          <div class="profile-av-overlay">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </div>
+        </div>
+        <input id="group-name" class="nc-name-input" placeholder="Название группы">
+      </div>
+      <input type="file" id="group-avatar-input" accept="image/*" style="display:none" onchange="onGroupAvatarChange(this)">
+    </div>
+    <div class="nc-search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="nc-search-input" placeholder="Поиск..." oninput="filterModalUsers(this.value,'tab-direct');filterModalUsers(this.value,'tab-group')">
+    </div>
+    <div id="tab-direct" class="users-list nc-list"></div>
+    <div id="tab-group" class="users-list nc-list" style="display:none"></div>
+    <div id="nc-footer" style="display:none" class="modal-footer">
+      <div id="nc-selected-count" style="font-size:13px;color:var(--muted);flex:1"></div>
+      <button class="modal-btn-ghost" onclick="closeModal('modal-new-chat')">Отмена</button>
+      <button class="modal-btn-primary" onclick="createGroup()">Создать группу</button>
+    </div>
+  </div>
+</div>
+
+<!-- Group members modal -->
+<div class="modal-bg" id="modal-group-members">
+  <div class="modal">
+    <div class="modal-hdr"><span id="gm-title">Участники</span><button class="icon-btn" onclick="closeModal('modal-group-members')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div id="gm-list" class="users-list modal-body-pad"></div>
+  </div>
+</div>
+
+<!-- Edit group modal -->
+<div class="modal-bg" id="modal-edit-group">
+  <div class="modal">
+    <div class="modal-hdr"><span>Редактировать группу</span><button class="icon-btn" onclick="closeModal('modal-edit-group')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="modal-body-pad">
+      <div class="field"><label>Название</label><input id="eg-name"></div>
+      <div style="margin-top:12px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Участники</div>
+      <div id="eg-members" class="users-list"></div>
+      <div style="margin-top:12px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Добавить</div>
+      <div id="eg-add" class="users-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn-ghost" onclick="closeModal('modal-edit-group')">Отмена</button>
+      <button class="modal-btn-primary" onclick="saveGroupEdit()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Chat list context menu -->
+<div class="ctx-menu" id="ctx-chat-menu">
+  <button id="ctx-chat-delete" onclick="ctxChatDelete()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+    Удалить чат
+  </button>
+</div>
+
+<!-- Context menu -->
+<div class="ctx-menu" id="ctx-menu">
+  <div class="ctx-reactions">
+    <button class="ctx-reaction-btn" data-r="👍" onclick="ctxReact(this.dataset.r)">👍</button>
+    <button class="ctx-reaction-btn" data-r="❤️" onclick="ctxReact(this.dataset.r)">❤️</button>
+    <button class="ctx-reaction-btn" data-r="😂" onclick="ctxReact(this.dataset.r)">😂</button>
+    <button class="ctx-reaction-btn" data-r="👎" onclick="ctxReact(this.dataset.r)">👎</button>
+  </div>
+  <button id="ctx-reply-btn" onclick="ctxReply()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+    Ответить
+  </button>
+  <button id="ctx-copy-btn" onclick="ctxCopy()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+    Скопировать
+  </button>
+  <button id="ctx-edit-btn" onclick="ctxEdit()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    Изменить
+  </button>
+  <button id="ctx-info-btn" onclick="ctxInfo()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Информация
+  </button>
+  <button id="ctx-delete-btn" class="ctx-danger" onclick="ctxDelete()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+    Удалить
+  </button>
+</div>
+
+<!-- Message info modal -->
+<div class="modal-bg" id="modal-msg-info" onclick="if(event.target===this)closeModal('modal-msg-info')">
+  <div class="modal" style="width:340px">
+    <div class="modal-hdr">
+      <span>Информация</span>
+      <button class="icon-btn" onclick="closeModal('modal-msg-info')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="msg-info-body" class="msg-info-body"></div>
+  </div>
+</div>
+
+<!-- Confirm modal -->
+<div class="modal-bg" id="modal-confirm" onclick="if(event.target===this)_confirmReject()">
+  <div class="modal" style="width:300px">
+    <div class="modal-hdr"><span id="confirm-title">Подтверждение</span></div>
+    <div id="confirm-body" style="padding:12px 18px 4px;font-size:14px;color:var(--text)"></div>
+    <div class="modal-footer" style="padding:12px 14px">
+      <button class="modal-btn-ghost" onclick="_confirmReject()">Отмена</button>
+      <button class="modal-btn-primary" id="confirm-ok" style="background:var(--danger)" onclick="_confirmResolve()">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
