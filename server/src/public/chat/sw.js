@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'corp-chat-v2';
+const CACHE = 'corp-chat-v3';
 const STATIC = ['/chat/', '/chat/app.js', '/chat/style.css', '/chat/manifest.json', '/chat/icons/icon.svg'];
 
 self.addEventListener('install', e => {
