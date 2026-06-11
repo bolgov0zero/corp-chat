@@ -1,5 +1,21 @@
 'use strict';
 
+// ── ВРЕМЕННЫЙ ДИАГНОСТИЧЕСКИЙ ИНДИКАТОР (убрать после отладки полосы) ──
+window.addEventListener('load', () => {
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;background:rgba(255,0,0,.85);color:#fff;font:11px/1.4 monospace;padding:3px 6px;pointer-events:none;text-align:center';
+  // элемент для измерения env(safe-area-inset-bottom)
+  const sab = document.createElement('div');
+  sab.style.cssText = 'position:fixed;bottom:0;height:env(safe-area-inset-bottom);width:0;visibility:hidden';
+  document.body.appendChild(sab);
+  const upd = () => {
+    const vv = window.visualViewport;
+    probe.textContent = `screen.h:${screen.height} inner.h:${window.innerHeight} vv.h:${vv?Math.round(vv.height):'-'} client.h:${document.documentElement.clientHeight} sab:${sab.getBoundingClientRect().height}`;
+  };
+  setInterval(upd, 400); upd();
+  document.body.appendChild(probe);
+});
+
 // ── SERVICE WORKER REGISTRATION ──
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
