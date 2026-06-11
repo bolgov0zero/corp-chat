@@ -1,6 +1,11 @@
 const { WebSocketServer } = require('ws');
 const db = require('./db');
 const { wsAuth } = require('./auth');
+
+// Ленивая загрузка чтобы избежать циклических зависимостей
+function pushToUser(userId, payload) {
+  try { require('./routes/push').sendPushToUser(userId, payload); } catch {}
+}
 const path = require('path');
 const fs = require('fs');
 
@@ -136,6 +141,21 @@ function setup(server) {
 
         const msg = getMessageWithStatus(msgId, user.id);
         broadcast(chat_id, { type: 'message', message: msg });
+
+        // Push-уведомления офлайн-участникам (нет активного WS-соединения)
+        const chat = db.prepare('SELECT type, name FROM chats WHERE id = ?').get(chat_id);
+        const allMembers = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ? AND user_id != ?').all(chat_id, user.id);
+        allMembers.forEach(({ user_id }) => {
+          const isOnline = clients.has(user_id) && clients.get(user_id).size > 0;
+          if (!isOnline) {
+            const chatTitle = chat?.type === 'direct' ? msg.sender_name : (chat?.name || 'Electron');
+            pushToUser(user_id, {
+              title: chatTitle,
+              body: msg.text || (msg.attachment ? '🖼 Изображение' : ''),
+              chatId: chat_id,
+            });
+          }
+        });
       }
 
       if (data.type === 'delivered') {

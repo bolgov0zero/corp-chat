@@ -88,6 +88,7 @@ router.get('/stats', (req, res) => {
     filesCount: getDirCount(FILES_DIR),
     wsConnections: getConnCount(),
     serverVersion: getLocalVersion(),
+    pushSubscriptions: (() => { try { return db.prepare('SELECT COUNT(*) as c FROM push_subscriptions').get().c; } catch { return 0; } })(),
   });
 });
 

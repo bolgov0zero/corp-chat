@@ -121,7 +121,40 @@ function webNotify(title, body, chatId) {
 async function requestNotificationPermission() {
   if (!('Notification' in window)) return;
   const perm = await Notification.requestPermission();
-  if (perm === 'granted' || perm === 'denied') dismissNotifBanner();
+  if (perm === 'granted') {
+    dismissNotifBanner();
+    await subscribePush();
+  } else if (perm === 'denied') {
+    dismissNotifBanner();
+  }
+}
+
+async function subscribePush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    // Получаем VAPID public key с сервера
+    const data = await fetch(`${httpProto()}://${S.server}/api/push/vapid-public-key`).then(r => r.json());
+    if (!data?.key) return;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(data.key),
+    });
+    await api('POST', '/push/subscribe', {
+      endpoint: sub.endpoint,
+      keys: {
+        p256dh: btoa(String.fromCharCode(...new Uint8Array(sub.getKey('p256dh')))),
+        auth:   btoa(String.fromCharCode(...new Uint8Array(sub.getKey('auth')))),
+      },
+    });
+  } catch(e) {}
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
 }
 
 function dismissNotifBanner() {
@@ -288,8 +321,12 @@ function enterApp() {
   loadUsers();
   connectWS();
   loadPresence();
-  // Show notification permission banner
-  setTimeout(maybeShowNotifBanner, 800);
+  // Show notification permission banner or re-subscribe if already granted
+  if (Notification.permission === 'granted') {
+    subscribePush();
+  } else {
+    setTimeout(maybeShowNotifBanner, 800);
+  }
 }
 
 function updateMeAvatar() {

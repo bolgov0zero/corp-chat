@@ -73,6 +73,15 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_chat_members_chat     ON chat_members(chat_id);
   CREATE INDEX IF NOT EXISTS idx_message_status_msg    ON message_status(message_id);
   CREATE INDEX IF NOT EXISTS idx_reactions_msg         ON reactions(message_id);
+
+  CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    endpoint TEXT UNIQUE NOT NULL,
+    keys TEXT NOT NULL,
+    created_at INTEGER DEFAULT (unixepoch())
+  );
+  CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id);
 `);
 
 fs.mkdirSync(path.join(path.dirname(DB_PATH), 'avatar'), { recursive: true });
