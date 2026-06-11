@@ -807,26 +807,45 @@ async function openChat(chatId) {
 }
 
 // ── SWIPE TO REPLY (touch) ──
+const EDGE_BACK_ZONE = 30; // px от левого края — зона жеста «назад»
+
 function addSwipeReply(container) {
-  let startX = 0, startY = 0, swipeEl = null, dirLocked = false;
+  let startX = 0, startY = 0, swipeEl = null, dirLocked = false, backMode = false;
+  const chatMain = () => document.getElementById('chat-main');
+
   container.addEventListener('touchstart', e => {
     if (e.touches.length !== 1) return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
-    swipeEl = e.target.closest('[data-msg-id]');
+    backMode = startX < EDGE_BACK_ZONE; // свайп от левого края = возврат к списку
+    swipeEl = backMode ? null : e.target.closest('[data-msg-id]');
     dirLocked = false;
   }, { passive: true });
+
   container.addEventListener('touchmove', e => {
-    if (!swipeEl) return;
     const dx = e.touches[0].clientX - startX;
     const dy = e.touches[0].clientY - startY;
-    // Определяем направление по первым 10px движения
+
+    if (backMode) {
+      if (!dirLocked) {
+        if (Math.abs(dy) > Math.abs(dx) || Math.abs(dx) < 8) return;
+        dirLocked = true;
+      }
+      if (dx <= 0) return;
+      e.preventDefault();
+      const cm = chatMain();
+      if (cm) { cm.style.transform = `translateX(${Math.min(dx, window.innerWidth)}px)`; cm.style.transition = 'none'; }
+      return;
+    }
+
+    if (!swipeEl) return;
+    // Определяем направление по первым ~8px движения
     if (!dirLocked) {
       if (Math.abs(dy) > Math.abs(dx) || Math.abs(dx) < 6) return;
       dirLocked = true;
     }
-    if (dx <= 0) { // только свайп вправо
-      if (swipeEl) { swipeEl.style.transform = ''; swipeEl.style.transition = 'transform .2s'; }
+    if (dx <= 0) { // ответ — только свайп вправо
+      swipeEl.style.transform = ''; swipeEl.style.transition = 'transform .2s';
       swipeEl = null; return;
     }
     e.preventDefault();
@@ -834,9 +853,27 @@ function addSwipeReply(container) {
     swipeEl.style.transform = `translateX(${shift}px)`;
     swipeEl.style.transition = 'none';
   }, { passive: false });
+
   container.addEventListener('touchend', e => {
-    if (!swipeEl) return;
     const dx = e.changedTouches[0].clientX - startX;
+
+    if (backMode) {
+      const cm = chatMain();
+      if (cm) {
+        cm.style.transition = 'transform .25s ease';
+        if (dx > window.innerWidth * 0.35) {
+          // Достаточный свайп — уезжаем и возвращаемся к списку
+          cm.style.transform = `translateX(${window.innerWidth}px)`;
+          setTimeout(() => { mobileBack(); cm.style.transform = ''; cm.style.transition = ''; }, 200);
+        } else {
+          cm.style.transform = '';
+        }
+      }
+      backMode = false;
+      return;
+    }
+
+    if (!swipeEl) return;
     swipeEl.style.transform = '';
     swipeEl.style.transition = 'transform .25s ease';
     if (dx > 50) {
@@ -862,12 +899,12 @@ document.addEventListener('touchstart', e => {
     }, 600);
     return;
   }
-  // Long-press по элементу списка чатов — меню удаления
+  // Long-press по элементу списка чатов — выезжающий снизу блок с удалением
   const chatEl = e.target.closest('[data-chat-id]');
   if (chatEl) {
     _longPressTimer = setTimeout(() => {
       const chatId = parseInt(chatEl.dataset.chatId);
-      showChatCtx({ clientX: touch.clientX, clientY: touch.clientY, preventDefault: ()=>{}, stopPropagation: ()=>{} }, chatId);
+      openChatSheet(chatId);
     }, 600);
   }
 }, { passive: true });
@@ -1285,12 +1322,15 @@ function showCtxMenu(e, msgId, sentAt, isMine) {
   menu.style.top = '-9999px'; menu.style.left = '-9999px';
   menu.classList.add('open');
   const mw = menu.offsetWidth, mh = menu.offsetHeight;
-  const margin = 6;
-  let x = e.clientX, y = e.clientY;
-  if (x + mw + margin > window.innerWidth)  x = window.innerWidth  - mw - margin;
-  if (y + mh + margin > window.innerHeight) y = e.clientY - mh;
-  if (y < margin) y = margin;
+  const margin = 8;
+  // По центру над точкой тапа
+  let x = e.clientX - mw / 2;
+  let y = e.clientY - mh - margin;
+  if (x + mw + margin > window.innerWidth)  x = window.innerWidth - mw - margin;
   if (x < margin) x = margin;
+  // Если над пальцем не влезает — показываем под ним
+  if (y < margin) y = e.clientY + margin;
+  if (y + mh + margin > window.innerHeight) y = window.innerHeight - mh - margin;
   menu.style.left = x + 'px';
   menu.style.top  = y + 'px';
 }
@@ -2014,6 +2054,24 @@ function showChatCtx(e, chatId) {
 
 async function ctxChatDelete() {
   document.getElementById('ctx-chat-menu').style.display = 'none';
+  if (!S.ctxChatId) return;
+  await deleteChat(S.ctxChatId);
+}
+
+// ── CHAT ACTION SHEET (mobile bottom sheet) ──
+function openChatSheet(chatId) {
+  S.ctxChatId = chatId;
+  const chat = S.chats.find(c => c.id === chatId);
+  document.getElementById('chat-sheet-title').textContent = chat ? chatName(chat) : '';
+  document.getElementById('chat-sheet-backdrop').classList.add('open');
+  document.getElementById('chat-action-sheet').classList.add('open');
+}
+function closeChatSheet() {
+  document.getElementById('chat-sheet-backdrop').classList.remove('open');
+  document.getElementById('chat-action-sheet').classList.remove('open');
+}
+async function sheetDeleteChat() {
+  closeChatSheet();
   if (!S.ctxChatId) return;
   await deleteChat(S.ctxChatId);
 }

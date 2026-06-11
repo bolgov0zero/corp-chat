@@ -1738,7 +1738,7 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
     display: flex;
   }
 
-  .chat-input-wrap { padding: 6px 12px 8px; }
+  .chat-input-wrap { padding: 4px 10px 2px; }
 
   /* Prevent iOS zoom on input focus (font-size must be ≥16px) */
   .composer-pill textarea,
@@ -1770,3 +1770,42 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
 @media (min-width: 768px) and (pointer: fine) {
   .mobile-back-btn { display: none !important; }
 }
+
+/* ── Action sheet (bottom sheet, мобильный) ── */
+.sheet-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.4);
+  z-index: 1000;
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s ease;
+}
+.sheet-backdrop.open { opacity: 1; pointer-events: auto; }
+
+.action-sheet {
+  position: fixed;
+  left: 8px; right: 8px;
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  z-index: 1001;
+  display: flex; flex-direction: column; gap: 8px;
+  transform: translateY(calc(100% + 24px));
+  transition: transform .25s cubic-bezier(.32,.72,0,1);
+}
+.action-sheet.open { transform: translateY(0); }
+
+.action-sheet-title {
+  text-align: center; font-size: 12px; color: var(--muted);
+  background: var(--menu-bg);
+  border-radius: 12px; padding: 12px;
+  margin-bottom: -4px;
+}
+.action-sheet-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  border: none; cursor: pointer;
+  font-family: inherit; font-size: 17px; font-weight: 500;
+  padding: 16px; border-radius: 14px;
+  background: var(--menu-bg); color: var(--text);
+  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+}
+.action-sheet-btn.danger { color: var(--danger); font-weight: 600; }
+.action-sheet-btn.cancel { font-weight: 700; }
+.action-sheet-btn:active { background: var(--hover-row); }

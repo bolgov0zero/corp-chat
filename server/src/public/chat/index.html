@@ -264,6 +264,17 @@
   </button>
 </div>
 
+<!-- Chat action sheet (mobile bottom sheet) -->
+<div class="sheet-backdrop" id="chat-sheet-backdrop" onclick="closeChatSheet()"></div>
+<div class="action-sheet" id="chat-action-sheet">
+  <div class="action-sheet-title" id="chat-sheet-title"></div>
+  <button class="action-sheet-btn danger" onclick="sheetDeleteChat()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+    Удалить чат
+  </button>
+  <button class="action-sheet-btn cancel" onclick="closeChatSheet()">Отмена</button>
+</div>
+
 <!-- Context menu -->
 <div class="ctx-menu" id="ctx-menu">
   <div class="ctx-reactions">
