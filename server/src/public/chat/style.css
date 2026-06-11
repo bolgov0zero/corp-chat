@@ -1672,15 +1672,17 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
     background: var(--app-bg);
   }
 
-  /* Экран — флекс-колонка, растянутая через inset: низ всегда у края экрана,
-     клавиатура поднимает нижнюю границу на свою высоту (--kb-height) */
+  /* Экран — флекс-колонка до физического низа (bottom:0 убирает чёрную полосу).
+     Клавиатура компенсируется внутренним padding-bottom (контент поднимается над ней). */
   #screen-main.active {
     display: flex;
     flex-direction: column;
     position: fixed;
     top: var(--app-top, 0px);
     left: 0; right: 0;
-    bottom: var(--kb-height, 0px);
+    bottom: 0;
+    padding-bottom: var(--kb-height, 0px);
+    box-sizing: border-box;
     overflow: hidden;
   }
 
