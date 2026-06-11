@@ -1728,6 +1728,7 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
   position: fixed; top: 0; left: 0; right: 0; z-index: 500;
   display: flex; align-items: center; gap: 10px;
   padding: 10px 16px;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
   background: var(--accent);
   color: #fff;
   font-size: 13px;
@@ -1788,6 +1789,8 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
     position: fixed; inset: 0;
     width: 100%; z-index: 10;
     transition: transform .2s ease;
+    padding-top: env(safe-area-inset-top, 0px);
+    box-sizing: border-box;
   }
   .sidebar.mobile-hidden {
     transform: translateX(-100%);
@@ -1797,6 +1800,9 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
   .chat-main {
     position: fixed; inset: 0; z-index: 20;
     display: none;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box;
   }
   .chat-main.mobile-open { display: flex; }
 
