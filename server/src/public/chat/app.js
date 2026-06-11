@@ -232,8 +232,8 @@ function _applyKeyboardHeight() {
   const msgs = document.getElementById('messages');
   if (msgs) {
     msgs.style.paddingBottom = (kh + inputBar.offsetHeight + 8) + 'px';
-    // Прокручиваем к последнему сообщению
-    msgs.scrollTop = msgs.scrollHeight;
+    // Прокручиваем к последнему сообщению после layout
+    requestAnimationFrame(() => { msgs.scrollTop = msgs.scrollHeight; });
   }
 }
 
@@ -422,6 +422,10 @@ function applySettings() {
   const moonIcon = document.getElementById('theme-icon-moon');
   if (sunIcon) sunIcon.style.display = isDark ? '' : 'none';
   if (moonIcon) moonIcon.style.display = isDark ? 'none' : '';
+  // Цвет системного UI (статус-бар, клавиатура) следует теме
+  document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+  const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+  if (themeColorMeta) themeColorMeta.content = isDark ? '#0b0d14' : '#f7f7fb';
 }
 function setTheme(t) { S.settings.theme=t; applySettings(); saveSession(); }
 function toggleTheme() { setTheme(S.settings.theme === 'dark' ? 'light' : 'dark'); }
@@ -1102,7 +1106,9 @@ function appendMsg(m) {
 
   const dist = container.scrollHeight - container.scrollTop - container.clientHeight;
   if (dist < 120) {
-    container.scrollTo({ top: container.scrollHeight, behavior: m._optimistic ? 'instant' : 'smooth' });
+    requestAnimationFrame(() => {
+      container.scrollTo({ top: container.scrollHeight, behavior: m._optimistic ? 'instant' : 'smooth' });
+    });
   }
 }
 
