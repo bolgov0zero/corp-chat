@@ -278,6 +278,13 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
+      // Вкладка снова активна: соединение в фоне могло «умереть».
+      // Мёртвое/закрытое — переподключаемся (onopen сам подтянет loadChats),
+      // живое — досинхронизируем список чатов на случай пропущенных сообщений.
+      if (S.token) {
+        if (!S.ws || S.ws.readyState >= 2) connectWS();
+        else loadChats();
+      }
       if (S.activeChatId && S.ws?.readyState===1) {
         S.ws.send(JSON.stringify({type:'read', chat_id: S.activeChatId}));
         S.unread[S.activeChatId] = 0;
@@ -1612,6 +1619,8 @@ function connectWS() {
   ws.onmessage = async e => {
     let data; try { data=JSON.parse(e.data); } catch { return; }
 
+    if (data.type==='pong') { ws._pongOk = true; return; }
+
     if (data.type==='message') {
       const { message } = data;
       const chatId = message.chat_id;
@@ -1759,6 +1768,7 @@ function connectWS() {
   };
 
   ws.onclose = () => {
+    clearInterval(ws._hb);
     S.wsRetry++;
     const delay = Math.min(1000*S.wsRetry, 10000);
     if (S.token) {
@@ -1770,6 +1780,16 @@ function connectWS() {
     S.wsRetry = 0;
     hideServerToast();
     loadChats();
+    // Heartbeat: держим соединение живым и ловим «зомби»-сокеты в фоне.
+    // Если на ping не пришёл pong — соединение мёртвое, закрываем → реконнект.
+    ws._pongOk = true;
+    clearInterval(ws._hb);
+    ws._hb = setInterval(() => {
+      if (ws.readyState !== 1) return;
+      if (!ws._pongOk) { try { ws.close(); } catch {} return; }
+      ws._pongOk = false;
+      try { ws.send(JSON.stringify({ type: 'ping' })); } catch {}
+    }, 20000);
     setTimeout(() => {
       const initStatus = document.hidden ? 'away' : 'online';
       if (ws.readyState === 1) {
@@ -1796,6 +1816,11 @@ function connectWS() {
 function updateUnreadTotal() {
   const total = Object.values(S.unread).reduce((a,b)=>a+b,0);
   document.title = total > 0 ? `(${total}) Electron` : 'Electron';
+  // Счётчик на иконке установленного PWA (iOS 16.4+, Chrome, Edge)
+  try {
+    if (total > 0) navigator.setAppBadge?.(total);
+    else navigator.clearAppBadge?.();
+  } catch {}
 }
 
 // ── USERS ──

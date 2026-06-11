@@ -149,10 +149,18 @@ function setup(server) {
           const isOnline = clients.has(user_id) && clients.get(user_id).size > 0;
           if (!isOnline) {
             const chatTitle = chat?.type === 'direct' ? msg.sender_name : (chat?.name || 'Electron');
+            // Всего непрочитанных у получателя — для счётчика на иконке PWA
+            const unread = db.prepare(`
+              SELECT COUNT(*) AS c FROM messages m
+              JOIN chat_members cm ON cm.chat_id = m.chat_id AND cm.user_id = ?
+              LEFT JOIN message_status ms ON ms.message_id = m.id AND ms.user_id = ?
+              WHERE m.sender_id != ? AND m.deleted = 0 AND ms.read_at IS NULL
+            `).get(user_id, user_id, user_id).c;
             pushToUser(user_id, {
               title: chatTitle,
               body: msg.text || (msg.attachment ? '🖼 Изображение' : ''),
               chatId: chat_id,
+              unread,
             });
           }
         });

@@ -50,7 +50,14 @@ self.addEventListener('push', e => {
     renotify: true,
     data: { chatId: data.chatId },
   };
-  e.waitUntil(self.registration.showNotification(title, options));
+  const tasks = [self.registration.showNotification(title, options)];
+  // Счётчик на иконке PWA (когда приложение закрыто)
+  if (typeof data.unread === 'number' && self.navigator.setAppBadge) {
+    tasks.push(data.unread > 0 ? self.navigator.setAppBadge(data.unread) : self.navigator.clearAppBadge());
+  } else if (self.navigator.setAppBadge) {
+    tasks.push(self.navigator.setAppBadge());
+  }
+  e.waitUntil(Promise.all(tasks).catch(() => {}));
 });
 
 self.addEventListener('notificationclick', e => {
