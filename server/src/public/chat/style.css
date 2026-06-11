@@ -1643,19 +1643,36 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
   .irc-msg.touch-ctx .irc-actions { opacity: 1; pointer-events: auto; }
 }
 
-/* ── Mobile layout (≤767px) ── */
+/* ══════════════════════════════════════════
+   Mobile layout (≤767px / touch) — нативное поведение
+   Весь экран = высоте visual viewport (--app-height, ставится из JS).
+   Клавиатура уменьшает viewport → флекс-вёрстка сама сжимает список,
+   поле ввода всегда над клавиатурой. Ручного позиционирования нет.
+   ══════════════════════════════════════════ */
 @media (max-width: 767px), (pointer: coarse) {
   :root { --sidebar-w: 100vw; }
 
-  #screen-main {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr;
+  /* Страница целиком не скроллится — скроллится только список сообщений */
+  html, body {
+    position: fixed; inset: 0;
+    width: 100%; height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
   }
 
+  /* Экран — флекс-колонка высотой в visual viewport */
+  #screen-main.active {
+    display: flex;
+    flex-direction: column;
+    height: var(--app-height, 100dvh);
+    overflow: hidden;
+  }
+
+  /* Сайдбар — оверлей поверх всего, вне флекс-потока */
   .sidebar {
     position: fixed; inset: 0;
-    width: 100%; z-index: 10;
-    transition: transform .2s ease;
+    width: 100%; z-index: 30;
+    transition: transform .25s ease;
     padding-top: env(safe-area-inset-top, 0px);
     box-sizing: border-box;
   }
@@ -1664,39 +1681,41 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
     pointer-events: none;
   }
 
+  /* Область чата — занимает всё свободное место, сжимается при клавиатуре */
   .chat-main {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    z-index: 20;
+    position: static;
+    flex: 1 1 auto;
+    min-height: 0;
     display: none;
-    /* без padding-top — шапка сама fixed */
-    box-sizing: border-box;
+    flex-direction: column;
   }
   .chat-main.mobile-open { display: flex; }
 
-  /* Шапка чата — полностью независимо от chat-main */
+  /* Шапка — фиксированной высоты сверху, не двигается */
   .chat-main .chat-header {
-    position: fixed;
-    top: env(safe-area-inset-top, 0px);
-    left: 0; right: 0;
-    z-index: 22;
+    position: static;
+    flex: 0 0 auto;
   }
 
-  /* Сдвигаем messages вниз на высоту шапки + safe-area */
-  .chat-main #messages {
-    margin-top: calc(64px + env(safe-area-inset-top, 0px));
+  /* Список сообщений — растягивается и прокручивается внутри себя */
+  .chat-main .messages {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin-top: 0;
+    padding: 12px 12px 8px;
+    overflow-y: auto;
   }
 
-  /* Поле ввода — отдельный fixed элемент поверх клавиатуры */
+  /* Индикатор печати — над полем ввода, не давит на список */
+  .chat-main .typing-indicator { flex: 0 0 auto; padding: 2px 12px; }
+
+  /* Поле ввода — в обычном потоке, естественно внизу над клавиатурой */
   #chat-input-bar {
-    position: fixed;
-    left: 0; right: 0;
-    bottom: 0;
+    position: static;
+    flex: 0 0 auto;
     z-index: 25;
-    /* safe-area-inset-bottom управляется через JS: только когда клавиатура закрыта */
     padding-bottom: var(--input-safe-bottom, env(safe-area-inset-bottom, 0px));
     box-sizing: border-box;
-    transition: bottom 0.22s ease;
   }
 
   /* Chat header back button */
@@ -1704,7 +1723,6 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
     display: flex;
   }
 
-  .messages { padding: 12px 12px 8px; }
   .chat-input-wrap { padding: 6px 12px 8px; }
 
   /* Prevent iOS zoom on input focus (font-size must be ≥16px) */

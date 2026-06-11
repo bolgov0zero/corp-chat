@@ -204,51 +204,52 @@ function openMobileChat() {
   sidebar?.classList.add('mobile-hidden');
 }
 
-function syncInputBarHeight() {
-  const inputBar = document.getElementById('chat-input-bar');
-  if (!inputBar || inputBar.style.display === 'none') return;
-  _applyKeyboardHeight();
-}
+// ── VIEWPORT / KEYBOARD (нативное поведение на мобильных) ──
+// Высота всего экрана = высоте visual viewport. Клавиатура уменьшает
+// viewport → CSS-флексбокс сам сжимает список сообщений, поле ввода
+// остаётся над клавиатурой. Никакого ручного позиционирования.
+let _maxVH = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+let _stickBottom = true; // был ли пользователь у нижнего края списка
 
-// ── KEYBOARD HEIGHT (iOS/Android) ──
-// Отслеживаем максимальную высоту viewport (без клавиатуры).
-// kh = maxVPH - currentVPH — работает даже если window.innerHeight тоже уменьшается.
-let _maxVPH = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-
-function _applyKeyboardHeight() {
-  if (!window.visualViewport) return;
+function updateAppHeight() {
+  const vv = window.visualViewport;
+  const h = Math.round(vv ? vv.height : window.innerHeight);
+  _maxVH = Math.max(_maxVH, h);
+  const kbOpen = (_maxVH - h) > 80;
+  const root = document.documentElement.style;
+  root.setProperty('--app-height', h + 'px');
+  // Когда клавиатура открыта — home indicator скрыт, safe-area снизу не нужен
+  root.setProperty('--input-safe-bottom', kbOpen ? '0px' : 'env(safe-area-inset-bottom, 0px)');
+  // iOS иногда прокручивает всю страницу при фокусе — возвращаем на место
   if (window.scrollY !== 0) window.scrollTo(0, 0);
-  const cur = window.visualViewport.height;
-  _maxVPH = Math.max(_maxVPH, cur);
-  const kh = Math.max(0, _maxVPH - cur);
-  const inputBar = document.getElementById('chat-input-bar');
-  if (!inputBar) return;
-
-  // Двигаем поле ввода над клавиатурой
-  inputBar.style.bottom = kh + 'px';
-  document.documentElement.style.setProperty('--input-safe-bottom', kh > 0 ? '0px' : 'env(safe-area-inset-bottom, 0px)');
-
-  // Обновляем padding-bottom у #messages = высота клавиатуры + высота инпут-бара
-  const msgs = document.getElementById('messages');
-  if (msgs) {
-    msgs.style.paddingBottom = (kh + inputBar.offsetHeight + 8) + 'px';
-    // Прокручиваем к последнему сообщению после layout
-    requestAnimationFrame(() => { msgs.scrollTop = msgs.scrollHeight; });
-  }
+  // Держим список у нижнего края, если пользователь был внизу
+  if (_stickBottom) pinMessagesToBottom();
 }
+
+function pinMessagesToBottom() {
+  const msgs = document.getElementById('messages');
+  if (msgs) msgs.scrollTop = msgs.scrollHeight;
+}
+
+// Совместимость со старым вызовом из openChat
+function syncInputBarHeight() { updateAppHeight(); }
 
 if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', _applyKeyboardHeight);
-  window.visualViewport.addEventListener('scroll', _applyKeyboardHeight);
+  window.visualViewport.addEventListener('resize', updateAppHeight);
+  window.visualViewport.addEventListener('scroll', updateAppHeight);
 }
+window.addEventListener('resize', updateAppHeight);
+updateAppHeight();
 
 document.addEventListener('focusin', e => {
   if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') {
-    setTimeout(_applyKeyboardHeight, 50);
-    setTimeout(_applyKeyboardHeight, 300);
+    // При появлении клавиатуры держим список внизу
+    _stickBottom = true;
+    setTimeout(updateAppHeight, 50);
+    setTimeout(() => { updateAppHeight(); pinMessagesToBottom(); }, 350);
   }
 });
-document.addEventListener('focusout', () => setTimeout(_applyKeyboardHeight, 100));
+document.addEventListener('focusout', () => setTimeout(updateAppHeight, 100));
 
 // ── INIT ──
 window.addEventListener('DOMContentLoaded', async () => {
@@ -922,6 +923,7 @@ function renderMessages(msgs) {
   });
   container.innerHTML = html;
   // Ждём завершения layout перед скроллом (иначе scrollHeight ещё не актуален)
+  _stickBottom = true;
   requestAnimationFrame(() => {
     container.scrollTop = container.scrollHeight;
   });
@@ -929,8 +931,11 @@ function renderMessages(msgs) {
 
 function onMessagesScroll() {
   const container = document.getElementById('messages');
-  if (!container || !S.chatHasMore || _loadingMore) return;
-  if (container.scrollTop < 80) loadMoreMessages();
+  if (!container) return;
+  // Отслеживаем, находится ли пользователь у нижнего края (для авто-прокрутки)
+  const dist = container.scrollHeight - container.scrollTop - container.clientHeight;
+  _stickBottom = dist < 80;
+  if (S.chatHasMore && !_loadingMore && container.scrollTop < 80) loadMoreMessages();
 }
 
 async function loadMoreMessages() {
@@ -1105,7 +1110,9 @@ function appendMsg(m) {
   if (newEl && !m._optimistic) newEl.classList.add('msg-new');
 
   const dist = container.scrollHeight - container.scrollTop - container.clientHeight;
-  if (dist < 120) {
+  // Своё сообщение или пользователь был внизу — прокручиваем к низу
+  if (m._optimistic || dist < 120) {
+    _stickBottom = true;
     requestAnimationFrame(() => {
       container.scrollTo({ top: container.scrollHeight, behavior: m._optimistic ? 'instant' : 'smooth' });
     });
