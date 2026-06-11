@@ -897,7 +897,10 @@ function renderMessages(msgs) {
     lastSentAt = m.sent_at;
   });
   container.innerHTML = html;
-  container.scrollTop = container.scrollHeight;
+  // Ждём завершения layout перед скроллом (иначе scrollHeight ещё не актуален)
+  requestAnimationFrame(() => {
+    container.scrollTop = container.scrollHeight;
+  });
 }
 
 function onMessagesScroll() {
