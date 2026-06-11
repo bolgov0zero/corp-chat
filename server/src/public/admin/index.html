@@ -457,6 +457,12 @@ tr:hover .td-actions{opacity:1}
           <span class="nav-badge" id="nb-clients">—</span>
         </div>
 
+        <div class="nav-item" onclick="nav('push')" data-page="push">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          Уведомления
+          <span class="nav-badge" id="nb-push">—</span>
+        </div>
+
         <div class="nav-section">Система</div>
         <div class="nav-item" onclick="nav('settings')" data-page="settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -895,7 +901,12 @@ async function refreshDashboardData() {
     set('dash-db-size', fmtBytes(s.dbBytes));
     set('dash-files-size', fmtBytes(s.filesBytes || 0));
     set('dash-uptime',  fmtUptime(s.uptimeSeconds));
-    set('dash-push', (s.pushSubscriptions ?? 0) + ' sub');
+    const pushCnt = s.pushSubscriptions ?? 0;
+    const pushColor = pushCnt > 0 ? 'var(--c-green)' : 'var(--c-muted)';
+    setH('dash-push', `${dot(pushColor)}активен`);
+    document.getElementById('dash-push')?.setAttribute('style', `color:${pushColor}`);
+    const nbPush = document.getElementById('nb-push');
+    if (nbPush) nbPush.textContent = pushCnt;
     if (s.serverVersion) set('dash-server-version', s.serverVersion);
 
     // Active users
@@ -977,8 +988,8 @@ function logout() {
 })();
 
 /* ── NAV ── */
-const pageTitles = {dashboard:'Главная',users:'Пользователи',rooms:'Комнаты',chats:'Чаты и группы',clients:'Клиенты',settings:'Настройки'};
-const pageRenders = {dashboard:renderDashboard,users:renderUsers,rooms:renderRooms,chats:renderChats,clients:renderClients,settings:renderSettings};
+const pageTitles = {dashboard:'Главная',users:'Пользователи',rooms:'Комнаты',chats:'Чаты и группы',clients:'Клиенты',push:'Уведомления',settings:'Настройки'};
+const pageRenders = {dashboard:renderDashboard,users:renderUsers,rooms:renderRooms,chats:renderChats,clients:renderClients,push:renderPush,settings:renderSettings};
 
 function nav(page) {
   currentPage=page;
@@ -1179,7 +1190,12 @@ async function renderDashboard() {
   setEl('dash-db-size', fmtBytes(s.dbBytes));
   setEl('dash-files-size', fmtBytes(s.filesBytes || 0));
   setEl('dash-uptime', fmtUptime(s.uptimeSeconds));
-  setEl('dash-push', (s.pushSubscriptions ?? 0) + ' sub');
+  const pushCnt2 = s.pushSubscriptions ?? 0;
+  const pushColor2 = pushCnt2 > 0 ? 'var(--c-green)' : 'var(--c-muted)';
+  setEl('dash-push', `${dot(pushColor2)}активен`);
+  document.getElementById('dash-push')?.setAttribute('style', `color:${pushColor2}`);
+  const nbPush2 = document.getElementById('nb-push');
+  if (nbPush2) nbPush2.textContent = pushCnt2;
   if (s.serverVersion) setEl('dash-server-version', s.serverVersion);
 
   // Draw sparkline with real data — timeout ensures grid layout is settled
@@ -1607,6 +1623,8 @@ async function loadClients(force=false) {
 
   function fmtScopeTag(platform, installScope) {
     if (!installScope) return '';
+    if (installScope === 'pwa') return `<span style="display:inline-block;margin-top:3px;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700;background:var(--c-blue-dim);color:var(--c-blue-text)">PWA</span>`;
+    if (installScope === 'web') return `<span style="display:inline-block;margin-top:3px;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700;background:var(--c-surface2);color:var(--c-muted)">Web</span>`;
     const isSystem = installScope === 'system';
     const color = isSystem ? 'var(--c-green-text)' : 'var(--c-orange-text)';
     const bg = isSystem ? 'var(--c-green-dim)' : 'var(--c-orange-dim)';
@@ -1698,6 +1716,90 @@ async function forceLogout(connId,name,hostname) {
       toast('Сессия завершена','success');
       setTimeout(loadClients,1500);
     });
+}
+
+/* ── PUSH SUBSCRIPTIONS ── */
+async function renderPush() {
+  setTopbarActions(`
+    <button class="btn btn-primary btn-sm" onclick="renderPush()">
+      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Обновить
+    </button>`);
+
+  document.getElementById('page-body').innerHTML = `
+    <div class="card">
+      <div class="card-head">
+        <div style="display:flex;align-items:center;gap:8px">
+          <h3>Push-подписки</h3>
+          <span id="push-count" class="badge badge-blue">—</span>
+        </div>
+      </div>
+      <div id="push-table-wrap">
+        <div class="empty-state" style="padding:32px"><p>Загрузка…</p></div>
+      </div>
+    </div>`;
+
+  const subs = await api('GET', '/api/push/subscriptions');
+  const nb = document.getElementById('nb-push');
+  if (nb) nb.textContent = subs.length;
+  const cnt = document.getElementById('push-count');
+  if (cnt) cnt.textContent = subs.length;
+
+  const wrap = document.getElementById('push-table-wrap');
+  if (!wrap) return;
+
+  if (!subs.length) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:40px"><svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><p>Нет активных подписок</p></div>`;
+    return;
+  }
+
+  function fmtEndpoint(ep) {
+    try {
+      const u = new URL(ep);
+      return `<span style="font-family:var(--f-mono);font-size:10px;color:var(--c-muted)">${esc(u.hostname)}</span>`;
+    } catch { return `<span style="font-size:10px;color:var(--c-muted)">${esc(ep.slice(0,40))}…</span>`; }
+  }
+
+  function fmtTs(ts) {
+    if (!ts) return '—';
+    return new Date(ts * 1000).toLocaleString('ru', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  }
+
+  wrap.innerHTML = `<table>
+    <thead><tr>
+      <th>Пользователь</th>
+      <th>Сервис</th>
+      <th>Подписан</th>
+      <th></th>
+    </tr></thead>
+    <tbody>
+    ${subs.map(s => `<tr>
+      <td>
+        <div class="user-cell">
+          ${avHtml(s.display_name||s.username,30,8,s.user_id,null,false)}
+          <div>
+            <div class="uc-name">${esc(s.display_name||s.username)}</div>
+            <div class="uc-sub">@${esc(s.username)}</div>
+          </div>
+        </div>
+      </td>
+      <td>${fmtEndpoint(s.endpoint)}</td>
+      <td style="color:var(--c-muted);font-size:11px;font-family:var(--f-mono)">${fmtTs(s.created_at)}</td>
+      <td>
+        <button class="btn btn-sm" style="color:var(--c-danger)" onclick="deletePushSub(${s.id},this)">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+        </button>
+      </td>
+    </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+async function deletePushSub(id, btn) {
+  btn.disabled = true;
+  const res = await api('DELETE', `/api/push/subscriptions/${id}`);
+  if (res.ok) { toast('Подписка удалена', 'success'); renderPush(); }
+  else { btn.disabled = false; toast('Ошибка удаления', 'error'); }
 }
 
 /* ── SETTINGS ── */

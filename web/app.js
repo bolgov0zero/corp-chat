@@ -203,6 +203,16 @@ function openMobileChat() {
   sidebar?.classList.add('mobile-hidden');
 }
 
+// ── VISUAL VIEWPORT (keyboard resize on mobile) ──
+if (window.visualViewport) {
+  const updateChatVh = () => {
+    document.documentElement.style.setProperty('--chat-vh', window.visualViewport.height + 'px');
+  };
+  window.visualViewport.addEventListener('resize', updateChatVh);
+  window.visualViewport.addEventListener('scroll', updateChatVh);
+  updateChatVh();
+}
+
 // ── INIT ──
 window.addEventListener('DOMContentLoaded', async () => {
   const session = loadSession();
@@ -759,30 +769,38 @@ async function openChat(chatId) {
 
 // ── SWIPE TO REPLY (touch) ──
 function addSwipeReply(container) {
-  let startX = 0, startY = 0, swipeEl = null;
+  let startX = 0, startY = 0, swipeEl = null, dirLocked = false;
   container.addEventListener('touchstart', e => {
     if (e.touches.length !== 1) return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
     swipeEl = e.target.closest('[data-msg-id]');
+    dirLocked = false;
   }, { passive: true });
   container.addEventListener('touchmove', e => {
     if (!swipeEl) return;
     const dx = e.touches[0].clientX - startX;
     const dy = e.touches[0].clientY - startY;
-    if (Math.abs(dy) > Math.abs(dx)) { swipeEl = null; return; }
-    if (dx > 8 && dx < 80) {
-      e.preventDefault(); // блокируем iOS системный swipe-back
-      swipeEl.style.transform = `translateX(${dx * 0.5}px)`;
-      swipeEl.style.transition = 'none';
+    // Определяем направление по первым 10px движения
+    if (!dirLocked) {
+      if (Math.abs(dy) > Math.abs(dx) || Math.abs(dx) < 6) return;
+      dirLocked = true;
     }
+    if (dx <= 0) { // только свайп вправо
+      if (swipeEl) { swipeEl.style.transform = ''; swipeEl.style.transition = 'transform .2s'; }
+      swipeEl = null; return;
+    }
+    e.preventDefault();
+    const shift = Math.min(dx * 0.45, 50);
+    swipeEl.style.transform = `translateX(${shift}px)`;
+    swipeEl.style.transition = 'none';
   }, { passive: false });
   container.addEventListener('touchend', e => {
     if (!swipeEl) return;
     const dx = e.changedTouches[0].clientX - startX;
     swipeEl.style.transform = '';
-    swipeEl.style.transition = 'transform .2s';
-    if (dx > 40) {
+    swipeEl.style.transition = 'transform .25s ease';
+    if (dx > 50) {
       const msgId = parseInt(swipeEl.dataset.msgId);
       S.ctx.messageId = msgId;
       ctxReply();
@@ -1752,7 +1770,21 @@ function connectWS() {
     loadChats();
     setTimeout(() => {
       const initStatus = document.hidden ? 'away' : 'online';
-      if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'set_status', status: initStatus }));
+      if (ws.readyState === 1) {
+        ws.send(JSON.stringify({ type: 'set_status', status: initStatus }));
+        const isPwa = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+        ws.send(JSON.stringify({
+          type: 'client_info',
+          hostname: isPwa ? 'PWA' : 'Web',
+          clientVersion: 'web',
+          osPlatform: navigator.platform || 'web',
+          osRelease: navigator.userAgent.match(/iPhone|iPad|iPod/i) ? 'iOS'
+            : navigator.userAgent.match(/Android/i) ? 'Android'
+            : navigator.userAgent.match(/Mac/i) ? 'macOS'
+            : 'Web',
+          installScope: isPwa ? 'pwa' : 'web',
+        }));
+      }
       updateSidebarStatus(initStatus);
     }, 300);
   };

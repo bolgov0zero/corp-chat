@@ -1798,10 +1798,13 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
   }
 
   .chat-main {
-    position: fixed; inset: 0; z-index: 20;
+    position: fixed;
+    left: 0; right: 0;
+    top: 0;
+    height: var(--chat-vh, 100dvh);
+    z-index: 20;
     display: none;
     padding-top: env(safe-area-inset-top, 0px);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
     box-sizing: border-box;
   }
   .chat-main.mobile-open { display: flex; }

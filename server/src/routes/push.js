@@ -78,6 +78,26 @@ router.delete('/subscribe', (req, res) => {
   res.json({ ok: true });
 });
 
+// Список всех подписок (только для администраторов)
+router.get('/subscriptions', (req, res) => {
+  if (!req.user.is_admin) return res.status(403).json({ error: 'Forbidden' });
+  const rows = db.prepare(`
+    SELECT ps.id, ps.user_id, ps.endpoint, ps.created_at,
+      u.username, u.display_name
+    FROM push_subscriptions ps
+    JOIN users u ON u.id = ps.user_id
+    ORDER BY ps.created_at DESC
+  `).all();
+  res.json(rows);
+});
+
+// Удаление подписки администратором по id
+router.delete('/subscriptions/:id', (req, res) => {
+  if (!req.user.is_admin) return res.status(403).json({ error: 'Forbidden' });
+  db.prepare('DELETE FROM push_subscriptions WHERE id = ?').run(req.params.id);
+  res.json({ ok: true });
+});
+
 module.exports = router;
 module.exports.sendPushToUser = sendPushToUser;
 module.exports.getVapidPublicKey = () => vapidKeys.publicKey;
