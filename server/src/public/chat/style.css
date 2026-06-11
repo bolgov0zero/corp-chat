@@ -1681,6 +1681,7 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
     top: var(--app-top, 0px);
     left: 0; right: 0;
     bottom: 0;
+    height: auto; /* перебиваем .screen{height:100dvh}, иначе bottom:0 игнорируется */
     padding-bottom: var(--kb-height, 0px);
     box-sizing: border-box;
     overflow: hidden;
