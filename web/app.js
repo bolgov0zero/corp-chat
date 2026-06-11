@@ -207,38 +207,39 @@ function openMobileChat() {
 function syncInputBarHeight() {
   const inputBar = document.getElementById('chat-input-bar');
   if (!inputBar || inputBar.style.display === 'none') return;
-  const kh = window.visualViewport
-    ? Math.max(0, window.innerHeight - window.visualViewport.offsetTop - window.visualViewport.height)
-    : 0;
-  inputBar.style.bottom = kh + 'px';
-  document.documentElement.style.setProperty('--chat-bottom', (kh + inputBar.offsetHeight) + 'px');
+  _applyKeyboardHeight();
 }
 
 // ── KEYBOARD HEIGHT (iOS/Android) ──
-// Правильная формула: kh = window.innerHeight - visualViewport.height
-// (offsetTop не вычитаем — он равен скроллу страницы, который мы сами сбрасываем)
-if (window.visualViewport) {
-  const onVP = () => {
-    // iOS скроллит window при открытии клавиатуры — сбрасываем немедленно
-    if (window.scrollY !== 0) window.scrollTo(0, 0);
+// Отслеживаем максимальную высоту viewport (без клавиатуры).
+// kh = maxVPH - currentVPH — работает даже если window.innerHeight тоже уменьшается.
+let _maxVPH = window.visualViewport ? window.visualViewport.height : window.innerHeight;
 
-    const kh = Math.max(0, window.innerHeight - window.visualViewport.height);
-    const inputBar = document.getElementById('chat-input-bar');
-    if (inputBar) {
-      inputBar.style.bottom = kh + 'px';
-      const inputH = inputBar.offsetHeight;
-      document.documentElement.style.setProperty('--chat-bottom', (kh + inputH) + 'px');
-    }
-  };
-  window.visualViewport.addEventListener('resize', onVP);
-  window.visualViewport.addEventListener('scroll', onVP);
+function _applyKeyboardHeight() {
+  if (!window.visualViewport) return;
+  if (window.scrollY !== 0) window.scrollTo(0, 0);
+  const cur = window.visualViewport.height;
+  _maxVPH = Math.max(_maxVPH, cur);
+  const kh = Math.max(0, _maxVPH - cur);
+  const inputBar = document.getElementById('chat-input-bar');
+  if (inputBar) {
+    inputBar.style.bottom = kh + 'px';
+    document.documentElement.style.setProperty('--chat-bottom', (kh + inputBar.offsetHeight) + 'px');
+  }
+}
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', _applyKeyboardHeight);
+  window.visualViewport.addEventListener('scroll', _applyKeyboardHeight);
 }
 
 document.addEventListener('focusin', e => {
   if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') {
-    setTimeout(() => { if (window.scrollY !== 0) window.scrollTo(0, 0); }, 50);
+    setTimeout(_applyKeyboardHeight, 50);
+    setTimeout(_applyKeyboardHeight, 300);
   }
 });
+document.addEventListener('focusout', () => setTimeout(_applyKeyboardHeight, 100));
 
 // ── INIT ──
 window.addEventListener('DOMContentLoaded', async () => {
