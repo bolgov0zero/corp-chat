@@ -32,7 +32,13 @@ function enrichChat(chat, userId) {
     FROM messages m JOIN users u ON u.id = m.sender_id
     WHERE m.chat_id = ? ORDER BY m.sent_at DESC LIMIT 1
   `).get(chat.id);
-  return { ...chat, members, last_message: last || null };
+  // Непрочитанные (источник истины для счётчиков и синхронизации между устройствами)
+  const unread = db.prepare(`
+    SELECT COUNT(*) AS c FROM messages m
+    LEFT JOIN message_status ms ON ms.message_id = m.id AND ms.user_id = ?
+    WHERE m.chat_id = ? AND m.sender_id != ? AND m.deleted = 0 AND ms.read_at IS NULL
+  `).get(userId, chat.id, userId).c;
+  return { ...chat, members, last_message: last || null, unread };
 }
 
 // Get my chats

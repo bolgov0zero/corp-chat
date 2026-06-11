@@ -546,6 +546,10 @@ async function loadChats() {
   const chats = await api('GET','/chats');
   if (!chats) return;
   S.chats = chats;
+  // Сервер — источник истины по непрочитанным (синхронизация между устройствами).
+  // Активный чат считаем прочитанным сразу.
+  chats.forEach(c => { S.unread[c.id] = (c.id === S.activeChatId) ? 0 : (c.unread || 0); });
+  updateUnreadTotal();
   renderChatList();
 }
 
