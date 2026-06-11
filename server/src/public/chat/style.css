@@ -1669,10 +1669,23 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
     top: 0; left: 0; right: 0; bottom: 0;
     z-index: 20;
     display: none;
-    padding-top: env(safe-area-inset-top, 0px);
+    /* без padding-top — шапка сама fixed */
     box-sizing: border-box;
   }
   .chat-main.mobile-open { display: flex; }
+
+  /* Шапка чата — полностью независимо от chat-main */
+  .chat-main .chat-header {
+    position: fixed;
+    top: env(safe-area-inset-top, 0px);
+    left: 0; right: 0;
+    z-index: 22;
+  }
+
+  /* Сдвигаем messages вниз на высоту шапки + safe-area */
+  .chat-main #messages {
+    margin-top: calc(64px + env(safe-area-inset-top, 0px));
+  }
 
   /* Поле ввода — отдельный fixed элемент поверх клавиатуры */
   #chat-input-bar {
