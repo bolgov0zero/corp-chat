@@ -217,7 +217,9 @@ function updateAppHeight() {
   _maxVH = Math.max(_maxVH, h);
   const kbOpen = (_maxVH - h) > 80;
   const root = document.documentElement.style;
-  root.setProperty('--app-height', h + 'px');
+  // Без клавиатуры — полный экран (100dvh), чтобы не было щели снизу.
+  // С клавиатурой — точная высота visual viewport, чтобы поле было над ней.
+  root.setProperty('--app-height', kbOpen ? (h + 'px') : '100dvh');
   // iOS сдвигает весь WebView вверх при фокусе на нижнем поле — компенсируем,
   // чтобы шапка стояла на месте, а двигалось только поле ввода/сообщения
   root.setProperty('--app-top', (vv ? vv.offsetTop : 0) + 'px');
