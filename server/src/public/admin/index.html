@@ -379,6 +379,48 @@ tr:hover .td-actions{opacity:1}
 /* ── ROOM NAME INPUT ── */
 #room-name-input{width:100%;padding:9px 12px;border:1.5px solid var(--c-border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--f-ui);outline:none;transition:border-color .15s;background:var(--c-surface);color:var(--c-text)}
 #room-name-input:focus{border-color:var(--c-primary);box-shadow:0 0 0 3px var(--c-primary-dim)}
+
+/* ── SERVER STATUS (honest) ── */
+.server-dot.degraded{background:var(--c-orange);box-shadow:0 0 0 2px var(--c-orange-dim)}
+.server-dot.down{background:var(--c-red);box-shadow:0 0 0 2px var(--c-red-dim);animation:none}
+@keyframes serverPulseAmber{0%,100%{box-shadow:0 0 0 0 var(--c-orange-dim)}60%{box-shadow:0 0 0 5px rgba(245,158,11,0)}}
+.server-dot.degraded{animation:serverPulseAmber 2.4s ease-in-out infinite}
+
+/* ── PRESENCE RING (online avatars) ── */
+.av-wrap.online .av{box-shadow:0 0 0 2px var(--c-surface),0 0 0 3.5px var(--c-green)}
+
+/* ── SKELETONS ── */
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.skel{background:linear-gradient(90deg,var(--c-surface2) 25%,var(--c-border) 50%,var(--c-surface2) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:6px}
+.skel-row{display:flex;align-items:center;gap:10px;padding:10px 0}
+.skel-line{height:10px;border-radius:5px}
+
+/* ── COMMAND PALETTE (⌘K) ── */
+.cmdk-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:400;justify-content:center;align-items:flex-start;padding-top:12vh;backdrop-filter:blur(4px)}
+.cmdk-bg.open{display:flex;animation:modalBgIn 140ms ease}
+.cmdk{width:520px;max-width:92vw;background:var(--c-surface);border:1px solid var(--c-border);border-radius:14px;box-shadow:var(--shadow-md);overflow:hidden;animation:modalIn 200ms cubic-bezier(0.34,1.56,0.64,1)}
+.cmdk-search{display:flex;align-items:center;gap:10px;padding:13px 15px;border-bottom:1px solid var(--c-border)}
+.cmdk-search input{flex:1;border:none;outline:none;background:none;font-size:15px;font-family:var(--f-ui);color:var(--c-text)}
+.cmdk-search input::placeholder{color:var(--c-muted)}
+.cmdk-kbd{font-family:var(--f-mono);font-size:11px;border:1px solid var(--c-border);border-radius:4px;padding:1px 5px;color:var(--c-muted)}
+.cmdk-list{max-height:46vh;overflow-y:auto;padding:8px}
+.cmdk-group{font-size:10px;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:.06em;padding:8px 8px 4px}
+.cmdk-item{display:flex;align-items:center;gap:11px;padding:9px 9px;border-radius:8px;cursor:pointer;color:var(--c-text);font-size:14px}
+.cmdk-item .ci-icon{width:18px;display:flex;justify-content:center;color:var(--c-text2);flex-shrink:0}
+.cmdk-item.danger .ci-icon{color:var(--c-red-text)}
+.cmdk-item .ci-sub{color:var(--c-muted);font-size:12px;margin-left:4px}
+.cmdk-item .ci-enter{margin-left:auto;font-family:var(--f-mono);font-size:11px;color:var(--c-primary);opacity:0}
+.cmdk-item.sel{background:var(--c-primary-dim)}
+.cmdk-item.sel .ci-enter{opacity:1}
+.cmdk-empty{padding:24px;text-align:center;color:var(--c-muted);font-size:13px}
+.cmdk-foot{display:flex;gap:14px;padding:8px 15px;border-top:1px solid var(--c-border);font-size:11px;color:var(--c-muted)}
+.cmdk-trigger{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--c-muted);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);padding:5px 9px;cursor:pointer;font-family:var(--f-ui);transition:background .12s,color .12s}
+.cmdk-trigger:hover{background:var(--c-surface2);color:var(--c-text2)}
+
+/* ── ACCESSIBILITY ── */
+button:focus-visible,input:focus-visible,.nav-item:focus-visible,.cmdk-item:focus-visible{outline:2px solid var(--c-primary);outline-offset:2px}
+button:active,.btn:active{transform:scale(.97)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}}
 </style>
 </head>
 <body>
@@ -496,6 +538,7 @@ tr:hover .td-actions{opacity:1}
           <h2 id="page-title">Главная</h2>
         </div>
         <div class="topbar-right" id="topbar-actions">
+          <button class="cmdk-trigger" onclick="openCmdk()" title="Поиск (⌘K)"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Поиск<span class="cmdk-kbd">⌘K</span></button>
           <div class="server-status">
             <div class="server-dot"></div>
             <span>server online</span>
@@ -616,6 +659,23 @@ tr:hover .td-actions{opacity:1}
   </div>
 </div>
 
+<!-- Command palette (⌘K) -->
+<div class="cmdk-bg" id="cmdk" onclick="if(event.target===this)closeCmdk()">
+  <div class="cmdk">
+    <div class="cmdk-search">
+      <svg width="17" height="17" fill="none" stroke="var(--c-muted)" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="cmdk-input" placeholder="Перейти, найти или выполнить…" autocomplete="off" spellcheck="false" oninput="renderCmdk()">
+      <span class="cmdk-kbd">esc</span>
+    </div>
+    <div class="cmdk-list" id="cmdk-list"></div>
+    <div class="cmdk-foot">
+      <span><span class="cmdk-kbd">↑↓</span> навигация</span>
+      <span><span class="cmdk-kbd">↵</span> выбрать</span>
+      <span><span class="cmdk-kbd">⌘K</span> из любого места</span>
+    </div>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 
 <script>
@@ -672,7 +732,7 @@ const api = async (method, path, body) => {
     });
   } catch (e) {
     // Сеть недоступна — не роняем страницу необработанным исключением
-    if (token) toast('Нет связи с сервером', 'error');
+    if (token) { toast('Нет связи с сервером', 'error'); try { setServerStatus(null); } catch {} }
     throw e;
   }
   // Токен истёк/невалиден — возвращаем на экран логина (один раз)
@@ -738,6 +798,7 @@ function avHtml(name, size=32, radius=8, userId=null, status=null, _hasAvatar=fa
   const dotSz = Math.round(size * 0.28);
   const dotHtml = status && status !== 'offline'
     ? `<div class="status-dot ${status}" style="width:${dotSz}px;height:${dotSz}px"></div>` : '';
+  const ring = status === 'online' ? ' online' : '';
   if (userId) {
     // Avatar hidden until image resolves — no colored block flash
     const inits = `<span style="display:none">${initials(name)}</span>`;
@@ -745,9 +806,9 @@ function avHtml(name, size=32, radius=8, userId=null, status=null, _hasAvatar=fa
       style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:${radius}px"
       onload="this.parentElement.style.opacity='1'"
       onerror="this.style.display='none';this.previousElementSibling.style.display='';this.parentElement.style.opacity='1'">`;
-    return `<div class="av-wrap"><div class="av" style="width:${size}px;height:${size}px;border-radius:${radius}px;font-size:${fs}px;background:${bg};opacity:0">${inits}${img}</div>${dotHtml}</div>`;
+    return `<div class="av-wrap${ring}"><div class="av" style="width:${size}px;height:${size}px;border-radius:${radius}px;font-size:${fs}px;background:${bg};opacity:0">${inits}${img}</div>${dotHtml}</div>`;
   }
-  return `<div class="av-wrap"><div class="av" style="width:${size}px;height:${size}px;border-radius:${radius}px;font-size:${fs}px;background:${bg}">${initials(name)}</div>${dotHtml}</div>`;
+  return `<div class="av-wrap${ring}"><div class="av" style="width:${size}px;height:${size}px;border-radius:${radius}px;font-size:${fs}px;background:${bg}">${initials(name)}</div>${dotHtml}</div>`;
 }
 
 function toast(msg, type='') {
@@ -818,6 +879,10 @@ function drawSparkline(containerId, points, labels) {
   const W = el.clientWidth || 360, H = Math.max(el.clientHeight || 0, 60);
   const opts = { padTop: 14, padBottom: 4, padLeft: 34, padRight: 6 };
   const { line, fill, max, padTop, padLeft, h } = buildSparkPath(points, W, H, opts);
+  // Координаты последней точки — для маркера
+  const lastVal = points[points.length-1] ?? 0;
+  const lastX = padLeft + (W - opts.padLeft - opts.padRight);
+  const lastY = padTop + (1 - lastVal / Math.max(max, 1)) * h;
 
   const isDark = document.documentElement.dataset.theme === 'dark';
   const strokeColor = getComputedStyle(document.documentElement).getPropertyValue('--c-primary').trim();
@@ -849,6 +914,8 @@ function drawSparkline(containerId, points, labels) {
       <path d="${fill}" fill="url(#${gradId})"/>
       <path d="${line}" fill="none" stroke="${strokeColor}" stroke-width="1.5"
             stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="6" fill="${strokeColor}" opacity="0.16"/>
+      <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="3" fill="${strokeColor}"/>
     </svg>`;
 
   const labelsEl = document.getElementById(containerId + '-labels');
@@ -900,6 +967,7 @@ async function refreshDashboardData() {
     const t0 = Date.now();
     const [s, users] = await Promise.all([api('GET','/api/admin/stats'), api('GET','/api/admin/users')]);
     const latency = Date.now() - t0;
+    setServerStatus(latency);
 
     const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
     const setH = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
@@ -1011,6 +1079,7 @@ function logout() {
 })();
 
 /* ── NAV ── */
+const CMDK_TRIGGER_HTML = `<button class="cmdk-trigger" onclick="openCmdk()" title="Поиск (⌘K)"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Поиск<span class="cmdk-kbd">⌘K</span></button>`;
 const pageTitles = {dashboard:'Главная',users:'Пользователи',rooms:'Комнаты',chats:'Чаты и группы',clients:'Клиенты',push:'Уведомления',settings:'Настройки'};
 const pageRenders = {dashboard:renderDashboard,users:renderUsers,rooms:renderRooms,chats:renderChats,clients:renderClients,push:renderPush,settings:renderSettings};
 
@@ -1021,7 +1090,7 @@ function nav(page) {
 
   // Restore server status in topbar (clients page overrides it)
   const ta = document.getElementById('topbar-actions');
-  ta.innerHTML=`<div class="server-status"><div class="server-dot"></div><span>server online</span><span class="server-time" id="clock">—</span></div>`;
+  ta.innerHTML=`${CMDK_TRIGGER_HTML}<div class="server-status"><div class="server-dot"></div><span>server online</span><span class="server-time" id="clock">—</span></div>`;
 
   // Очищаем контент сразу — анимация играет на пустом контейнере, не на старой странице
   const pb = document.getElementById('page-body');
@@ -1068,11 +1137,17 @@ async function updateNavBadges() {
 
 /* ── DASHBOARD ── */
 async function renderDashboard() {
-  document.getElementById('page-body').innerHTML=`<div style="color:var(--c-muted);font-size:12px;padding:20px 0">Загрузка…</div>`;
+  document.getElementById('page-body').innerHTML=`
+    <div class="stats-row">${Array(6).fill('<div class="stat-card"><div class="skel" style="width:24px;height:24px;border-radius:6px;margin-bottom:10px"></div><div class="skel skel-line" style="width:50%;height:18px;margin-bottom:6px"></div><div class="skel skel-line" style="width:70%"></div></div>').join('')}</div>
+    <div class="dash-grid" style="margin-top:14px">
+      <div class="card" style="padding:16px"><div class="skel skel-line" style="width:40%;height:14px;margin-bottom:14px"></div><div class="skel" style="width:100%;height:110px;border-radius:8px"></div></div>
+      <div class="card" style="padding:16px">${Array(4).fill('<div class="skel-row"><div class="skel" style="width:30px;height:30px;border-radius:50%"></div><div style="flex:1"><div class="skel skel-line" style="width:55%;margin-bottom:5px"></div><div class="skel skel-line" style="width:35%;height:8px"></div></div></div>').join('')}</div>
+    </div>`;
 
   const t0 = Date.now();
   const [s, users] = await Promise.all([api('GET','/api/admin/stats'), api('GET','/api/admin/users')]);
   const apiLatency = Date.now() - t0;
+  setServerStatus(apiLatency);
   updateNavBadges();
   const active = users.filter(u=>u.status==='online'||u.status==='away');
   const onlineCnt = active.filter(u=>u.status==='online').length;
@@ -1196,6 +1271,13 @@ async function renderDashboard() {
       </div>
       <div class="au-grid" id="dash-au-grid">${auCards}</div>
     </div>`;
+
+  // Count-up анимация чисел в карточках
+  document.querySelectorAll('.stat-val[id^="dash-stat-"]').forEach(el => {
+    const target = parseInt((el.textContent||'').replace(/\D/g,'')) || 0;
+    el.textContent = '0';
+    countUp(el, target);
+  });
 
   // Fill in real server stats
   const setEl = (id, html) => { const e = document.getElementById(id); if (e) e.innerHTML = html; };
@@ -1596,7 +1678,7 @@ async function renderClients() {
         </div>
       </div>
       <div id="clients-table-wrap">
-        <div class="empty-state" style="padding:32px"><p>Загрузка…</p></div>
+        <div style="padding:14px 16px">${Array(5).fill('<div class="skel-row"><div class="skel" style="width:30px;height:30px;border-radius:50%"></div><div style="flex:1"><div class="skel skel-line" style="width:40%;margin-bottom:5px"></div><div class="skel skel-line" style="width:25%;height:8px"></div></div><div class="skel skel-line" style="width:60px"></div></div>').join('')}</div>
       </div>
     </div>`;
 
@@ -1758,7 +1840,7 @@ async function renderPush() {
         </div>
       </div>
       <div id="push-table-wrap">
-        <div class="empty-state" style="padding:32px"><p>Загрузка…</p></div>
+        <div style="padding:14px 16px">${Array(5).fill('<div class="skel-row"><div class="skel" style="width:30px;height:30px;border-radius:50%"></div><div style="flex:1"><div class="skel skel-line" style="width:40%;margin-bottom:5px"></div><div class="skel skel-line" style="width:25%;height:8px"></div></div><div class="skel skel-line" style="width:60px"></div></div>').join('')}</div>
       </div>
     </div>`;
 
@@ -1948,6 +2030,7 @@ async function clearGithubToken() {
 /* ── TOPBAR HELPER ── */
 function setTopbarActions(html) {
   document.getElementById('topbar-actions').innerHTML=`
+    ${CMDK_TRIGGER_HTML}
     <div class="server-status"><div class="server-dot"></div><span>server online</span><span class="server-time" id="clock">—</span></div>
     ${html}`;
 }
@@ -2073,6 +2156,124 @@ async function doServerUpdateSettings() {
       } catch {}
     }, 1500);
   }
+}
+
+/* ── COMMAND PALETTE (⌘K) ── */
+const SVG_NAV = {
+  dashboard:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  users:'<circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>',
+  rooms:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+  chats:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  clients:'<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/>',
+  push:'<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  add:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  restart:'<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>',
+};
+function cmdkIcon(p){ return `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">${SVG_NAV[p]||''}</svg>`; }
+
+const CMDK_COMMANDS = [
+  { group:'Навигация', icon:'dashboard', label:'Главная',        run:()=>nav('dashboard') },
+  { group:'Навигация', icon:'users',     label:'Пользователи',   run:()=>nav('users') },
+  { group:'Навигация', icon:'rooms',     label:'Комнаты',        run:()=>nav('rooms') },
+  { group:'Навигация', icon:'chats',     label:'Чаты и группы',  run:()=>nav('chats') },
+  { group:'Навигация', icon:'clients',   label:'Клиенты',        run:()=>nav('clients') },
+  { group:'Навигация', icon:'push',      label:'Уведомления',    run:()=>nav('push') },
+  { group:'Навигация', icon:'settings',  label:'Настройки',      run:()=>nav('settings') },
+  { group:'Действия',  icon:'add',       label:'Создать пользователя', run:()=>{ nav('users'); setTimeout(openCreateUser,60); } },
+  { group:'Действия',  icon:'add',       label:'Создать комнату',      run:()=>{ nav('rooms'); setTimeout(openCreateRoom,60); } },
+  { group:'Действия',  icon:'restart',   label:'Перезапустить службу', danger:true, run:()=>restartService() },
+];
+
+let _cmdkSel = 0, _cmdkItems = [];
+
+async function openCmdk() {
+  const bg = document.getElementById('cmdk');
+  if (!bg || bg.classList.contains('open')) return;
+  // Подгружаем пользователей для поиска, если ещё не загружены
+  if (!allUsersCache.length) { try { allUsersCache = await api('GET','/api/admin/users') || []; } catch {} }
+  bg.classList.add('open');
+  const inp = document.getElementById('cmdk-input');
+  inp.value = ''; _cmdkSel = 0;
+  renderCmdk();
+  setTimeout(()=>inp.focus(), 30);
+}
+function closeCmdk() { document.getElementById('cmdk')?.classList.remove('open'); }
+
+function cmdkResults(q) {
+  const lq = q.trim().toLowerCase();
+  const cmds = CMDK_COMMANDS.filter(c => !lq || c.label.toLowerCase().includes(lq));
+  const users = (lq ? allUsersCache.filter(u =>
+    (u.display_name||'').toLowerCase().includes(lq) || (u.username||'').toLowerCase().includes(lq)
+  ).slice(0,6) : []).map(u => ({
+    group:'Пользователи', user:u, label:u.display_name,
+    run:()=>{ nav('users'); setTimeout(()=>openEditUser(u.id),80); }
+  }));
+  return [...cmds, ...users];
+}
+
+function renderCmdk() {
+  const q = document.getElementById('cmdk-input').value;
+  _cmdkItems = cmdkResults(q);
+  if (_cmdkSel >= _cmdkItems.length) _cmdkSel = Math.max(0, _cmdkItems.length-1);
+  const list = document.getElementById('cmdk-list');
+  if (!_cmdkItems.length) { list.innerHTML = `<div class="cmdk-empty">Ничего не найдено</div>`; return; }
+  let html = '', lastGroup = null;
+  _cmdkItems.forEach((it, i) => {
+    if (it.group !== lastGroup) { html += `<div class="cmdk-group">${it.group}</div>`; lastGroup = it.group; }
+    const iconHtml = it.user
+      ? avHtml(it.user.display_name, 22, 6, it.user.id, it.user.status, it.user.has_avatar)
+      : `<span class="ci-icon">${cmdkIcon(it.icon)}</span>`;
+    const sub = it.user ? `<span class="ci-sub">@${esc(it.user.username)}</span>` : '';
+    html += `<div class="cmdk-item${i===_cmdkSel?' sel':''}${it.danger?' danger':''}" data-i="${i}" onmousemove="cmdkHover(${i})" onclick="cmdkRun(${i})">
+      ${iconHtml}<span>${esc(it.label)}</span>${sub}<span class="ci-enter">↵</span></div>`;
+  });
+  list.innerHTML = html;
+  const sel = list.querySelector('.cmdk-item.sel');
+  if (sel) sel.scrollIntoView({ block:'nearest' });
+}
+function cmdkHover(i){ if(i!==_cmdkSel){ _cmdkSel=i; renderCmdk(); } }
+function cmdkRun(i){ const it=_cmdkItems[i]; if(!it) return; closeCmdk(); it.run(); }
+
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+    if (!token) return;
+    e.preventDefault();
+    const bg = document.getElementById('cmdk');
+    if (bg?.classList.contains('open')) closeCmdk(); else openCmdk();
+    return;
+  }
+  const open = document.getElementById('cmdk')?.classList.contains('open');
+  if (!open) return;
+  if (e.key === 'Escape') { e.preventDefault(); closeCmdk(); }
+  else if (e.key === 'ArrowDown') { e.preventDefault(); _cmdkSel = Math.min(_cmdkSel+1, _cmdkItems.length-1); renderCmdk(); }
+  else if (e.key === 'ArrowUp')   { e.preventDefault(); _cmdkSel = Math.max(_cmdkSel-1, 0); renderCmdk(); }
+  else if (e.key === 'Enter')     { e.preventDefault(); cmdkRun(_cmdkSel); }
+});
+
+/* ── HONEST SERVER STATUS (topbar) ── */
+function setServerStatus(latency) {
+  document.querySelectorAll('.server-dot').forEach(dot => {
+    dot.classList.remove('degraded','down');
+    if (latency == null) dot.classList.add('down');
+    else if (latency >= 400) dot.classList.add('degraded');
+  });
+  const label = latency == null ? 'server offline' : latency >= 400 ? 'server degraded' : 'server online';
+  document.querySelectorAll('.server-status > span:not(.server-time)').forEach(s => s.textContent = label);
+}
+
+/* ── COUNT-UP (metric cards) ── */
+function countUp(el, target) {
+  if (!el) return;
+  const dur = 600, t0 = performance.now();
+  const fmt = n => Math.round(n).toLocaleString('ru');
+  function step(now) {
+    const p = Math.min((now - t0) / dur, 1);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = fmt(target * eased);
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
 }
 </script>
 </body>
