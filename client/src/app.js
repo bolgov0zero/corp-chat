@@ -5,7 +5,7 @@ const S = {
   server: '', token: null, user: null,
   chats: [], activeChatId: null,
   ws: null, wsRetry: 0,
-  unread: {}, allUsers: [],
+  unread: {}, allUsers: [], drafts: {},
   settings: { theme: 'dark', fontSize: 'medium', chatView: 'irc' },
   ctx: { messageId: null, canEdit: false, isMine: false, replyText: '', replySenderName: '' },
   editingMessageId: null,
@@ -594,6 +594,11 @@ async function openChat(chatId) {
         <div class="ch-name">${esc(name)}</div>
         <div class="ch-sub">${sub}</div>
       </div>
+      <div class="chat-header-actions">
+        <button class="icon-btn" title="Действия с чатом" onclick="showChatCtx(event, ${chatId})">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+        </button>
+      </div>
     </div>
     <div class="messages" id="messages"></div>
     <div id="typing-indicator" class="typing-indicator" style="display:none">
@@ -666,7 +671,14 @@ async function openChat(chatId) {
     const msgsEl = document.getElementById('messages');
     if (msgsEl) msgsEl.addEventListener('scroll', onMessagesScroll, { passive: true });
   }
-  document.getElementById('msg-input')?.focus();
+  // Восстанавливаем сохранённый черновик этого чата
+  const inputEl = document.getElementById('msg-input');
+  if (inputEl && S.drafts[chatId]) {
+    inputEl.value = S.drafts[chatId];
+    autoResize(inputEl);
+    onMsgInput(inputEl); // обновить состояние кнопки отправки
+  }
+  inputEl?.focus();
 }
 
 // ── EMOJI PICKER ──
@@ -965,6 +977,11 @@ let typingSendTimer = null;
 
 function onMsgInput(el) {
   autoResize(el);
+  // Сохраняем черновик для текущего чата, чтобы он не терялся при переключении
+  if (S.activeChatId) {
+    if (el.value) S.drafts[S.activeChatId] = el.value;
+    else delete S.drafts[S.activeChatId];
+  }
   if (!S.activeChatId || S.ws?.readyState !== 1) return;
   if (!typingSendTimer) {
     S.ws.send(JSON.stringify({ type: 'typing', chat_id: S.activeChatId }));
@@ -1049,6 +1066,7 @@ function sendOrEdit() {
   S.ws.send(JSON.stringify(payload));
   hideReplyBar();
   clearImagePreview();
+  delete S.drafts[S.activeChatId]; // черновик отправлен — очищаем
   input.value=''; input.style.height='20px'; input.style.overflow='hidden';
   const sendBtn = document.getElementById('send-btn');
   if (sendBtn) { sendBtn.style.background='transparent'; sendBtn.style.color='var(--muted)'; sendBtn.style.boxShadow='none'; }
@@ -1082,6 +1100,7 @@ function showCtxMenu(e, msgId, sentAt, isMine) {
   document.getElementById('ctx-copy-btn').style.display = '';
   document.getElementById('ctx-edit-btn').style.display = (isMine && S.ctx.canEdit) ? '' : 'none';
   document.getElementById('ctx-delete-btn').style.display = isMine ? '' : 'none';
+  document.getElementById('ctx-info-btn').style.display = isMine ? '' : 'none';
   // Сначала показываем чтобы получить реальные размеры
   menu.style.top = '-9999px'; menu.style.left = '-9999px';
   menu.classList.add('open');
@@ -1105,7 +1124,8 @@ function ctxCopy() {
   hideCtxMenu();
   const msgId = S.ctx.messageId;
   if (!msgId) return;
-  const el = document.querySelector(`[data-msg-id="${msgId}"] .bubble-text`);
+  const el = document.querySelector(`[data-msg-id="${msgId}"] .bubble-text`)
+           || document.querySelector(`[data-msg-id="${msgId}"] .irc-text`);
   if (!el) return;
   navigator.clipboard.writeText(el.innerText).catch(() => {});
 }

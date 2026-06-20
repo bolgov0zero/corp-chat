@@ -1368,7 +1368,8 @@ function ctxCopy() {
   hideCtxMenu();
   const msgId = S.ctx.messageId;
   if (!msgId) return;
-  const el = document.querySelector(`[data-msg-id="${msgId}"] .bubble-text`);
+  const el = document.querySelector(`[data-msg-id="${msgId}"] .bubble-text`)
+           || document.querySelector(`[data-msg-id="${msgId}"] .irc-text`);
   if (!el) return;
   navigator.clipboard.writeText(el.innerText).catch(() => {});
 }
