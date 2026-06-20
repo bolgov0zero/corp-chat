@@ -49,8 +49,25 @@ function sendTo(userId, payload) {
 
 function getStatus(userId) { return userStatus.get(userId) || 'offline'; }
 
-// Broadcast status change to all users who share a direct chat with this user
-function broadcastStatus(userId, status) {
+// Агрегированный статус пользователя по всем его устройствам:
+// online, если хоть одно устройство активно; иначе away, если есть «отошедшее»; иначе offline.
+// Это убирает «мигание» статуса, когда одно устройство уходит в фон, а другое активно.
+function computeStatus(userId) {
+  const conns = clients.get(userId);
+  if (!conns || !conns.size) return 'offline';
+  let anyAway = false;
+  for (const ws of conns) {
+    if (ws.readyState !== 1) continue;
+    if (ws._status === 'online') return 'online';
+    if (ws._status === 'away') anyAway = true;
+  }
+  return anyAway ? 'away' : 'offline';
+}
+
+// Пересчитать агрегат и разослать собеседникам ТОЛЬКО при реальном изменении статуса.
+function broadcastStatus(userId) {
+  const status = computeStatus(userId);
+  if (userStatus.get(userId) === status) return; // не изменилось — не шумим
   userStatus.set(userId, status);
   const peers = db.prepare(`
     SELECT DISTINCT cm2.user_id FROM chat_members cm1
@@ -87,14 +104,29 @@ function getMessageWithStatus(msgId, viewerId) {
 function setup(server) {
   const wss = new WebSocketServer({ server, path: '/ws' });
 
+  // Серверный heartbeat: отлавливаем «зомби»-сокеты (клиент пропал без TCP-close).
+  // Без него пользователь остаётся «онлайн», а push ему не уходит.
+  const heartbeat = setInterval(() => {
+    wss.clients.forEach(ws => {
+      if (ws.isAlive === false) { try { ws.terminate(); } catch {} return; }
+      ws.isAlive = false;
+      try { ws.ping(); } catch {}
+    });
+  }, 30000);
+  wss.on('close', () => clearInterval(heartbeat));
+
   wss.on('connection', (ws, req) => {
     const url = new URL(req.url, 'http://localhost');
     let user;
     try { user = wsAuth(url.searchParams.get('token')); } catch { ws.close(1008, 'Unauthorized'); return; }
 
+    ws.isAlive = true;
+    ws.on('pong', () => { ws.isAlive = true; });
+    ws._status = 'online'; // уточнится первым set_status от клиента (~через 300мс)
+
     if (!clients.has(user.id)) clients.set(user.id, new Set());
     clients.get(user.id).add(ws);
-    broadcastStatus(user.id, 'online');
+    broadcastStatus(user.id);
 
     const connId = ++connCounter;
     const clientIp = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || '—';
@@ -201,7 +233,10 @@ function setup(server) {
         if (!text?.trim()) return;
         const msg = db.prepare('SELECT * FROM messages WHERE id = ? AND deleted = 0').get(message_id);
         if (!msg || msg.sender_id !== user.id) return;
-        if (Date.now() / 1000 - msg.sent_at > 120) return; // 2 min limit
+        if (Date.now() / 1000 - msg.sent_at > 120) { // 2 min limit
+          if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'edit_rejected', message_id, reason: 'time' }));
+          return;
+        }
         db.prepare('UPDATE messages SET text = ?, edited_at = unixepoch() WHERE id = ?').run(text.trim(), message_id);
         const updated = getMessageWithStatus(message_id, user.id);
         broadcast(msg.chat_id, { type: 'message_edited', message: updated });
@@ -218,7 +253,7 @@ function setup(server) {
 
       if (data.type === 'set_status') {
         const s = data.status;
-        if (s === 'online' || s === 'away') broadcastStatus(user.id, s);
+        if (s === 'online' || s === 'away') { ws._status = s; broadcastStatus(user.id); }
       }
 
       if (data.type === 'react') {
@@ -256,8 +291,10 @@ function setup(server) {
       const conns = clients.get(user.id);
       if (conns) {
         conns.delete(ws);
-        if (!conns.size) { clients.delete(user.id); broadcastStatus(user.id, 'offline'); }
+        if (!conns.size) clients.delete(user.id);
       }
+      // Пересчитываем агрегат: если осталось активное устройство — статус не упадёт в offline.
+      broadcastStatus(user.id);
     });
 
     ws.send(JSON.stringify({ type: 'connected', user_id: user.id }));

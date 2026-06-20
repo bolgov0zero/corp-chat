@@ -241,6 +241,36 @@ function pinMessagesToBottom() {
 // Совместимость со старым вызовом из openChat
 function syncInputBarHeight() { updateAppHeight(); }
 
+// «Пользователь реально смотрит в чат»: вкладка видима И окно в фокусе.
+// На сенсорных устройствах фокус окна ненадёжен (клавиатура шлёт blur) —
+// там достаточно видимости вкладки.
+const _hasHover = window.matchMedia('(hover: hover)').matches;
+function isViewing() {
+  if (document.hidden) return false;
+  if (_hasHover && typeof document.hasFocus === 'function') return document.hasFocus();
+  return true;
+}
+
+// Единая реакция на смену активности (видимость/фокус): синхронизация, прочтение, статус.
+function refreshActivity() {
+  const viewing = isViewing();
+  if (viewing) {
+    // Соединение в фоне могло «умереть»: мёртвое — реконнект (onopen подтянет loadChats),
+    // живое — досинхронизируем список на случай пропущенных сообщений.
+    if (S.token) {
+      if (!S.ws || S.ws.readyState >= 2) connectWS();
+      else loadChats();
+    }
+    if (S.activeChatId && S.ws?.readyState===1) {
+      S.ws.send(JSON.stringify({type:'read', chat_id: S.activeChatId}));
+      S.unread[S.activeChatId] = 0;
+      updateUnreadTotal();
+    }
+  }
+  if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'set_status', status: viewing ? 'online' : 'away'}));
+  updateSidebarStatus(viewing ? 'online' : 'away');
+}
+
 if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', updateAppHeight);
   window.visualViewport.addEventListener('scroll', updateAppHeight);
@@ -283,27 +313,14 @@ window.addEventListener('DOMContentLoaded', async () => {
   });
   document.addEventListener('keydown', e => { if(e.key==='Escape'){ hideCtxMenu(); closeSettings(); }});
 
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
-      // Вкладка снова активна: соединение в фоне могло «умереть».
-      // Мёртвое/закрытое — переподключаемся (onopen сам подтянет loadChats),
-      // живое — досинхронизируем список чатов на случай пропущенных сообщений.
-      if (S.token) {
-        if (!S.ws || S.ws.readyState >= 2) connectWS();
-        else loadChats();
-      }
-      if (S.activeChatId && S.ws?.readyState===1) {
-        S.ws.send(JSON.stringify({type:'read', chat_id: S.activeChatId}));
-        S.unread[S.activeChatId] = 0;
-        updateUnreadTotal();
-      }
-      if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'set_status', status:'online'}));
-      updateSidebarStatus('online');
-    } else {
-      if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'set_status', status:'away'}));
-      updateSidebarStatus('away');
-    }
-  });
+  document.addEventListener('visibilitychange', refreshActivity);
+  // На десктопе окно может быть видимым, но не в фокусе (за другим окном) — тогда
+  // пользователь не смотрит в чат. На сенсорных устройствах окно либо на переднем
+  // плане, либо скрыто, а blur прилетает при открытии клавиатуры — поэтому там не вешаем.
+  if (_hasHover) {
+    window.addEventListener('focus', refreshActivity);
+    window.addEventListener('blur', refreshActivity);
+  }
 
   // Drag-and-drop
   document.addEventListener('dragover', e => {
@@ -782,7 +799,7 @@ async function openChat(chatId) {
   applyAvatars();
   const sendBtn = document.getElementById('send-btn');
   if (sendBtn) { sendBtn.style.background='transparent'; sendBtn.style.color='var(--muted)'; sendBtn.style.boxShadow='none'; }
-  if (S.ws && !document.hidden) S.ws.send(JSON.stringify({type:'read', chat_id: chatId}));
+  if (S.ws && isViewing()) S.ws.send(JSON.stringify({type:'read', chat_id: chatId}));
 
   const msgsEl = document.getElementById('messages');
   if (msgsEl) {
@@ -1129,7 +1146,10 @@ function renderStatus(status) {
   const { delivered, read, total } = status;
   if (total === 0) return '';
   let cls, title;
-  if (read > 0)           { cls = 'status-read';       title = 'Прочитано'; }
+  // «Прочитано» (синие галочки) — только когда прочитали ВСЕ получатели.
+  // В группе при частичном прочтении показываем «Прочитано N из total».
+  if (read >= total)      { cls = 'status-read';       title = 'Прочитано'; }
+  else if (read > 0)      { cls = 'status-delivered';  title = `Прочитано ${read} из ${total}`; }
   else if (delivered > 0) { cls = 'status-delivered';  title = 'Доставлено'; }
   else                    { cls = 'status-sent';        title = 'Отправлено'; }
   const double = delivered > 0 || read > 0;
@@ -1691,10 +1711,10 @@ function connectWS() {
           document.querySelector('[data-optimistic="1"]')?.remove();
         }
         appendMsg(message);
-        if (!document.hidden && S.ws?.readyState===1) {
+        if (isViewing() && S.ws?.readyState===1) {
           S.ws.send(JSON.stringify({type:'read', chat_id:chatId}));
           S.ws.send(JSON.stringify({type:'delivered', message_id:message.id}));
-        } else if (document.hidden && message.sender_id !== S.user.id) {
+        } else if (!isViewing() && message.sender_id !== S.user.id) {
           S.unread[chatId] = (S.unread[chatId]||0)+1;
           const title = chatName(chat) || 'Electron';
           const body = `${message.sender_name}: ${message.text || (message.attachment ? '🖼 Изображение' : '')}`;
@@ -1815,6 +1835,14 @@ function connectWS() {
         const wrap = document.querySelector(`[data-msg-id="${m.id}"] .status-wrap`);
         if (wrap) wrap.innerHTML = renderStatus(m.status);
       }
+    }
+
+    if (data.type==='edit_rejected') {
+      // Сервер отклонил редактирование (вышло время) — сообщаем и закрываем режим правки
+      if (S.editingMessageId === data.message_id) cancelEdit();
+      showActionToast(data.reason === 'time'
+        ? 'Редактировать можно только в течение 2 минут'
+        : 'Не удалось отредактировать сообщение');
     }
 
     if (data.type==='avatar_updated') {
@@ -2107,4 +2135,19 @@ function showServerToast() {
 }
 function hideServerToast() {
   document.getElementById('server-toast')?.classList.remove('visible');
+}
+
+// Короткий информационный тост (напр. отказ редактирования). Автоскрытие через 2.5с.
+let _actionToastTimer = null;
+function showActionToast(text) {
+  let el = document.getElementById('action-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'action-toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+  el.classList.add('visible');
+  clearTimeout(_actionToastTimer);
+  _actionToastTimer = setTimeout(() => el.classList.remove('visible'), 2500);
 }

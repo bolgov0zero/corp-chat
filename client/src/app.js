@@ -20,6 +20,24 @@ const S = {
 
 const SESSION_KEY = 'electron_v2';
 
+// ── ACTIVITY (видит ли пользователь чат) ──
+// Окно может быть видимым, но не в фокусе (за другим окном) — тогда сообщения
+// не должны помечаться прочитанными, а статус должен быть «отошёл».
+let _winFocused = true;
+function isViewing() { return !document.hidden && _winFocused; }
+
+// Единая реакция на смену видимости/фокуса: прочтение активного чата + статус.
+function refreshActivity() {
+  const viewing = isViewing();
+  if (viewing && S.activeChatId && S.ws?.readyState===1) {
+    S.ws.send(JSON.stringify({type:'read', chat_id: S.activeChatId}));
+    S.unread[S.activeChatId] = 0;
+    updateUnreadTotal();
+  }
+  if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'set_status', status: viewing ? 'online' : 'away'}));
+  updateSidebarStatus(viewing ? 'online' : 'away');
+}
+
 // ── PAGINATION ──
 let _loadingMore = false; // флаг чтобы не делать двойной запрос
 
@@ -146,26 +164,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   });
   document.addEventListener('keydown', e => { if(e.key==='Escape'){ hideCtxMenu(); closeSettings(); }});
   window.electron?.onOpenChat(chatId => { const chat = S.chats.find(c=>c.id===chatId); if(chat) openChat(chatId); });
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
-      if (S.activeChatId && S.ws?.readyState===1) {
-        S.ws.send(JSON.stringify({type:'read', chat_id: S.activeChatId}));
-        S.unread[S.activeChatId] = 0;
-        updateUnreadTotal();
-      }
-      if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'set_status', status:'online'}));
-      updateSidebarStatus('online');
-    } else {
-      if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'set_status', status:'away'}));
-      updateSidebarStatus('away');
-    }
-  });
-  // blur окна → статус "отошёл" (все платформы)
-  window.electron?.onWindowFocus?.(focused => {
-    if (S.ws?.readyState===1)
-      S.ws.send(JSON.stringify({type:'set_status', status: focused ? 'online' : 'away'}));
-    updateSidebarStatus(focused ? 'online' : 'away');
-  });
+  document.addEventListener('visibilitychange', refreshActivity);
+  // Реальный фокус окна из main-процесса — авторитетный признак «пользователь смотрит».
+  window.electron?.onWindowFocus?.(focused => { _winFocused = focused; refreshActivity(); });
 
   // ── Drag-and-drop изображений в окно чата ──
   document.addEventListener('dragover', e => {
@@ -645,7 +646,7 @@ async function openChat(chatId) {
   applyAvatars();
   const sendBtn = document.getElementById('send-btn');
   if (sendBtn) { sendBtn.style.background='transparent'; sendBtn.style.color='var(--muted)'; sendBtn.style.boxShadow='none'; }
-  if (S.ws && !document.hidden) S.ws.send(JSON.stringify({type:'read', chat_id: chatId}));
+  if (S.ws && isViewing()) S.ws.send(JSON.stringify({type:'read', chat_id: chatId}));
   // Показать скелетон пока грузятся сообщения
   const msgsEl = document.getElementById('messages');
   if (msgsEl) {
@@ -880,7 +881,10 @@ function renderStatus(status) {
   const { delivered, read, total } = status;
   if (total === 0) return '';
   let cls, title;
-  if (read > 0)           { cls = 'status-read';       title = 'Прочитано'; }
+  // «Прочитано» (синие галочки) — только когда прочитали ВСЕ получатели.
+  // В группе при частичном прочтении показываем «Прочитано N из total».
+  if (read >= total)      { cls = 'status-read';       title = 'Прочитано'; }
+  else if (read > 0)      { cls = 'status-delivered';  title = `Прочитано ${read} из ${total}`; }
   else if (delivered > 0) { cls = 'status-delivered';  title = 'Доставлено'; }
   else                    { cls = 'status-sent';        title = 'Отправлено'; }
   const double = delivered > 0 || read > 0;
@@ -1453,11 +1457,11 @@ function connectWS() {
           document.querySelector('[data-optimistic="1"]')?.remove();
         }
         appendMsg(message);
-        if (!document.hidden && S.ws?.readyState===1) {
-          // Окно видимо — отмечаем прочитанным
+        if (isViewing() && S.ws?.readyState===1) {
+          // Пользователь смотрит в чат — отмечаем прочитанным
           S.ws.send(JSON.stringify({type:'read', chat_id:chatId}));
           S.ws.send(JSON.stringify({type:'delivered', message_id:message.id}));
-        } else if (document.hidden && message.sender_id !== S.user.id) {
+        } else if (!isViewing() && message.sender_id !== S.user.id) {
           // Окно скрыто/свёрнуто — уведомляем, не отмечаем прочитанным
           S.unread[chatId] = (S.unread[chatId]||0)+1;
           const title = chatName(chat) || 'Electron';
@@ -1600,6 +1604,14 @@ function connectWS() {
         const wrap = document.querySelector(`[data-msg-id="${m.id}"] .status-wrap`);
         if (wrap) wrap.innerHTML = renderStatus(m.status);
       }
+    }
+
+    if (data.type==='edit_rejected') {
+      // Сервер отклонил редактирование (вышло время) — сообщаем и закрываем режим правки
+      if (S.editingMessageId === data.message_id) cancelEdit();
+      showActionToast(data.reason === 'time'
+        ? 'Редактировать можно только в течение 2 минут'
+        : 'Не удалось отредактировать сообщение');
     }
 
     if (data.type==='avatar_updated') {
@@ -1867,6 +1879,21 @@ function showServerToast() {
 
 function hideServerToast() {
   document.getElementById('server-toast')?.classList.remove('visible');
+}
+
+// Короткий информационный тост (напр. отказ редактирования). Автоскрытие через 2.5с.
+let _actionToastTimer = null;
+function showActionToast(text) {
+  let el = document.getElementById('action-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'action-toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+  el.classList.add('visible');
+  clearTimeout(_actionToastTimer);
+  _actionToastTimer = setTimeout(() => el.classList.remove('visible'), 2500);
 }
 
 // ── HIGH AVAILABILITY ──
