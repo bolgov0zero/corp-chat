@@ -212,21 +212,10 @@ async function fetchLatestVersion(force = false) {
   if (!force && _versionCache.version && now - _versionCache.fetchedAt < VERSION_CACHE_TTL) {
     return _versionCache.version;
   }
-  const https = require('https');
-  try {
-    const token = db.prepare("SELECT value FROM settings WHERE key = 'github_token'").get()?.value;
-    const headers = { 'User-Agent': 'Electron-Admin' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    const data = await new Promise((resolve, reject) => {
-      https.get('https://api.github.com/repos/bolgov0zero/corp-chat/releases/latest',
-        { headers },
-        r => { let body = ''; r.on('data', c => body += c); r.on('end', () => resolve(JSON.parse(body))); r.on('error', reject); }
-      ).on('error', reject);
-    });
-    if (data.tag_name) {
-      _versionCache = { version: data.tag_name.replace(/^[a-zA-Z]+/, ''), fetchedAt: now };
-    }
-  } catch {}
+  // Единый источник истины для «последней версии» — server/version.json в репозитории
+  // (тот же, что и на странице настроек), чтобы данные не расходились с releases/latest.
+  const v = await fetchRemoteVersion();
+  if (v) _versionCache = { version: v, fetchedAt: now };
   return _versionCache.version;
 }
 
@@ -304,18 +293,27 @@ router.get('/server/version', async (req, res) => {
 // Обновление сервера с GitHub
 router.post('/server/update', (req, res) => {
   const { exec } = require('child_process');
-  const appDir = path.join(__dirname, '..', '..', '..');
-  const script = `
-    cd "${appDir}" && \
-    git checkout -- . && \
-    git pull origin main && \
-    cd server && \
-    npm install --omit=dev && \
-    npm rebuild better-sqlite3 && \
-    systemctl restart electron
-  `;
-  res.json({ ok: true });
-  setTimeout(() => exec(script), 300);
+  // Проверяем, что служба управляется systemd и активна — иначе перезапуск после
+  // обновления не сработает (например, установка без root), а админка не должна
+  // рапортовать ложный успех.
+  exec('systemctl is-active electron', (err, stdout) => {
+    const active = (stdout || '').trim();
+    if (active !== 'active' && active !== 'activating') {
+      return res.status(400).json({ error: 'Служба electron не активна или не найдена. Обновление невозможно.' });
+    }
+    const appDir = path.join(__dirname, '..', '..', '..');
+    const script = `
+      cd "${appDir}" && \
+      git checkout -- . && \
+      git pull origin main && \
+      cd server && \
+      npm install --omit=dev && \
+      npm rebuild better-sqlite3 && \
+      systemctl restart electron
+    `;
+    res.json({ ok: true });
+    setTimeout(() => exec(script), 300);
+  });
 });
 
 module.exports = router;

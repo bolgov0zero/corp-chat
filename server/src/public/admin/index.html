@@ -660,13 +660,33 @@ function startClock() {
 }
 
 /* ── API ── */
+let _sessionExpired = false;
 const api = async (method, path, body) => {
   const url = method === 'GET' ? `${path}${path.includes('?')?'&':'?'}_t=${Date.now()}` : path;
-  const res = await fetch(url, {
-    method,
-    headers: {'Content-Type':'application/json','Cache-Control':'no-cache', ...(token?{Authorization:'Bearer '+token}:{})},
-    body: body ? JSON.stringify(body) : undefined
-  });
+  let res;
+  try {
+    res = await fetch(url, {
+      method,
+      headers: {'Content-Type':'application/json','Cache-Control':'no-cache', ...(token?{Authorization:'Bearer '+token}:{})},
+      body: body ? JSON.stringify(body) : undefined
+    });
+  } catch (e) {
+    // Сеть недоступна — не роняем страницу необработанным исключением
+    if (token) toast('Нет связи с сервером', 'error');
+    throw e;
+  }
+  // Токен истёк/невалиден — возвращаем на экран логина (один раз)
+  if (res.status === 401 && token) {
+    if (!_sessionExpired) {
+      _sessionExpired = true;
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_user');
+      token = null;
+      toast('Сессия истекла, войдите снова', 'error');
+      setTimeout(() => location.reload(), 800);
+    }
+    return new Promise(() => {}); // останавливаем дальнейшую обработку — идёт перезагрузка
+  }
   return res.json();
 };
 
@@ -674,7 +694,10 @@ const api = async (method, path, body) => {
 const AVcolors = ['#4f46e5','#7c3aed','#db2777','#0d9488','#d97706','#dc2626','#059669','#2563eb'];
 function avColor(name) { let h=0; for(let c of (name||'')) h=(h*31+c.charCodeAt(0))&0xffff; return AVcolors[h%AVcolors.length]; }
 function initials(name) { return (name||'?').split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?'; }
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+// Безопасная вставка строки в JS-аргумент внутри inline onclick (двойной слой: HTML-атрибут + JS-строка).
+// HTML-сущности здесь не годятся — парсер их декодирует до того, как строку увидит JS.
+function jesc(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 
 function fmtDate(ts) { return ts ? new Date(ts*1000).toLocaleDateString('ru',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—'; }
 
@@ -1192,7 +1215,7 @@ async function renderDashboard() {
   setEl('dash-uptime', fmtUptime(s.uptimeSeconds));
   const pushCnt2 = s.pushSubscriptions ?? 0;
   const pushColor2 = pushCnt2 > 0 ? 'var(--c-green)' : 'var(--c-muted)';
-  setEl('dash-push', `${dot(pushColor2)}активен`);
+  setEl('dash-push', `${dot(pushColor2)}${pushCnt2 > 0 ? `${pushCnt2} подписок` : 'нет подписок'}`);
   document.getElementById('dash-push')?.setAttribute('style', `color:${pushColor2}`);
   const nbPush2 = document.getElementById('nb-push');
   if (nbPush2) nbPush2.textContent = pushCnt2;
@@ -1238,7 +1261,7 @@ function renderRoomsTable() {
       <td style="font-family:var(--f-mono);font-size:11px">${r.message_count}</td>
       <td style="color:var(--c-muted);font-size:11px">${fmtDate(r.created_at)}</td>
       <td><div class="td-actions">
-        <button class="btn btn-ghost btn-sm" onclick="openRoomMembers(${r.id},'${esc(r.name||'')}')">Участники</button>
+        <button class="btn btn-ghost btn-sm" onclick="openRoomMembers(${r.id},'${jesc(r.name||'')}')">Участники</button>
         <button class="btn btn-ghost btn-sm" onclick="clearHistory(${r.id})">Очистить</button>
         <button class="btn btn-danger btn-sm" onclick="deleteRoom(${r.id})">Удалить</button>
       </div></td>
@@ -1340,7 +1363,7 @@ function userRowHtml(u) {
     <td><div class="td-actions">
       <button class="btn btn-ghost btn-sm" onclick="openEditUser(${u.id})">Изменить</button>
       <button class="btn btn-ghost btn-sm" onclick="openChangePass(${u.id})">Пароль</button>
-      <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id},'${esc(u.display_name)}')">Удалить</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id},'${jesc(u.display_name)}')">Удалить</button>
     </div></td>
   </tr>`;
 }
@@ -1450,7 +1473,7 @@ function chatRow(c) {
     <td style="font-family:var(--f-mono);font-size:11px">${c.message_count}</td>
     <td style="color:var(--c-muted);font-size:11px">${fmtDate(c.created_at)}</td>
     <td><div class="td-actions">
-      <button class="btn btn-ghost btn-sm" onclick="openMembersReadonly(${c.id},'${esc(name)}')">Участники</button>
+      <button class="btn btn-ghost btn-sm" onclick="openMembersReadonly(${c.id},'${jesc(name)}')">Участники</button>
       <button class="btn btn-ghost btn-sm" onclick="clearHistory(${c.id})">Очистить</button>
       <button class="btn btn-danger btn-sm" onclick="deleteChat(${c.id})">Удалить</button>
     </div></td>
@@ -1676,10 +1699,10 @@ async function loadClients(force=false) {
         <td style="color:var(--c-muted);font-size:11px;font-family:var(--f-mono)">${duration}</td>
         <td>
           <div class="td-actions">
-            <button class="btn btn-ghost btn-xs" ${hasUpdate?`onclick="forceUpdate(${c.connId},'${esc(c.displayName||c.username)}','${esc(c.hostname)}','${esc(c.clientVersion)}','${esc(latestVersion||'')}')"`:' disabled style="opacity:.3;cursor:default"'}>
+            <button class="btn btn-ghost btn-xs" ${hasUpdate?`onclick="forceUpdate(${c.connId},'${jesc(c.displayName||c.username)}','${jesc(c.hostname)}','${jesc(c.clientVersion)}','${jesc(latestVersion||'')}')"`:' disabled style="opacity:.3;cursor:default"'}>
               <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
             </button>
-            <button class="btn btn-danger btn-xs" onclick="forceLogout(${c.connId},'${esc(c.displayName||c.username)}','${esc(c.hostname)}')">
+            <button class="btn btn-danger btn-xs" onclick="forceLogout(${c.connId},'${jesc(c.displayName||c.username)}','${jesc(c.hostname)}')">
               <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             </button>
           </div>
@@ -1786,7 +1809,7 @@ async function renderPush() {
       <td>${fmtEndpoint(s.endpoint)}</td>
       <td style="color:var(--c-muted);font-size:11px;font-family:var(--f-mono)">${fmtTs(s.created_at)}</td>
       <td>
-        <button class="btn btn-sm" style="color:var(--c-danger)" onclick="deletePushSub(${s.id},this)">
+        <button class="btn btn-sm" style="color:var(--c-red-text)" onclick="deletePushSub(${s.id},this)">
           <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
         </button>
       </td>
@@ -2003,33 +2026,49 @@ async function doServerUpdateSettings() {
       if (bar) bar.style.width = pct + '%';
     }, 2000);
 
-    await api('POST', '/api/admin/server/update');
+    const upd = await api('POST', '/api/admin/server/update');
+    // Сервер отклонил обновление (служба не активна / нет прав) — честно показываем ошибку
+    if (upd && upd.error) {
+      clearInterval(advance);
+      if (label) label.textContent = upd.error;
+      if (bar) { bar.style.width = '100%'; bar.style.background = 'var(--c-red)'; }
+      toast(upd.error, 'error');
+      btn.disabled = false; btn.onclick = checkServerUpdateSettings;
+      return;
+    }
     if (statusEl) statusEl.innerHTML = '';
 
-    // Ждём пока сервер вернётся
+    // Ждём, пока сервер вернётся, и подтверждаем успех по РЕАЛЬНОЙ смене версии,
+    // а не просто по доступности (иначе git pull мог упасть, а служба перезапуститься на старом коде).
+    const target = _updateCheckData?.latest;
     const startedAt = Date.now();
     const poll = setInterval(async () => {
-      if (Date.now() - startedAt > 60000) {
+      if (Date.now() - startedAt > 120000) {
         clearInterval(poll);
         clearInterval(advance);
-        if (label) label.textContent = 'Сервер не ответил за 60 сек';
+        if (label) label.textContent = 'Обновление не подтверждено за 2 мин (проверьте логи сервера)';
         if (bar) { bar.style.width = '100%'; bar.style.background = 'var(--c-red)'; }
+        toast('Обновление не подтверждено', 'error');
         return;
       }
       try {
         const res = await fetch('/api/admin/stats', { headers: { Authorization: 'Bearer ' + token, 'Cache-Control': 'no-cache' } });
         if (res.ok) {
-          clearInterval(poll);
-          clearInterval(advance);
-          if (bar) { bar.style.width = '100%'; bar.style.background = 'var(--c-green)'; }
-          if (label) label.textContent = 'Обновление завершено';
-          toast('Сервер обновлён и перезапущен', 'success');
-          // Сбрасываем все кеши — данные могли измениться после обновления
-          allUsers = []; allRooms = []; allChats = []; allUsersCache = [];
-          _versionCache = { version: null, fetchedAt: 0 };
-          updateNavBadges();
-          // Перерисовываем настройки только если пользователь всё ещё на этой странице
-          setTimeout(() => { if (currentPage === 'settings') renderSettings(); }, 800);
+          const s = await res.json();
+          // Успех только если локальная версия реально стала целевой
+          if (s && (!target || s.serverVersion === target)) {
+            clearInterval(poll);
+            clearInterval(advance);
+            if (bar) { bar.style.width = '100%'; bar.style.background = 'var(--c-green)'; }
+            if (label) label.textContent = `Обновлено до ${s.serverVersion || target || ''}`;
+            toast('Сервер обновлён и перезапущен', 'success');
+            // Сбрасываем все кеши — данные могли измениться после обновления
+            allUsers = []; allRooms = []; allChats = []; allUsersCache = [];
+            updateNavBadges();
+            // Перерисовываем настройки только если пользователь всё ещё на этой странице
+            setTimeout(() => { if (currentPage === 'settings') renderSettings(); }, 800);
+          }
+          // иначе сервер ещё на старой версии (идёт сборка/рестарт) — продолжаем ждать
         }
       } catch {}
     }, 1500);
