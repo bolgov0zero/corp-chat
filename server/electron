@@ -73,7 +73,7 @@ show_panel() {
   if [ "$status" = "active" ]; then
     START_TS=$(systemctl show "$SERVICE" --property=ActiveEnterTimestampMonotonic --value 2>/dev/null)
     if [ -n "$START_TS" ] && [ "$START_TS" != "0" ]; then
-      NOW_MONO=$(cat /proc/uptime | awk '{print int($1 * 1000000)}')
+      NOW_MONO=$(awk '{printf "%.0f", $1 * 1000000}' /proc/uptime)
       ELAPSED_US=$(( NOW_MONO - START_TS ))
       ELAPSED_SEC=$(( ELAPSED_US / 1000000 ))
       DAYS=$(( ELAPSED_SEC / 86400 ))
