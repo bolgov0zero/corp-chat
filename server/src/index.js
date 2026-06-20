@@ -17,11 +17,6 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json({ limit: '10mb' }));
-// index.html админки — всегда свежий (без HTTP-кэша), иначе браузер рендерит старую вёрстку
-app.get(['/admin', '/admin/', '/admin/index.html'], (req, res) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-  res.sendFile(path.join(__dirname, 'public/admin/index.html'));
-});
 app.use('/admin', express.static(path.join(__dirname, 'public/admin')));
 app.get('/chat/manifest.json', (req, res) => {
   res.setHeader('Content-Type', 'application/manifest+json');
