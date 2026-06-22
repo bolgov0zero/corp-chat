@@ -203,19 +203,38 @@ router.get('/chats/:id/members', (req, res) => {
   res.json(members);
 });
 
-// ── Кэш версии с GitHub (обновляется раз в 15 минут) ──
+// ── Кэш последней версии клиента с GitHub Releases (обновляется раз в 15 минут) ──
 let _versionCache = { version: null, fetchedAt: 0 };
 const VERSION_CACHE_TTL = 15 * 60 * 1000;
 
+// Возвращает последнюю версию клиента из releases/latest (тег вида c1.4.x → 1.4.x).
+// Используется для сравнения с clientVersion, которую клиент присылает при подключении.
 async function fetchLatestVersion(force = false) {
   const now = Date.now();
   if (!force && _versionCache.version && now - _versionCache.fetchedAt < VERSION_CACHE_TTL) {
     return _versionCache.version;
   }
-  // Единый источник истины для «последней версии» — server/version.json в репозитории
-  // (тот же, что и на странице настроек), чтобы данные не расходились с releases/latest.
-  const v = await fetchRemoteVersion();
-  if (v) _versionCache = { version: v, fetchedAt: now };
+  try {
+    const token = db.prepare("SELECT value FROM settings WHERE key = 'github_token'").get()?.value;
+    const headers = { 'User-Agent': 'Electron-Admin', 'Accept': 'application/vnd.github.v3+json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const data = await new Promise((resolve, reject) => {
+      const req = https.request({
+        hostname: 'api.github.com',
+        path: '/repos/bolgov0zero/corp-chat/releases/latest',
+        headers,
+      }, res => {
+        let body = '';
+        res.on('data', c => body += c);
+        res.on('end', () => { try { resolve(JSON.parse(body)); } catch { reject(new Error('parse')); } });
+      });
+      req.on('error', reject);
+      req.end();
+    });
+    if (data.tag_name) {
+      _versionCache = { version: data.tag_name.replace(/^[a-zA-Z]+/, ''), fetchedAt: now };
+    }
+  } catch {}
   return _versionCache.version;
 }
 
