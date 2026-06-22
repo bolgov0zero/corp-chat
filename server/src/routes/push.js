@@ -100,6 +100,39 @@ router.delete('/subscriptions/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// Диагностика: тестовый push конкретному пользователю (только для администраторов)
+router.post('/test/:userId', async (req, res) => {
+  if (!req.user.is_admin) return res.status(403).json({ error: 'Forbidden' });
+  const targetId = Number(req.params.userId);
+  const subs = db.prepare('SELECT endpoint, keys FROM push_subscriptions WHERE user_id = ?').all(targetId);
+  if (!subs.length) return res.status(404).json({ error: 'Нет подписок для этого пользователя' });
+
+  const results = await Promise.all(subs.map(async row => {
+    const sub = { endpoint: row.endpoint, keys: JSON.parse(row.keys) };
+    const service = (() => { try { return new URL(row.endpoint).hostname; } catch { return row.endpoint.slice(0,40); } })();
+    try {
+      await webpush.sendNotification(sub, JSON.stringify({
+        title: 'Тест уведомлений',
+        body: 'Push-уведомления работают корректно.',
+        chatId: null,
+      }));
+      return { service, ok: true };
+    } catch (err) {
+      const code = err.statusCode || err.code || '?';
+      const msg  = err.body || err.message || String(err);
+      console.error('[Push] test failed:', code, msg, row.endpoint.slice(0, 60));
+      // 410/404 — подписка устарела, чистим
+      if (err.statusCode === 410 || err.statusCode === 404) {
+        db.prepare('DELETE FROM push_subscriptions WHERE endpoint = ?').run(row.endpoint);
+      }
+      return { service, ok: false, code, error: msg.slice(0, 200) };
+    }
+  }));
+
+  const allOk = results.every(r => r.ok);
+  res.status(allOk ? 200 : 207).json({ results });
+});
+
 module.exports = router;
 module.exports.sendPushToUser = sendPushToUser;
 module.exports.getVapidPublicKey = () => vapidKeys.publicKey;

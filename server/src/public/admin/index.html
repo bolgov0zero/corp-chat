@@ -1809,9 +1809,15 @@ async function renderPush() {
       <td>${fmtEndpoint(s.endpoint)}</td>
       <td style="color:var(--c-muted);font-size:11px;font-family:var(--f-mono)">${fmtTs(s.created_at)}</td>
       <td>
-        <button class="btn btn-sm" style="color:var(--c-red-text)" onclick="deletePushSub(${s.id},this)">
-          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-        </button>
+        <div class="td-actions" style="opacity:1">
+          <button class="btn btn-ghost btn-xs" onclick="testPushSub(${s.user_id},'${jesc(s.display_name||s.username)}',this)" title="Отправить тестовое уведомление">
+            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Тест
+          </button>
+          <button class="btn btn-xs" style="color:var(--c-red-text);border-color:var(--c-border)" onclick="deletePushSub(${s.id},this)" title="Удалить подписку">
+            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          </button>
+        </div>
       </td>
     </tr>`).join('')}
     </tbody>
@@ -1823,6 +1829,27 @@ async function deletePushSub(id, btn) {
   const res = await api('DELETE', `/api/push/subscriptions/${id}`);
   if (res.ok) { toast('Подписка удалена', 'success'); renderPush(); }
   else { btn.disabled = false; toast('Ошибка удаления', 'error'); }
+}
+
+async function testPushSub(userId, name, btn) {
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    const res = await api('POST', `/api/push/test/${userId}`);
+    const ok = res.results?.every(r => r.ok);
+    if (ok) {
+      toast(`Тест отправлен → ${name}`, 'success');
+    } else {
+      const errors = (res.results || []).filter(r => !r.ok)
+        .map(r => `${r.service}: ${r.code} — ${r.error}`).join('\n');
+      toast(`Ошибка push для ${name}`, 'error');
+      if (errors) alert('Детали ошибок:\n\n' + errors);
+    }
+  } catch {
+    toast('Ошибка запроса', 'error');
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Тест';
 }
 
 /* ── SETTINGS ── */
