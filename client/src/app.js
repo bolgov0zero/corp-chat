@@ -1642,13 +1642,12 @@ function connectWS() {
     }
 
     if (data.type === 'force_update') {
-      if (_updateDownloadUrl) {
-        forceInstallUpdate();
-      } else {
-        checkUpdate(true).then(() => {
-          if (_updateDownloadUrl) forceInstallUpdate();
-        });
-      }
+      // Принудительное обновление от администратора: игнорируем «пропущенную» версию
+      // и обновляем _updateDownloadUrl в любом случае
+      checkUpdateForced().then(() => {
+        if (_updateDownloadUrl) forceInstallUpdate();
+        else showActionToast('Обновление недоступно: файл не найден в релизе');
+      });
     }
 
     if (data.type === 'force_logout') {
@@ -1979,6 +1978,14 @@ function skipUpdate() {
     setUpdateBadge(false);
   }
   closeModal('modal-update');
+}
+
+// Проверка обновления без учёта «пропущенной» версии — используется при force_update от сервера
+async function checkUpdateForced() {
+  if (!window.electron?.checkUpdate) return;
+  const result = await window.electron.checkUpdate();
+  if (result.error || result.upToDate) return;
+  _updateDownloadUrl = result.downloadUrl || null;
 }
 
 async function checkUpdate(silent = false) {
