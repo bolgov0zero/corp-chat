@@ -4,7 +4,21 @@ const { wsAuth } = require('./auth');
 
 // Ленивая загрузка чтобы избежать циклических зависимостей
 function pushToUser(userId, payload) {
-  try { require('./routes/push').sendPushToUser(userId, payload); } catch {}
+  try { require('./routes/push').sendPushToUser(userId, payload); } catch (e) {
+    console.error('[Push] pushToUser error:', e);
+  }
+}
+
+// Проверяет, есть ли у пользователя хотя бы одно ОТКРЫТОЕ соединение (readyState===1).
+// Нельзя полагаться только на clients.size — зомби-сокеты остаются в Set до срабатывания
+// heartbeat (30 сек), не пропуская push-уведомления всё это время.
+function hasOpenConnection(userId) {
+  const conns = clients.get(userId);
+  if (!conns) return false;
+  for (const ws of conns) {
+    if (ws.readyState === 1) return true;
+  }
+  return false;
 }
 const path = require('path');
 const fs = require('fs');
@@ -163,7 +177,7 @@ function setup(server) {
           // Пометить как delivered тем участникам, которые сейчас онлайн (кроме отправителя)
           const members = stmtGetMembers.all(chat_id, user.id);
           members.forEach(({ user_id }) => {
-            if (clients.has(user_id) && clients.get(user_id).size > 0) {
+            if (hasOpenConnection(user_id)) {
               stmtInsStatus.run(newMsgId, user_id);
               stmtUpdDelivered.run(newMsgId, user_id);
             }
@@ -178,8 +192,7 @@ function setup(server) {
         const chat = db.prepare('SELECT type, name FROM chats WHERE id = ?').get(chat_id);
         const allMembers = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ? AND user_id != ?').all(chat_id, user.id);
         allMembers.forEach(({ user_id }) => {
-          const isOnline = clients.has(user_id) && clients.get(user_id).size > 0;
-          if (!isOnline) {
+          if (!hasOpenConnection(user_id)) {
             const chatTitle = chat?.type === 'direct' ? msg.sender_name : (chat?.name || 'Electron');
             // Всего непрочитанных у получателя — для счётчика на иконке PWA
             const unread = db.prepare(`

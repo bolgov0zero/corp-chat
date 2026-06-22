@@ -38,9 +38,11 @@ function sendPushToUser(userId, payload) {
   subs.forEach(row => {
     const sub = { endpoint: row.endpoint, keys: JSON.parse(row.keys) };
     webpush.sendNotification(sub, JSON.stringify(payload)).catch(err => {
-      // 410 Gone — подписка истекла, удаляем
       if (err.statusCode === 410 || err.statusCode === 404) {
+        // Подписка истекла на стороне браузера — удаляем
         db.prepare('DELETE FROM push_subscriptions WHERE endpoint = ?').run(row.endpoint);
+      } else {
+        console.error('[Push] sendNotification failed:', err.statusCode, err.message, row.endpoint.slice(0, 60));
       }
     });
   });
