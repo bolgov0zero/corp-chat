@@ -1642,12 +1642,17 @@ function connectWS() {
     }
 
     if (data.type === 'force_update') {
-      // Принудительное обновление от администратора: игнорируем «пропущенную» версию
-      // и обновляем _updateDownloadUrl в любом случае
-      checkUpdateForced().then(() => {
-        if (_updateDownloadUrl) forceInstallUpdate();
-        else showActionToast('Обновление недоступно: файл не найден в релизе');
-      });
+      // Сервер присылает готовый downloadUrl для нашей платформы.
+      // Если по какой-то причине не прислал — ищем сами через GitHub API.
+      if (data.downloadUrl) {
+        _updateDownloadUrl = data.downloadUrl;
+        forceInstallUpdate();
+      } else {
+        checkUpdateForced().then(() => {
+          if (_updateDownloadUrl) forceInstallUpdate();
+          else showActionToast('Обновление недоступно: файл не найден в релизе');
+        });
+      }
     }
 
     if (data.type === 'force_logout') {

@@ -362,4 +362,6 @@ function sendToConn(connId, payload) {
 
 function getConnCount() { return connMeta.size; }
 
-module.exports = { setup, broadcast, sendTo, getStatus, getClients, sendToConn, getConnCount };
+function getConnMeta(connId) { return connMeta.get(connId) || null; }
+
+module.exports = { setup, broadcast, sendTo, getStatus, getClients, sendToConn, getConnCount, getConnMeta };

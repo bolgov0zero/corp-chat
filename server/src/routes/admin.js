@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const https = require('https');
 const { authMiddleware, adminMiddleware } = require('../auth');
-const { sendTo, getStatus, getClients, sendToConn, getConnCount } = require('../ws');
+const { sendTo, getStatus, getClients, sendToConn, getConnCount, getConnMeta } = require('../ws');
 
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', '..', '..', 'chat_db', 'chat.db');
 const FILES_DIR = path.join(path.dirname(DB_PATH), 'files');
@@ -270,10 +270,32 @@ router.put('/settings', (req, res) => {
   res.json({ ok: true });
 });
 
-// Принудительное обновление
-router.post('/clients/:connId/force-update', (req, res) => {
-  sendToConn(Number(req.params.connId), { type: 'force_update' });
-  res.json({ ok: true });
+// Принудительное обновление — сервер сам находит нужный ассет по платформе клиента
+router.post('/clients/:connId/force-update', async (req, res) => {
+  const connId = Number(req.params.connId);
+  const meta = getConnMeta(connId);
+  const platform = meta?.osPlatform || '';
+  let downloadUrl = null;
+  try {
+    const token = db.prepare("SELECT value FROM settings WHERE key = 'github_token'").get()?.value;
+    const headers = { 'User-Agent': 'Electron-Admin', 'Accept': 'application/vnd.github.v3+json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const data = await new Promise((resolve, reject) => {
+      const req2 = https.request({ hostname: 'api.github.com', path: '/repos/bolgov0zero/corp-chat/releases/latest', headers }, r => {
+        let body = ''; r.on('data', c => body += c); r.on('end', () => { try { resolve(JSON.parse(body)); } catch { reject(); } });
+      });
+      req2.on('error', reject);
+      req2.end();
+    });
+    const assets = data.assets || [];
+    // Выбираем ассет по платформе; для Linux предпочитаем x86_64 если платформа не arm
+    const asset = platform === 'win32'  ? assets.find(a => /\.exe$/i.test(a.name))
+                : platform === 'darwin' ? assets.find(a => /\.dmg$/i.test(a.name))
+                : assets.find(a => /x86_64\.AppImage$/i.test(a.name)) || assets.find(a => /\.AppImage$/i.test(a.name));
+    downloadUrl = asset?.browser_download_url || null;
+  } catch {}
+  sendToConn(connId, { type: 'force_update', downloadUrl });
+  res.json({ ok: true, downloadUrl });
 });
 
 // Принудительный выход
