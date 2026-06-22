@@ -188,26 +188,26 @@ function setup(server) {
         const msg = getMessageWithStatus(msgId, user.id);
         broadcast(chat_id, { type: 'message', message: msg });
 
-        // Push-уведомления офлайн-участникам (нет активного WS-соединения)
+        // Push-уведомления всем участникам (кроме отправителя).
+        // Отправляем push независимо от наличия WS-соединения — пользователь
+        // может быть залогинен с нескольких устройств (PC + PWA). Service Worker
+        // сам подавит уведомление, если PWA открыта и активна прямо сейчас.
         const chat = db.prepare('SELECT type, name FROM chats WHERE id = ?').get(chat_id);
         const allMembers = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ? AND user_id != ?').all(chat_id, user.id);
         allMembers.forEach(({ user_id }) => {
-          if (!hasOpenConnection(user_id)) {
-            const chatTitle = chat?.type === 'direct' ? msg.sender_name : (chat?.name || 'Electron');
-            // Всего непрочитанных у получателя — для счётчика на иконке PWA
-            const unread = db.prepare(`
-              SELECT COUNT(*) AS c FROM messages m
-              JOIN chat_members cm ON cm.chat_id = m.chat_id AND cm.user_id = ?
-              LEFT JOIN message_status ms ON ms.message_id = m.id AND ms.user_id = ?
-              WHERE m.sender_id != ? AND m.deleted = 0 AND ms.read_at IS NULL
-            `).get(user_id, user_id, user_id).c;
-            pushToUser(user_id, {
-              title: chatTitle,
-              body: msg.text || (msg.attachment ? '🖼 Изображение' : ''),
-              chatId: chat_id,
-              unread,
-            });
-          }
+          const chatTitle = chat?.type === 'direct' ? msg.sender_name : (chat?.name || 'Electron');
+          const unread = db.prepare(`
+            SELECT COUNT(*) AS c FROM messages m
+            JOIN chat_members cm ON cm.chat_id = m.chat_id AND cm.user_id = ?
+            LEFT JOIN message_status ms ON ms.message_id = m.id AND ms.user_id = ?
+            WHERE m.sender_id != ? AND m.deleted = 0 AND ms.read_at IS NULL
+          `).get(user_id, user_id, user_id).c;
+          pushToUser(user_id, {
+            title: chatTitle,
+            body: msg.text || (msg.attachment ? '🖼 Изображение' : ''),
+            chatId: chat_id,
+            unread,
+          });
         });
       }
 

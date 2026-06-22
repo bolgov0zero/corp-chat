@@ -58,14 +58,23 @@ self.addEventListener('push', e => {
     renotify: true,
     data: { chatId: data.chatId },
   };
-  const tasks = [self.registration.showNotification(title, options)];
-  // Счётчик на иконке PWA (когда приложение закрыто)
-  if (typeof data.unread === 'number' && self.navigator.setAppBadge) {
-    tasks.push(data.unread > 0 ? self.navigator.setAppBadge(data.unread) : self.navigator.clearAppBadge());
-  } else if (self.navigator.setAppBadge) {
-    tasks.push(self.navigator.setAppBadge());
-  }
-  e.waitUntil(Promise.all(tasks).catch(() => {}));
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      // Если PWA сейчас открыта и активна — уведомление не нужно:
+      // пользователь уже видит чат через WebSocket.
+      const visible = list.some(c => c.visibilityState === 'visible');
+      const tasks = visible ? [] : [self.registration.showNotification(title, options)];
+      // Счётчик на иконке PWA обновляем всегда
+      if (self.navigator.setAppBadge) {
+        if (typeof data.unread === 'number') {
+          tasks.push(data.unread > 0 ? self.navigator.setAppBadge(data.unread) : self.navigator.clearAppBadge());
+        } else if (!visible) {
+          tasks.push(self.navigator.setAppBadge());
+        }
+      }
+      return Promise.all(tasks);
+    }).catch(() => {})
+  );
 });
 
 self.addEventListener('notificationclick', e => {
