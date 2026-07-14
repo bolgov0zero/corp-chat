@@ -46,17 +46,28 @@ router.get('/chat/:chatId', authMiddleware, (req, res) => {
 
   const memberCount = db.prepare('SELECT COUNT(*) as c FROM chat_members WHERE chat_id = ?').get(chatId).c;
 
-  const getDelivered = db.prepare('SELECT COUNT(*) as c FROM message_status WHERE message_id = ? AND delivered_at IS NOT NULL');
-  const getRead = db.prepare('SELECT COUNT(*) as c FROM message_status WHERE message_id = ? AND read_at IS NOT NULL');
-  const getReactions = db.prepare('SELECT reaction, COUNT(*) as count FROM reactions WHERE message_id = ? GROUP BY reaction');
+  // Статусы и реакции — тремя запросами на всю страницу вместо трёх на каждое сообщение
+  const ids = messages.map(m => m.id);
+  const ph = ids.map(() => '?').join(',');
+  const deliveredMap = new Map(), readMap = new Map(), reactionsMap = new Map();
+  if (ids.length) {
+    db.prepare(`SELECT message_id, COUNT(delivered_at) as d, COUNT(read_at) as r FROM message_status WHERE message_id IN (${ph}) GROUP BY message_id`)
+      .all(...ids).forEach(row => { deliveredMap.set(row.message_id, row.d); readMap.set(row.message_id, row.r); });
+    db.prepare(`SELECT message_id, reaction, COUNT(*) as count FROM reactions WHERE message_id IN (${ph}) GROUP BY message_id, reaction`)
+      .all(...ids).forEach(row => {
+        if (!reactionsMap.has(row.message_id)) reactionsMap.set(row.message_id, []);
+        reactionsMap.get(row.message_id).push({ reaction: row.reaction, count: row.count });
+      });
+  }
 
   const result = messages.map(m => {
-    const delivered = getDelivered.get(m.id).c;
-    const read = getRead.get(m.id).c;
-    const reactions = getReactions.all(m.id);
     let attachment = null;
     if (m.attachment) { try { attachment = JSON.parse(m.attachment); } catch {} }
-    return { ...m, attachment, status: { delivered, read, total: memberCount - 1 }, reactions };
+    return {
+      ...m, attachment,
+      status: { delivered: deliveredMap.get(m.id) || 0, read: readMap.get(m.id) || 0, total: memberCount - 1 },
+      reactions: reactionsMap.get(m.id) || [],
+    };
   });
 
   res.json({ messages: result, hasMore });

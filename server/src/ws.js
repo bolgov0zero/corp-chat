@@ -117,7 +117,9 @@ function getMessageWithStatus(msgId, viewerId) {
 }
 
 function setup(server) {
-  const wss = new WebSocketServer({ server, path: '/ws' });
+  // maxPayload: вложения ходят через /api/upload, по WS — только текст и метаданные.
+  // Без лимита один клиент может прислать фрейм на сотни МБ (дефолт ws — 100 MiB).
+  const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 256 * 1024 });
 
   // Серверный heartbeat: отлавливаем «зомби»-сокеты (клиент пропал без TCP-close).
   // Без него пользователь остаётся «онлайн», а push ему не уходит.
@@ -152,8 +154,11 @@ function setup(server) {
       let data; try { data = JSON.parse(raw); } catch { return; }
 
       if (data.type === 'message') {
-        const { chat_id, text, reply_to_id, attachment } = data;
-        if (!chat_id || (!text?.trim() && !attachment)) return;
+        const { chat_id, reply_to_id, attachment } = data;
+        // Лимит как в Telegram (4096 символов) — иначе одно гигантское сообщение
+        // разойдётся всем участникам и осядет в БД
+        const text = typeof data.text === 'string' ? data.text.trim().slice(0, 4096) : '';
+        if (!chat_id || (!text && !attachment)) return;
         if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chat_id, user.id)) return;
 
         // Unhide chat for any members who had hidden it (e.g. deleted direct chat)
@@ -173,7 +178,7 @@ function setup(server) {
 
         // Вставка сообщения и статусов доставки в одной транзакции
         const msgId = db.transaction(() => {
-          const result = stmtInsertMsg.run(chat_id, user.id, (text||'').trim(), reply_to_id || null, attJson);
+          const result = stmtInsertMsg.run(chat_id, user.id, text, reply_to_id || null, attJson);
           const newMsgId = result.lastInsertRowid;
           // Пометить как delivered тем участникам, которые сейчас онлайн (кроме отправителя)
           const members = stmtGetMembers.all(chat_id, user.id);
@@ -195,14 +200,15 @@ function setup(server) {
         // сам подавит уведомление, если PWA открыта и активна прямо сейчас.
         const chat = db.prepare('SELECT type, name FROM chats WHERE id = ?').get(chat_id);
         const allMembers = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ? AND user_id != ?').all(chat_id, user.id);
+        const stmtUnread = db.prepare(`
+          SELECT COUNT(*) AS c FROM messages m
+          JOIN chat_members cm ON cm.chat_id = m.chat_id AND cm.user_id = ?
+          LEFT JOIN message_status ms ON ms.message_id = m.id AND ms.user_id = ?
+          WHERE m.sender_id IS NOT ? AND m.deleted = 0 AND ms.read_at IS NULL
+        `);
         allMembers.forEach(({ user_id }) => {
           const chatTitle = chat?.type === 'direct' ? msg.sender_name : (chat?.name || 'Electron');
-          const unread = db.prepare(`
-            SELECT COUNT(*) AS c FROM messages m
-            JOIN chat_members cm ON cm.chat_id = m.chat_id AND cm.user_id = ?
-            LEFT JOIN message_status ms ON ms.message_id = m.id AND ms.user_id = ?
-            WHERE m.sender_id != ? AND m.deleted = 0 AND ms.read_at IS NULL
-          `).get(user_id, user_id, user_id).c;
+          const unread = stmtUnread.get(user_id, user_id, user_id).c;
           pushToUser(user_id, {
             title: chatTitle,
             body: msg.text || (msg.attachment ? '🖼 Изображение' : ''),
@@ -225,26 +231,35 @@ function setup(server) {
       if (data.type === 'read') {
         const { chat_id } = data;
         if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chat_id, user.id)) return;
-        const unread = db.prepare('SELECT id, sender_id FROM messages WHERE chat_id = ? AND sender_id != ? AND deleted = 0').all(chat_id, user.id);
+        // Только реально непрочитанные — иначе на чате в 5000 сообщений каждый вход
+        // в чат рассылал status_update по КАЖДОМУ сообщению (шторм WS + SQL)
+        const unread = db.prepare(`
+          SELECT m.id, m.sender_id FROM messages m
+          LEFT JOIN message_status ms ON ms.message_id = m.id AND ms.user_id = ?
+          WHERE m.chat_id = ? AND m.sender_id IS NOT ? AND m.deleted = 0 AND ms.read_at IS NULL
+        `).all(user.id, chat_id, user.id);
+        if (!unread.length) return;
         // Подготавливаем стейтменты вне транзакции
         const stmtReadInsert = db.prepare('INSERT OR IGNORE INTO message_status (message_id, user_id) VALUES (?, ?)');
         const stmtReadUpdate = db.prepare('UPDATE message_status SET delivered_at = COALESCE(delivered_at, unixepoch()), read_at = COALESCE(read_at, unixepoch()) WHERE message_id = ? AND user_id = ?');
-        const senders = new Set();
         // Обновляем статусы всех непрочитанных сообщений в одной транзакции
         db.transaction(() => {
-          unread.forEach(({ id, sender_id }) => { stmtReadInsert.run(id, user.id); stmtReadUpdate.run(id, user.id); senders.add(sender_id); });
+          unread.forEach(({ id }) => { stmtReadInsert.run(id, user.id); stmtReadUpdate.run(id, user.id); });
         })();
-        senders.forEach(senderId => {
-          const msgs = db.prepare('SELECT id FROM messages WHERE chat_id = ? AND sender_id = ?').all(chat_id, senderId);
-          msgs.forEach(({ id }) => { const m = getMessageWithStatus(id, senderId); if (m) sendTo(senderId, { type: 'status_update', message: m }); });
+        // status_update — только по обновлённым сообщениям и только их отправителям
+        unread.forEach(({ id, sender_id }) => {
+          if (!sender_id) return; // удалённый аккаунт
+          const m = getMessageWithStatus(id, sender_id);
+          if (m) sendTo(sender_id, { type: 'status_update', message: m });
         });
         // Синхронизация прочтения между устройствами самого пользователя
         getConn(user.id).forEach(w => { if (w !== ws && w.readyState === 1) w.send(JSON.stringify({ type: 'chat_read', chat_id })); });
       }
 
       if (data.type === 'edit_message') {
-        const { message_id, text } = data;
-        if (!text?.trim()) return;
+        const { message_id } = data;
+        const text = typeof data.text === 'string' ? data.text.trim().slice(0, 4096) : '';
+        if (!text) return;
         const msg = db.prepare('SELECT * FROM messages WHERE id = ? AND deleted = 0').get(message_id);
         if (!msg || msg.sender_id !== user.id) return;
         if (Date.now() / 1000 - msg.sent_at > 120) { // 2 min limit
@@ -288,6 +303,11 @@ function setup(server) {
 
       if (data.type === 'typing') {
         const { chat_id } = data;
+        // Троттлинг: не чаще раза в 2 сек на чат, иначе каждый keystroke уходит всем участникам
+        const now = Date.now();
+        if (!ws._typingAt) ws._typingAt = new Map();
+        if (now - (ws._typingAt.get(chat_id) || 0) < 2000) return;
+        ws._typingAt.set(chat_id, now);
         if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chat_id, user.id)) return;
         broadcast(chat_id, { type: 'typing', chat_id, user_id: user.id, sender_name: user.display_name }, user.id);
       }
@@ -325,14 +345,15 @@ function setup(server) {
         if (!undelivered.length) return;
         const ins = db.prepare('INSERT OR IGNORE INTO message_status (message_id, user_id) VALUES (?, ?)');
         const upd = db.prepare('UPDATE message_status SET delivered_at = unixepoch() WHERE message_id = ? AND user_id = ? AND delivered_at IS NULL');
-        const senders = new Set();
-        undelivered.forEach(({ id, sender_id }) => { ins.run(id, user.id); upd.run(id, user.id); senders.add(sender_id); });
-        const getMsgs = db.prepare('SELECT id FROM messages WHERE chat_id IN (SELECT chat_id FROM chat_members WHERE user_id = ?) AND sender_id = ? AND deleted = 0');
-        senders.forEach(senderId => {
-          getMsgs.all(user.id, senderId).forEach(({ id }) => {
-            const m = getMessageWithStatus(id, senderId);
-            if (m) sendTo(senderId, { type: 'status_update', message: m });
-          });
+        db.transaction(() => {
+          undelivered.forEach(({ id }) => { ins.run(id, user.id); upd.run(id, user.id); });
+        })();
+        // status_update — только по реально доставленным сейчас сообщениям,
+        // а не по всей истории каждого отправителя (шторм при каждом подключении)
+        undelivered.forEach(({ id, sender_id }) => {
+          if (!sender_id) return; // удалённый аккаунт
+          const m = getMessageWithStatus(id, sender_id);
+          if (m) sendTo(sender_id, { type: 'status_update', message: m });
         });
       } catch (e) { console.error('auto-deliver error:', e); }
     });

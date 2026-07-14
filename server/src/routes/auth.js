@@ -8,8 +8,19 @@ const loginAttempts = new Map();
 const RATE_LIMIT = 10;       // максимум попыток
 const RATE_WINDOW = 60_000; // окно сброса в мс (60 сек)
 
+// Периодическая очистка истёкших записей — иначе Map растёт бесконечно
+// (записи удалялись только при повторной попытке с того же ключа)
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of loginAttempts) {
+    if (now > entry.resetAt) loginAttempts.delete(key);
+  }
+}, 5 * 60_000).unref();
+
 function getRateLimitKey(req) {
-  return req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip;
+  // req.ip учитывает X-Forwarded-For только при включённом trust proxy (см. index.js),
+  // самодельный разбор заголовка позволял подделать ключ и обойти лимит
+  return req.ip || 'unknown';
 }
 
 function checkRateLimit(req) {

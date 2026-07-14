@@ -6,6 +6,9 @@ const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', '..', 'chat_db
 const FILES_DIR = path.join(path.dirname(DB_PATH), 'files');
 
 const app = express();
+// Доверяем первому прокси (nginx): req.ip берётся из X-Forwarded-For корректно,
+// а не из самодельного разбора заголовка, который можно подделать
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 
 app.use((req, res, next) => {
