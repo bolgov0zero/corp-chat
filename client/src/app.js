@@ -16,6 +16,9 @@ const S = {
   reactions: {}, // messageId -> [{reaction, count}]
   chatHasMore: false,   // есть ли ещё сообщения выше
   chatOldestId: null,   // id самого старого загруженного сообщения
+  chatHasMoreAfter: false, // есть ли сообщения ниже (после перехода вглубь истории)
+  chatNewestId: null,      // id самого нового загруженного сообщения
+  searchResults: null,     // результаты поиска по сообщениям
 };
 
 const SESSION_KEY = 'electron_v2';
@@ -520,18 +523,26 @@ function renderChatList() {
       const ta = a.last_message?.sent_at||0, tb = b.last_message?.sent_at||0;
       return tb-ta;
     });
-  if (!filtered.length) { list.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Нет чатов</div>'; return; }
-
   const pinned = filtered.filter(c => c.pinned || c.type === 'room');
   const rest = filtered.filter(c => !c.pinned && c.type !== 'room');
 
   let html = '';
-  if (pinned.length) {
-    html += `<div class="chat-list-section-label">Закреплённые</div>`;
-    html += pinned.map(c => renderChatRow(c)).join('');
+  if (!filtered.length) {
+    html += '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Нет чатов</div>';
+  } else {
+    if (pinned.length) {
+      html += `<div class="chat-list-section-label">Закреплённые</div>`;
+      html += pinned.map(c => renderChatRow(c)).join('');
+    }
+    html += `<div class="chat-list-section-label" style="${pinned.length?'padding-top:12px':''}">Все чаты</div>`;
+    html += rest.map(c => renderChatRow(c)).join('');
   }
-  html += `<div class="chat-list-section-label" style="${pinned.length?'padding-top:12px':''}">Все чаты</div>`;
-  html += rest.map(c => renderChatRow(c)).join('');
+  if (S.searchResults) {
+    html += `<div class="chat-list-section-label" style="padding-top:12px">Сообщения</div>`;
+    html += S.searchResults.length
+      ? S.searchResults.map(r => renderSearchRow(r)).join('')
+      : '<div style="padding:12px 20px;color:var(--muted);font-size:13px">Ничего не найдено</div>';
+  }
   list.innerHTML = html;
   applyAvatars();
 }
@@ -570,13 +581,54 @@ function renderChatRow(c) {
   </div>`;
 }
 
-function filterChats() { renderChatList(); }
+let _searchTimer = null;
+function filterChats() {
+  renderChatList();
+  const q = document.getElementById('search').value.trim();
+  clearTimeout(_searchTimer);
+  if (q.length < 2) {
+    if (S.searchResults) { S.searchResults = null; renderChatList(); }
+    return;
+  }
+  _searchTimer = setTimeout(async () => {
+    const data = await api('GET', `/messages/search?q=${encodeURIComponent(q)}`);
+    if (document.getElementById('search')?.value.trim() !== q) return; // запрос устарел
+    S.searchResults = data?.results || [];
+    renderChatList();
+  }, 300);
+}
+
+function renderSearchRow(r) {
+  const chat = S.chats.find(c => c.id === r.chat_id);
+  const title = chat ? chatName(chat) : (r.sender_name || '');
+  const snip = esc(r.snippet || '').replaceAll('\u0001', '<b>').replaceAll('\u0002', '</b>');
+  return `<div class="chat-item" onclick="openSearchResult(${r.chat_id},${r.id})">
+    <div class="av av-md ${avatarColor(r.sender_id || 0)} av-round">${initials(r.sender_name || '?')}</div>
+    <div class="info">
+      <div class="ci-name" style="display:flex;align-items:center;gap:5px">
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(title)}</span>
+        <span class="ci-time">${fmtTime(r.sent_at)}</span>
+      </div>
+      <div class="ci-preview" style="margin-top:2px">${esc(r.sender_name || '')}: ${snip}</div>
+    </div>
+  </div>`;
+}
+
+function openSearchResult(chatId, msgId) {
+  const input = document.getElementById('search');
+  if (input) input.value = '';
+  S.searchResults = null;
+  renderChatList();
+  openChat(chatId, msgId);
+}
 
 // ── OPEN CHAT ──
-async function openChat(chatId) {
+async function openChat(chatId, aroundId = null) {
   S.activeChatId = chatId;
   S.chatHasMore = false;
   S.chatOldestId = null;
+  S.chatHasMoreAfter = false;
+  S.chatNewestId = null;
   _loadingMore = false;
   const _unreadAtOpen = S.unread[chatId] || 0;
   S.unread[chatId] = 0;
@@ -674,13 +726,19 @@ async function openChat(chatId) {
         <div class="skeleton-bubble" style="width:${w}px"></div>
       </div>`).join('')}</div>`;
   }
-  const data = await api('GET', `/messages/chat/${chatId}?limit=50`);
+  const data = await api('GET', aroundId ? `/messages/chat/${chatId}?around=${aroundId}&limit=50` : `/messages/chat/${chatId}?limit=50`);
   // Игнорируем ответ если пока грузились — переключились на другой чат
   if (data && S.activeChatId === chatId) {
     S.chatHasMore = data.hasMore;
+    S.chatHasMoreAfter = !!data.hasMoreAfter;
     S.chatOldestId = data.messages[0]?.id ?? null;
-    renderMessages(data.messages);
-    insertUnreadDivider(data.messages, _unreadAtOpen);
+    S.chatNewestId = data.messages[data.messages.length - 1]?.id ?? null;
+    renderMessages(data.messages, !aroundId);
+    if (aroundId) {
+      requestAnimationFrame(() => scrollToMsg(aroundId));
+    } else {
+      insertUnreadDivider(data.messages, _unreadAtOpen);
+    }
     // Вешаем слушатель скролла для подгрузки старых сообщений
     const msgsEl = document.getElementById('messages');
     if (msgsEl) msgsEl.addEventListener('scroll', onMessagesScroll, { passive: true });
@@ -758,7 +816,7 @@ function insertUnreadDivider(msgs, unreadCount) {
   });
 }
 
-function renderMessages(msgs) {
+function renderMessages(msgs, stick = true) {
   const container = document.getElementById('messages');
   if (!container) return;
   const chat = S.chats.find(c=>c.id===S.activeChatId);
@@ -787,14 +845,16 @@ function renderMessages(msgs) {
     lastSentAt = m.sent_at;
   });
   container.innerHTML = html;
-  container.scrollTop = container.scrollHeight;
+  if (stick) container.scrollTop = container.scrollHeight;
 }
 
 // ── PAGINATION: подгрузка старых сообщений ──
 function onMessagesScroll() {
   const container = document.getElementById('messages');
-  if (!container || !S.chatHasMore || _loadingMore) return;
-  if (container.scrollTop < 80) loadMoreMessages();
+  if (!container || _loadingMore) return;
+  const dist = container.scrollHeight - container.scrollTop - container.clientHeight;
+  if (S.chatHasMore && container.scrollTop < 80) loadMoreMessages();
+  if (S.chatHasMoreAfter && dist < 80) loadMoreAfter();
 }
 
 async function loadMoreMessages() {
@@ -809,6 +869,51 @@ async function loadMoreMessages() {
   S.chatHasMore = hasMore;
   S.chatOldestId = messages[0].id;
   prependMessages(messages, chatId);
+}
+
+// Догрузка вниз — после перехода вглубь истории (поиск / цитата)
+async function loadMoreAfter() {
+  if (_loadingMore || !S.chatHasMoreAfter || !S.activeChatId || !S.chatNewestId) return;
+  _loadingMore = true;
+  const chatId = S.activeChatId;
+  const data = await api('GET', `/messages/chat/${chatId}?after=${S.chatNewestId}&limit=50`);
+  _loadingMore = false;
+  if (!data || S.activeChatId !== chatId) return;
+  S.chatHasMoreAfter = !!data.hasMoreAfter;
+  if (!data.messages.length) return;
+  S.chatNewestId = data.messages[data.messages.length - 1].id;
+  appendMessagesAfter(data.messages, chatId);
+}
+
+function appendMessagesAfter(msgs, chatId) {
+  const container = document.getElementById('messages');
+  if (!container) return;
+  const chat = S.chats.find(c => c.id === chatId);
+  const isChatGroup = chat?.type === 'group' || chat?.type === 'room';
+  msgs.forEach(m => { if (m.reactions?.length) S.reactions[m.id] = m.reactions; });
+  // Продолжаем группировку от последнего отрендеренного сообщения
+  const rendered = container.querySelectorAll('[data-msg-id]');
+  const lastEl = rendered[rendered.length - 1];
+  let lastDate = '', lastSenderId = null, lastSentAt = 0;
+  if (lastEl) {
+    lastSentAt = parseInt(lastEl.dataset.sentAt) || 0;
+    lastSenderId = parseInt(lastEl.dataset.senderId) || null;
+    lastDate = lastSentAt ? fmtDate(lastSentAt) : '';
+  }
+  let html = '';
+  msgs.forEach((m, i) => {
+    const dateStr = fmtDate(m.sent_at);
+    const dayChanged = dateStr !== lastDate;
+    if (dayChanged) { html += `<div class="date-divider"><span>${dateStr}</span></div>`; lastDate = dateStr; lastSenderId = null; }
+    const grouped = !dayChanged && m.sender_id === lastSenderId && (m.sent_at - lastSentAt) < 300;
+    const next = msgs[i + 1];
+    const hideTime = !m.deleted && next && sameTimeGroup(m, next) && fmtDate(m.sent_at) === fmtDate(next.sent_at);
+    const nextDayChanged = next ? fmtDate(next.sent_at) !== dateStr : true;
+    const isLast = !next || nextDayChanged || next.sender_id !== m.sender_id || (next.sent_at - m.sent_at) >= 300;
+    html += renderMsg(m, isChatGroup, hideTime, grouped, isLast);
+    lastSenderId = m.sender_id; lastSentAt = m.sent_at;
+  });
+  container.insertAdjacentHTML('beforeend', html);
 }
 
 function prependMessages(msgs, chatId) {
@@ -1095,9 +1200,10 @@ function sendOrEdit() {
     reactions: [],
     _optimistic: true,
   };
-  appendMsg(tempMsg);
+  if (!S.chatHasMoreAfter) appendMsg(tempMsg);
 
   S.ws.send(JSON.stringify(payload));
+  if (S.chatHasMoreAfter) openChat(S.activeChatId); // мы были вглуби истории — к последним
   hideReplyBar();
   clearImagePreview();
   delete S.drafts[S.activeChatId]; saveDrafts(); // черновик отправлен — очищаем
@@ -1287,7 +1393,8 @@ function closeLightbox() {
 
 function scrollToMsg(msgId) {
   const el = document.querySelector(`[data-msg-id="${msgId}"]`);
-  if (!el) return;
+  // Сообщения нет в DOM (глубоко в истории) — перезагружаем чат окном вокруг него
+  if (!el) { if (S.activeChatId) openChat(S.activeChatId, msgId); return; }
   el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   el.classList.add('msg-highlight');
   setTimeout(() => el.classList.remove('msg-highlight'), 1500);
@@ -1507,12 +1614,14 @@ function connectWS() {
       const chatId = message.chat_id;
       const chat = S.chats.find(c=>c.id===chatId);
       if (chat) chat.last_message = message;
-      if (S.activeChatId===chatId) {
+      // Если мы вглуби истории (низ не догружен) — не аппендим, придёт при догрузке
+      if (S.activeChatId===chatId && !S.chatHasMoreAfter) {
         // Убираем optimistic-заглушку если она есть (только для своих сообщений)
         if (message.sender_id === S.user.id) {
           document.querySelector('[data-optimistic="1"]')?.remove();
         }
         appendMsg(message);
+        S.chatNewestId = message.id;
         if (isViewing() && S.ws?.readyState===1) {
           // Пользователь смотрит в чат — отмечаем прочитанным
           S.ws.send(JSON.stringify({type:'read', chat_id:chatId}));

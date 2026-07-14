@@ -97,6 +97,36 @@ tryAlter('ALTER TABLE messages ADD COLUMN attachment TEXT');
 tryAlter('ALTER TABLE users ADD COLUMN tag TEXT DEFAULT NULL');
 tryAlter('ALTER TABLE chat_members ADD COLUMN pinned_at INTEGER');
 
+// ── Полнотекстовый поиск (FTS5, external content) ──
+// Целостность обеспечивается JOIN с messages при выборке: осиротевшие FTS-записи
+// (например, после каскадного удаления чата) просто не дадут результатов.
+try {
+  db.exec(`
+    CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(text, content='messages', content_rowid='id', tokenize='unicode61');
+    CREATE TRIGGER IF NOT EXISTS messages_fts_ai AFTER INSERT ON messages BEGIN
+      INSERT INTO messages_fts(rowid, text) VALUES (new.id, new.text);
+    END;
+    CREATE TRIGGER IF NOT EXISTS messages_fts_ad AFTER DELETE ON messages BEGIN
+      INSERT INTO messages_fts(messages_fts, rowid, text) VALUES ('delete', old.id, old.text);
+    END;
+    CREATE TRIGGER IF NOT EXISTS messages_fts_au AFTER UPDATE OF text ON messages BEGIN
+      INSERT INTO messages_fts(messages_fts, rowid, text) VALUES ('delete', old.id, old.text);
+      INSERT INTO messages_fts(rowid, text) VALUES (new.id, new.text);
+    END;
+  `);
+  // Разовое заполнение существующей истории
+  const ftsCount = db.prepare('SELECT COUNT(*) as c FROM messages_fts').get().c;
+  if (ftsCount === 0) {
+    const msgCount = db.prepare('SELECT COUNT(*) as c FROM messages').get().c;
+    if (msgCount > 0) {
+      db.exec('INSERT INTO messages_fts(rowid, text) SELECT id, text FROM messages');
+      console.log(`[FTS] Проиндексировано сообщений: ${msgCount}`);
+    }
+  }
+} catch (e) {
+  console.warn('[FTS] Полнотекстовый поиск недоступен:', e.message);
+}
+
 // Default admin
 const userCount = db.prepare('SELECT COUNT(*) as c FROM users').get();
 if (userCount.c === 0) {
