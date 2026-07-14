@@ -70,6 +70,12 @@ function fmtDate(ts) {
   return d.toLocaleDateString('ru',{day:'numeric',month:'long'});
 }
 function avatarColor(id) { return ['av-blue','av-green','av-purple','av-orange'][id%4]; }
+function formatEditLimit(sec) {
+  if (sec < 60) return `${sec} сек`;
+  const min = Math.round(sec / 60);
+  if (min < 60) return `${min} мин`;
+  return `${Math.round(min / 60)} ч`;
+}
 
 // ── PROTOCOL ──
 function httpProto() { return /:\d+$/.test(S.server) ? 'http' : 'https'; }
@@ -1335,7 +1341,7 @@ function cancelEdit() {
 function showCtxMenu(e, msgId, sentAt, isMine) {
   e.preventDefault(); e.stopPropagation?.();
   S.ctx.messageId = msgId;
-  S.ctx.canEdit = isMine && (Date.now()/1000 - sentAt) < 120;
+  S.ctx.canEdit = isMine && (Date.now()/1000 - sentAt) < (S.editLimit || 120);
   S.ctx.isMine = isMine;
   const menu = document.getElementById('ctx-menu');
   document.getElementById('ctx-reply-btn').style.display = '';
@@ -1702,6 +1708,8 @@ function connectWS() {
 
     if (data.type==='pong') { ws._pongOk = true; return; }
 
+    if (data.type==='connected') { S.editLimit = data.edit_time_limit || 120; return; }
+
     if (data.type==='message') {
       const { message } = data;
       const chatId = message.chat_id;
@@ -1842,7 +1850,7 @@ function connectWS() {
       // Сервер отклонил редактирование (вышло время) — сообщаем и закрываем режим правки
       if (S.editingMessageId === data.message_id) cancelEdit();
       showActionToast(data.reason === 'time'
-        ? 'Редактировать можно только в течение 2 минут'
+        ? `Редактировать можно только в течение ${formatEditLimit(S.editLimit || 120)}`
         : 'Не удалось отредактировать сообщение');
     }
 

@@ -94,6 +94,12 @@ function broadcastStatus(userId) {
   });
 }
 
+// Лимит редактирования сообщений (сек), настраивается в админке. По умолчанию 2 минуты.
+function getEditTimeLimit() {
+  const v = Number(db.prepare("SELECT value FROM settings WHERE key = 'edit_time_limit'").get()?.value);
+  return v > 0 ? v : 120;
+}
+
 function getMessageWithStatus(msgId, viewerId) {
   const msg = db.prepare(`
     SELECT m.id, m.chat_id, m.text, m.sent_at, m.edited_at, m.deleted, m.attachment,
@@ -112,8 +118,10 @@ function getMessageWithStatus(msgId, viewerId) {
   const memberCount = db.prepare('SELECT COUNT(*) as c FROM chat_members WHERE chat_id = ? AND user_id IS NOT ?').get(msg.chat_id, msg.sender_id).c;
   const delivered = db.prepare('SELECT COUNT(*) as c FROM message_status WHERE message_id = ? AND delivered_at IS NOT NULL').get(msgId).c;
   const read = db.prepare('SELECT COUNT(*) as c FROM message_status WHERE message_id = ? AND read_at IS NOT NULL').get(msgId).c;
+  // Реакции — чтобы WS-payload совпадал по форме с REST /api/messages
+  const reactions = db.prepare('SELECT reaction, COUNT(*) as count FROM reactions WHERE message_id = ? GROUP BY reaction').all(msgId);
 
-  return { ...msg, status: { delivered, read, total: memberCount } };
+  return { ...msg, reactions, status: { delivered, read, total: memberCount } };
 }
 
 function setup(server) {
@@ -262,7 +270,7 @@ function setup(server) {
         if (!text) return;
         const msg = db.prepare('SELECT * FROM messages WHERE id = ? AND deleted = 0').get(message_id);
         if (!msg || msg.sender_id !== user.id) return;
-        if (Date.now() / 1000 - msg.sent_at > 120) { // 2 min limit
+        if (Date.now() / 1000 - msg.sent_at > getEditTimeLimit()) {
           if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'edit_rejected', message_id, reason: 'time' }));
           return;
         }
@@ -331,7 +339,8 @@ function setup(server) {
       broadcastStatus(user.id);
     });
 
-    ws.send(JSON.stringify({ type: 'connected', user_id: user.id }));
+    // Конфигурация для клиента: лимит редактирования подхватывается без релиза клиента
+    ws.send(JSON.stringify({ type: 'connected', user_id: user.id, edit_time_limit: getEditTimeLimit() }));
 
     // Авто-доставка при подключении: безопасно, после регистрации всех обработчиков
     setImmediate(() => {
@@ -373,7 +382,7 @@ function getClients() {
     installScope: m.installScope,
     connectedAt: m.connectedAt,
     clientIp: m.clientIp,
-    status: userStatus.get(m.userId) || 'online',
+    status: userStatus.get(m.userId) || 'offline',
   }));
 }
 

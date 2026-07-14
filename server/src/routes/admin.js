@@ -23,19 +23,6 @@ function getDirCount(dir) {
   try { return fs.readdirSync(dir).length; } catch { return 0; }
 }
 
-function deleteChatFiles(chatId) {
-  const rows = db.prepare("SELECT attachment FROM messages WHERE chat_id = ? AND attachment IS NOT NULL").all(chatId);
-  rows.forEach(r => {
-    try {
-      const att = JSON.parse(r.attachment);
-      if (att?.url) {
-        const fp = path.join(FILES_DIR, path.basename(att.url));
-        if (fs.existsSync(fp)) fs.unlinkSync(fp);
-      }
-    } catch {}
-  });
-}
-
 // ── Версия сервера ──
 const VERSION_FILE = path.join(__dirname, '..', '..', 'version.json');
 function getLocalVersion() {
@@ -107,7 +94,6 @@ router.get('/activity', (req, res) => {
     `).all(since, since);
     const points = new Array(24).fill(0);
     rows.forEach(r => { if (r.bucket >= 0 && r.bucket < 24) points[r.bucket] = r.count; });
-    const startH = new Date((since) * 1000);
     const labels = [0, 6, 12, 18, 24].map(offset => {
       const d = new Date((since + offset * 3600) * 1000);
       return d.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
@@ -259,7 +245,7 @@ router.get('/settings', (req, res) => {
 });
 
 router.put('/settings', (req, res) => {
-  const allowed = ['github_token'];
+  const allowed = ['github_token', 'edit_time_limit'];
   const upsert = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
   const del = db.prepare('DELETE FROM settings WHERE key = ?');
   for (const key of allowed) {

@@ -136,4 +136,3 @@ router.post('/test/:userId', async (req, res) => {
 
 module.exports = router;
 module.exports.sendPushToUser = sendPushToUser;
-module.exports.getVapidPublicKey = () => vapidKeys.publicKey;

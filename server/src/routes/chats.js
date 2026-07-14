@@ -3,7 +3,7 @@ const path2 = require('path');
 const fs = require('fs');
 const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
-const { sendTo, broadcast } = require('../ws');
+const { sendTo } = require('../ws');
 
 const DB_DIR = path2.join(__dirname, '..', '..', '..', 'chat_db');
 const AVATAR_DIR = path2.join(DB_DIR, 'avatar');
