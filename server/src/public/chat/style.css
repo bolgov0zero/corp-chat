@@ -1463,10 +1463,15 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
 .ctx-reactions {
   display: flex; gap: 4px;
   flex-wrap: wrap;
-  max-width: 248px;
+  max-width: 276px; /* 8 кнопок по 30px в ряд */
   padding: 4px 4px 8px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 4px;
+}
+/* Перебиваем width:100% из «.ctx-menu button» — иначе каждый эмодзи занимает всю строку */
+.ctx-menu .ctx-reactions button {
+  width: 30px; flex: 0 0 30px;
+  padding: 0; justify-content: center;
 }
 .ctx-reaction-btn {
   width: 30px; height: 30px;
