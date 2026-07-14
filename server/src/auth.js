@@ -1,7 +1,20 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const db = require('./db');
 
-const SECRET = process.env.JWT_SECRET || 'corp-chat-secret-change-in-production';
+// Секрет: env → settings → генерируем и сохраняем при первом старте.
+// Захардкоженный дефолт позволял любому, кто видел исходники, подделать токен админа.
+function getSecret() {
+  if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
+  const row = db.prepare("SELECT value FROM settings WHERE key = 'jwt_secret'").get();
+  if (row) return row.value;
+  const secret = crypto.randomBytes(32).toString('hex');
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('jwt_secret', secret);
+  console.log('[Auth] Сгенерирован новый JWT-секрет (сохранён в settings). Все существующие сессии сброшены.');
+  return secret;
+}
+
+const SECRET = getSecret();
 const EXPIRES_IN = '7d';
 
 function signToken(payload) {

@@ -9,6 +9,17 @@ const { getStatus, sendTo } = require('../ws');
 const DB_DIR = path2.join(__dirname, '..', '..', '..', 'chat_db');
 const AVATAR_DIR = path2.join(DB_DIR, 'avatar');
 
+// Проверка магических байтов: принимаем только реальные изображения (JPEG/PNG/WebP/GIF),
+// иначе на диск можно записать произвольный файл под видом аватара
+function isImageBuffer(buf) {
+  if (!buf || buf.length < 12) return false;
+  if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return true; // JPEG
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return true; // PNG
+  if (buf.slice(0, 4).toString() === 'RIFF' && buf.slice(8, 12).toString() === 'WEBP') return true; // WebP
+  if (buf.slice(0, 4).toString() === 'GIF8') return true; // GIF
+  return false;
+}
+
 // List all users (for starting chats)
 router.get('/', authMiddleware, (req, res) => {
   const users = db.prepare('SELECT id, username, display_name FROM users WHERE id != ? ORDER BY display_name').all(req.user.id);
@@ -42,6 +53,7 @@ router.post('/me/avatar', authMiddleware, (req, res) => {
   if (!data) return res.status(400).json({ error: 'No data' });
   try {
     const buf = Buffer.from(data, 'base64');
+    if (!isImageBuffer(buf)) return res.status(400).json({ error: 'Not an image' });
     fs.writeFileSync(path2.join(AVATAR_DIR, `${req.user.id}.jpg`), buf);
     const peers = db.prepare(`SELECT DISTINCT cm2.user_id FROM chat_members cm1 JOIN chat_members cm2 ON cm2.chat_id = cm1.chat_id AND cm2.user_id != cm1.user_id JOIN chats c ON c.id = cm1.chat_id WHERE cm1.user_id = ?`).all(req.user.id).map(r=>r.user_id);
     peers.forEach(uid => sendTo(uid, { type: 'avatar_updated', user_id: req.user.id }));
@@ -116,3 +128,4 @@ router.delete('/:id', authMiddleware, adminMiddleware, (req, res) => {
 });
 
 module.exports = router;
+module.exports.isImageBuffer = isImageBuffer;

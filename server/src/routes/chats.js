@@ -172,6 +172,8 @@ router.post('/:id/avatar', authMiddleware, (req, res) => {
   if (!data) return res.status(400).json({ error: 'No data' });
   try {
     const buf = Buffer.from(data, 'base64');
+    const { isImageBuffer } = require('./users');
+    if (!isImageBuffer(buf)) return res.status(400).json({ error: 'Not an image' });
     fs.writeFileSync(path2.join(AVATAR_DIR, `chat_${req.params.id}.jpg`), buf);
     res.json({ ok: true, url: `/api/chats/${req.params.id}/avatar` });
   } catch (e) {

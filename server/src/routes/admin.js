@@ -252,6 +252,9 @@ router.get('/settings', (req, res) => {
   // Маскируем токен
   if (settings.github_token) settings.github_token_set = true;
   delete settings.github_token;
+  // Секреты не должны уходить в браузер даже админу
+  delete settings.jwt_secret;
+  delete settings.vapid_private;
   res.json(settings);
 });
 
