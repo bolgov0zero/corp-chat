@@ -103,7 +103,7 @@ function getEditTimeLimit() {
 
 function getMessageWithStatus(msgId, viewerId) {
   const msg = db.prepare(`
-    SELECT m.id, m.chat_id, m.text, m.sent_at, m.edited_at, m.deleted, m.attachment,
+    SELECT m.id, m.chat_id, m.text, m.sent_at, m.edited_at, m.deleted, m.attachment, m.mentions,
       u.id as sender_id, COALESCE(u.display_name, 'Удалённый аккаунт') as sender_name,
       m.reply_to_id,
       rm.text as reply_text, COALESCE(ru.display_name, 'Удалённый аккаунт') as reply_sender_name
@@ -114,6 +114,7 @@ function getMessageWithStatus(msgId, viewerId) {
   `).get(msgId);
   if (!msg) return null;
   if (msg.attachment) try { msg.attachment = JSON.parse(msg.attachment); } catch { msg.attachment = null; }
+  if (msg.mentions) try { msg.mentions = JSON.parse(msg.mentions); } catch { msg.mentions = null; }
 
   // IS NOT вместо != — sender_id может быть NULL (удалённый аккаунт)
   const memberCount = db.prepare('SELECT COUNT(*) as c FROM chat_members WHERE chat_id = ? AND user_id IS NOT ?').get(msg.chat_id, msg.sender_id).c;
@@ -185,15 +186,26 @@ function setup(server) {
 
         const attJson = attachment ? JSON.stringify(attachment) : null;
 
+        // Упоминания: @username участников чата (кроме себя)
+        let mentionsJson = null;
+        if (text.includes('@')) {
+          const names = [...text.matchAll(/@([\w.-]+)/g)].map(m => m[1].toLowerCase());
+          if (names.length) {
+            const members = db.prepare('SELECT u.id, u.username FROM users u JOIN chat_members cm ON cm.user_id = u.id WHERE cm.chat_id = ?').all(chat_id);
+            const ids = members.filter(mb => mb.id !== user.id && names.includes(mb.username.toLowerCase())).map(mb => mb.id);
+            if (ids.length) mentionsJson = JSON.stringify(ids);
+          }
+        }
+
         // Подготавливаем стейтменты вне транзакции — db.prepare нельзя вызывать внутри неё
-        const stmtInsertMsg = db.prepare('INSERT INTO messages (chat_id, sender_id, text, reply_to_id, attachment) VALUES (?, ?, ?, ?, ?)');
+        const stmtInsertMsg = db.prepare('INSERT INTO messages (chat_id, sender_id, text, reply_to_id, attachment, mentions) VALUES (?, ?, ?, ?, ?, ?)');
         const stmtGetMembers = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ? AND user_id != ?');
         const stmtInsStatus = db.prepare('INSERT OR IGNORE INTO message_status (message_id, user_id) VALUES (?, ?)');
         const stmtUpdDelivered = db.prepare('UPDATE message_status SET delivered_at = COALESCE(delivered_at, unixepoch()) WHERE message_id = ? AND user_id = ?');
 
         // Вставка сообщения и статусов доставки в одной транзакции
         const msgId = db.transaction(() => {
-          const result = stmtInsertMsg.run(chat_id, user.id, text, reply_to_id || null, attJson);
+          const result = stmtInsertMsg.run(chat_id, user.id, text, reply_to_id || null, attJson, mentionsJson);
           const newMsgId = result.lastInsertRowid;
           // Пометить как delivered тем участникам, которые сейчас онлайн (кроме отправителя)
           const members = stmtGetMembers.all(chat_id, user.id);

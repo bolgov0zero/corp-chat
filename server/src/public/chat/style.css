@@ -1843,3 +1843,6 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
   color: var(--accent);
   font-weight: 600;
 }
+
+/* Упоминание @username */
+.mention { color: var(--accent); font-weight: 600; }

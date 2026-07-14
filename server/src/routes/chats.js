@@ -40,7 +40,14 @@ function enrichChat(chat, userId) {
     LEFT JOIN message_status ms ON ms.message_id = m.id AND ms.user_id = ?
     WHERE m.chat_id = ? AND m.sender_id != ? AND m.deleted = 0 AND ms.read_at IS NULL
   `).get(userId, chat.id, userId).c;
-  return { ...chat, members, last_message: last || null, unread };
+  // Непрочитанные упоминания — для бейджа «@» (как в Telegram)
+  const unreadMentions = db.prepare(`
+    SELECT COUNT(*) AS c FROM messages m
+    LEFT JOIN message_status ms ON ms.message_id = m.id AND ms.user_id = ?
+    WHERE m.chat_id = ? AND m.deleted = 0 AND ms.read_at IS NULL AND m.mentions IS NOT NULL
+      AND EXISTS (SELECT 1 FROM json_each(m.mentions) WHERE value = ?)
+  `).get(userId, chat.id, userId).c;
+  return { ...chat, members, last_message: last || null, unread, unread_mentions: unreadMentions };
 }
 
 // Get my chats

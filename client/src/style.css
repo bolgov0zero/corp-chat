@@ -1647,3 +1647,6 @@ select:focus-visible, .user-row:focus-visible, .chat-item:focus-visible {
   color: var(--accent);
   font-weight: 600;
 }
+
+/* Упоминание @username */
+.mention { color: var(--accent); font-weight: 600; }

@@ -4,7 +4,7 @@ const { authMiddleware } = require('../auth');
 
 // Общий SELECT сообщения с данными отправителя и цитаты
 const MSG_SELECT = `
-  SELECT m.id, m.chat_id, m.text, m.sent_at, m.edited_at, m.deleted, m.attachment,
+  SELECT m.id, m.chat_id, m.text, m.sent_at, m.edited_at, m.deleted, m.attachment, m.mentions,
     u.id as sender_id, COALESCE(u.display_name, 'Удалённый аккаунт') as sender_name, u.tag as sender_tag,
     m.reply_to_id,
     rm.text as reply_text, rm.deleted as reply_deleted,
@@ -98,8 +98,10 @@ router.get('/chat/:chatId', authMiddleware, (req, res) => {
   const result = messages.map(m => {
     let attachment = null;
     if (m.attachment) { try { attachment = JSON.parse(m.attachment); } catch {} }
+    let mentions = null;
+    if (m.mentions) { try { mentions = JSON.parse(m.mentions); } catch {} }
     return {
-      ...m, attachment,
+      ...m, attachment, mentions,
       status: { delivered: deliveredMap.get(m.id) || 0, read: readMap.get(m.id) || 0, total: memberCount - 1 },
       reactions: reactionsMap.get(m.id) || [],
     };

@@ -97,6 +97,7 @@ tryAlter('ALTER TABLE messages ADD COLUMN attachment TEXT');
 tryAlter('ALTER TABLE users ADD COLUMN tag TEXT DEFAULT NULL');
 tryAlter('ALTER TABLE chat_members ADD COLUMN pinned_at INTEGER');
 tryAlter('ALTER TABLE users ADD COLUMN last_seen_at INTEGER');
+tryAlter('ALTER TABLE messages ADD COLUMN mentions TEXT'); // JSON-массив id упомянутых пользователей
 
 // ── Полнотекстовый поиск (FTS5, external content) ──
 // Целостность обеспечивается JOIN с messages при выборке: осиротевшие FTS-записи

@@ -18,7 +18,7 @@ const S = {
   server: '', token: null, user: null,
   chats: [], activeChatId: null,
   ws: null, wsRetry: 0,
-  unread: {}, allUsers: [], drafts: (()=>{ try { return JSON.parse(localStorage.getItem('chat_drafts'))||{}; } catch { return {}; } })(),
+  unread: {}, unreadMentions: {}, allUsers: [], drafts: (()=>{ try { return JSON.parse(localStorage.getItem('chat_drafts'))||{}; } catch { return {}; } })(),
   settings: { theme: 'dark', fontSize: 'medium', chatView: 'irc' },
   ctx: { messageId: null, canEdit: false, isMine: false, replyText: '', replySenderName: '' },
   editingMessageId: null,
@@ -47,7 +47,7 @@ function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'
 function linkifyText(text) {
   const urlRe = /(https?:\/\/[^\s]+)/g;
   return text.split(urlRe).map((part, i) => {
-    if (i % 2 !== 1) return esc(part);
+    if (i % 2 !== 1) return esc(part).replace(/@([\w.-]+)/g, '<span class="mention">@$1</span>');
     return `<a class="msg-link" href="#" onclick="openExternalLink(event,this)" data-url="${esc(part)}">${esc(part)}</a>`;
   }).join('');
 }
@@ -583,7 +583,10 @@ async function loadChats() {
   S.chats = chats;
   // Сервер — источник истины по непрочитанным (синхронизация между устройствами).
   // Активный чат считаем прочитанным сразу.
-  chats.forEach(c => { S.unread[c.id] = (c.id === S.activeChatId) ? 0 : (c.unread || 0); });
+  chats.forEach(c => {
+    S.unread[c.id] = (c.id === S.activeChatId) ? 0 : (c.unread || 0);
+    S.unreadMentions[c.id] = (c.id === S.activeChatId) ? 0 : (c.unread_mentions || 0);
+  });
   updateUnreadTotal();
   renderChatList();
 }
@@ -723,6 +726,7 @@ function renderChatRow(c) {
       </div>
       <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
         <span class="ci-preview ci-last" style="flex:1">${previewHtml}</span>
+        ${(S.unreadMentions[c.id]||0)>0?`<div class="unread-badge" style="background:var(--accent)" title="Вас упомянули">@</div>`:''}
         ${u>0?`<div class="unread-badge">${u}</div>`:''}
       </div>
     </div>
@@ -780,6 +784,7 @@ async function openChat(chatId, aroundId = null) {
   _loadingMore = false;
   const _unreadAtOpen = S.unread[chatId] || 0;
   S.unread[chatId] = 0;
+  S.unreadMentions[chatId] = 0;
   updateUnreadTotal();
   renderChatList();
   const chat = S.chats.find(c=>c.id===chatId);
@@ -1868,6 +1873,7 @@ function connectWS() {
           S.ws.send(JSON.stringify({type:'delivered', message_id:message.id}));
         } else if (!isViewing() && message.sender_id !== S.user.id) {
           S.unread[chatId] = (S.unread[chatId]||0)+1;
+        if (message.mentions?.includes(S.user.id)) S.unreadMentions[chatId] = (S.unreadMentions[chatId]||0)+1;
           const title = chatName(chat) || 'Electron';
           const body = `${message.sender_name}: ${message.text || (message.attachment ? '🖼 Изображение' : '')}`;
           webNotify(title, body, chatId);
@@ -1879,6 +1885,7 @@ function connectWS() {
         S.unread[chatId] = 0;
       } else {
         S.unread[chatId] = (S.unread[chatId]||0)+1;
+        if (message.mentions?.includes(S.user.id)) S.unreadMentions[chatId] = (S.unreadMentions[chatId]||0)+1;
         const chat2 = S.chats.find(c=>c.id===chatId);
         const title = chatName(chat2) || 'Electron';
         const body = `${message.sender_name}: ${message.text || (message.attachment ? '🖼 Изображение' : '')}`;
