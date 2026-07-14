@@ -1835,3 +1835,9 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
 .action-sheet-btn.danger { color: var(--danger); font-weight: 600; }
 .action-sheet-btn.cancel { font-weight: 700; }
 .action-sheet-btn:active { background: var(--hover-row); }
+
+/* Разделитель «Непрочитанные сообщения» */
+.unread-divider span {
+  color: var(--accent);
+  font-weight: 600;
+}

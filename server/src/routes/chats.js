@@ -45,7 +45,7 @@ function enrichChat(chat, userId) {
 // Get my chats
 router.get('/', authMiddleware, (req, res) => {
   const chats = db.prepare(`
-    SELECT c.id, c.type, c.name, c.created_at, c.created_by
+    SELECT c.id, c.type, c.name, c.created_at, c.created_by, cm.pinned_at as pinned
     FROM chats c JOIN chat_members cm ON cm.chat_id = c.id
     WHERE cm.user_id = ? AND cm.hidden_at IS NULL
     ORDER BY (SELECT COALESCE(MAX(sent_at), 0) FROM messages WHERE chat_id = c.id) DESC
@@ -160,6 +160,17 @@ router.post('/:id/leave', authMiddleware, (req, res) => {
     .forEach(({ user_id }) => sendTo(user_id, { type: 'reload_chats' }));
   sendTo(req.user.id, { type: 'chat_deleted', chat_id: Number(req.params.id) });
   res.json({ ok: true });
+});
+
+// Toggle pin (личная настройка — хранится в chat_members конкретного пользователя)
+router.post('/:id/pin', authMiddleware, (req, res) => {
+  const row = db.prepare('SELECT pinned_at FROM chat_members WHERE chat_id = ? AND user_id = ?').get(req.params.id, req.user.id);
+  if (!row) return res.status(403).json({ error: 'Not a member' });
+  const pinned = row.pinned_at ? null : Math.floor(Date.now() / 1000);
+  db.prepare('UPDATE chat_members SET pinned_at = ? WHERE chat_id = ? AND user_id = ?').run(pinned, req.params.id, req.user.id);
+  // Синхронизация на другие устройства пользователя
+  sendTo(req.user.id, { type: 'reload_chats' });
+  res.json({ ok: true, pinned: !!pinned });
 });
 
 // Upload group/chat avatar

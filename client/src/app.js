@@ -5,7 +5,7 @@ const S = {
   server: '', token: null, user: null,
   chats: [], activeChatId: null,
   ws: null, wsRetry: 0,
-  unread: {}, allUsers: [], drafts: {},
+  unread: {}, allUsers: [], drafts: (()=>{ try { return JSON.parse(localStorage.getItem('chat_drafts'))||{}; } catch { return {}; } })(),
   settings: { theme: 'dark', fontSize: 'medium', chatView: 'irc' },
   ctx: { messageId: null, canEdit: false, isMine: false, replyText: '', replySenderName: '' },
   editingMessageId: null,
@@ -47,6 +47,7 @@ const _avatarCache = new Map(); // url -> true (loaded) | false (error)
 let _fetchController = new AbortController();
 
 // ── UTILS ──
+function saveDrafts() { try { localStorage.setItem('chat_drafts', JSON.stringify(S.drafts)); } catch {} }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function linkifyText(text) {
@@ -541,6 +542,11 @@ function renderChatRow(c) {
   const lm = c.last_message;
   let preview = lm ? (lm.deleted ? 'Сообщение удалено' : (lm.text || (lm.attachment ? '🖼 Изображение' : ''))) : 'Нет сообщений';
   if (preview.length>40) preview = preview.slice(0,40)+'…';
+  // Черновик приоритетнее последнего сообщения (как в Telegram)
+  const draft = (c.id !== S.activeChatId) ? S.drafts[c.id] : null;
+  const previewHtml = draft
+    ? `<span style="color:var(--danger)">Черновик:</span> ${esc(draft.slice(0,34))}`
+    : esc(preview);
   const time = lm ? fmtTime(lm.sent_at) : '';
   const peerId = getPeerUserId(c);
   const dot = peerId ? presenceDot(peerId) : '';
@@ -557,7 +563,7 @@ function renderChatRow(c) {
         <span class="ci-time">${time}</span>
       </div>
       <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
-        <span class="ci-preview ci-last" style="flex:1">${esc(preview)}</span>
+        <span class="ci-preview ci-last" style="flex:1">${previewHtml}</span>
         ${u>0?`<div class="unread-badge">${u}</div>`:''}
       </div>
     </div>
@@ -572,6 +578,7 @@ async function openChat(chatId) {
   S.chatHasMore = false;
   S.chatOldestId = null;
   _loadingMore = false;
+  const _unreadAtOpen = S.unread[chatId] || 0;
   S.unread[chatId] = 0;
   updateUnreadTotal();
   renderChatList();
@@ -673,6 +680,7 @@ async function openChat(chatId) {
     S.chatHasMore = data.hasMore;
     S.chatOldestId = data.messages[0]?.id ?? null;
     renderMessages(data.messages);
+    insertUnreadDivider(data.messages, _unreadAtOpen);
     // Вешаем слушатель скролла для подгрузки старых сообщений
     const msgsEl = document.getElementById('messages');
     if (msgsEl) msgsEl.addEventListener('scroll', onMessagesScroll, { passive: true });
@@ -729,6 +737,25 @@ function sameTimeGroup(a, b) {
   if (a.sender_id !== b.sender_id) return false;
   const ta = new Date(a.sent_at * 1000), tb = new Date(b.sent_at * 1000);
   return ta.getHours() === tb.getHours() && ta.getMinutes() === tb.getMinutes() && ta.toDateString() === tb.toDateString();
+}
+
+// Разделитель «Непрочитанные сообщения» + скролл к нему (как в Telegram)
+function insertUnreadDivider(msgs, unreadCount) {
+  if (!unreadCount) return;
+  const others = msgs.filter(m => m.sender_id !== S.user.id && !m.deleted);
+  const firstUnread = others[others.length - unreadCount];
+  if (!firstUnread) return;
+  const el = document.querySelector(`[data-msg-id="${firstUnread.id}"]`);
+  const container = document.getElementById('messages');
+  if (!el || !container) return;
+  const div = document.createElement('div');
+  div.className = 'date-divider unread-divider';
+  div.innerHTML = '<span>Непрочитанные сообщения</span>';
+  el.parentNode.insertBefore(div, el);
+  // Скроллим к разделителю после rAF-скролла renderMessages «в самый низ»
+  requestAnimationFrame(() => {
+    container.scrollTop = Math.max(div.offsetTop - 60, 0);
+  });
 }
 
 function renderMessages(msgs) {
@@ -987,6 +1014,7 @@ function onMsgInput(el) {
   if (S.activeChatId) {
     if (el.value) S.drafts[S.activeChatId] = el.value;
     else delete S.drafts[S.activeChatId];
+    saveDrafts();
   }
   if (!S.activeChatId || S.ws?.readyState !== 1) return;
   if (!typingSendTimer) {
@@ -1072,7 +1100,7 @@ function sendOrEdit() {
   S.ws.send(JSON.stringify(payload));
   hideReplyBar();
   clearImagePreview();
-  delete S.drafts[S.activeChatId]; // черновик отправлен — очищаем
+  delete S.drafts[S.activeChatId]; saveDrafts(); // черновик отправлен — очищаем
   input.value=''; input.style.height='20px'; input.style.overflow='hidden';
   const sendBtn = document.getElementById('send-btn');
   if (sendBtn) { sendBtn.style.background='transparent'; sendBtn.style.color='var(--muted)'; sendBtn.style.boxShadow='none'; }
@@ -1870,11 +1898,23 @@ function showChatCtx(e, chatId) {
   e.stopPropagation();
   S.ctxChatId = chatId;
   const menu = document.getElementById('ctx-chat-menu');
+  const chat = S.chats.find(c => c.id === chatId);
+  const pinLabel = document.getElementById('ctx-chat-pin-label');
+  if (pinLabel) pinLabel.textContent = chat?.pinned ? 'Открепить' : 'Закрепить';
+  const pinBtn = document.getElementById('ctx-chat-pin');
+  if (pinBtn) pinBtn.style.display = chat?.type === 'room' ? 'none' : '';
   menu.style.display = 'block';
   const x = Math.min(e.clientX, window.innerWidth - 160);
   const y = Math.min(e.clientY, window.innerHeight - 80);
   menu.style.left = x + 'px';
   menu.style.top = y + 'px';
+}
+
+async function ctxChatPin() {
+  document.getElementById('ctx-chat-menu').style.display = 'none';
+  if (!S.ctxChatId) return;
+  await api('POST', `/chats/${S.ctxChatId}/pin`);
+  await loadChats();
 }
 
 async function ctxChatDelete() {

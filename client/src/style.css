@@ -1639,3 +1639,9 @@ select:focus-visible, .user-row:focus-visible, .chat-item:focus-visible {
     transition-duration: .001ms !important;
   }
 }
+
+/* Разделитель «Непрочитанные сообщения» */
+.unread-divider span {
+  color: var(--accent);
+  font-weight: 600;
+}
