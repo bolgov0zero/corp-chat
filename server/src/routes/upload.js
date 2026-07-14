@@ -24,10 +24,26 @@ const upload = multer({
   },
 });
 
-router.post('/', authMiddleware, upload.single('file'), (req, res) => {
+// sharp опционален: без него всё работает, просто не будет миниатюр
+let sharp = null;
+try { sharp = require('sharp'); } catch { console.warn('[Upload] sharp не установлен — миниатюры отключены'); }
+
+router.post('/', authMiddleware, upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Файл не принят' });
+  let thumb = null;
+  // Миниатюра ~320px для ленты — полный файл грузится только в лайтбоксе.
+  // GIF пропускаем, чтобы не терять анимацию в ленте.
+  if (sharp && req.file.mimetype !== 'image/gif') {
+    try {
+      const thumbName = req.file.filename.replace(/\.[^.]*$/, '') + '_t.webp';
+      await sharp(req.file.path).rotate().resize({ width: 320, withoutEnlargement: true })
+        .webp({ quality: 78 }).toFile(path.join(FILES_DIR, thumbName));
+      thumb = `/files/${thumbName}`;
+    } catch (e) { console.warn('[Upload] thumbnail failed:', e.message); }
+  }
   res.json({
     url: `/files/${req.file.filename}`,
+    thumb,
     name: req.file.originalname,
     size: req.file.size,
     mime: req.file.mimetype,

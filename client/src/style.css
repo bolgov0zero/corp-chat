@@ -1449,6 +1449,8 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
 /* Reactions row in context menu */
 .ctx-reactions {
   display: flex; gap: 4px;
+  flex-wrap: wrap;
+  max-width: 248px;
   padding: 4px 4px 8px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 4px;

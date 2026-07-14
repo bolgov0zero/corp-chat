@@ -14,10 +14,11 @@ function deleteChatFiles(chatId) {
   rows.forEach(r => {
     try {
       const att = JSON.parse(r.attachment);
-      if (att?.url) {
-        const fp = path2.join(FILES_DIR, path2.basename(att.url));
+      [att?.url, att?.thumb].forEach(u => {
+        if (!u) return;
+        const fp = path2.join(FILES_DIR, path2.basename(u));
         if (fs.existsSync(fp)) fs.unlinkSync(fp);
-      }
+      });
     } catch {}
   });
 }

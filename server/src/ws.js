@@ -30,11 +30,11 @@ function deleteAttachmentFile(attachment) {
   if (!attachment) return;
   try {
     const att = typeof attachment === 'string' ? JSON.parse(attachment) : attachment;
-    if (att?.url) {
-      const filename = path.basename(att.url);
-      const filepath = path.join(FILES_DIR, filename);
+    [att?.url, att?.thumb].forEach(u => {
+      if (!u) return;
+      const filepath = path.join(FILES_DIR, path.basename(u));
       if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
-    }
+    });
   } catch {}
 }
 
@@ -295,7 +295,9 @@ function setup(server) {
 
       if (data.type === 'react') {
         const { message_id, reaction } = data;
-        if (!['👍','👎','❤️','😂'].includes(reaction)) return;
+        // Любой эмодзи (как в Telegram), но именно эмодзи: короткая строка с пиктограммой
+        if (typeof reaction !== 'string' || !reaction || reaction.length > 16) return;
+        if (!/\p{Extended_Pictographic}/u.test(reaction)) return;
         const msg = db.prepare('SELECT * FROM messages WHERE id = ? AND deleted = 0').get(message_id);
         if (!msg) return;
         if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(msg.chat_id, user.id)) return;
