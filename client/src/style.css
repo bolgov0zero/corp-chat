@@ -1650,3 +1650,12 @@ select:focus-visible, .user-row:focus-visible, .chat-item:focus-visible {
 
 /* Упоминание @username */
 .mention { color: var(--accent); font-weight: 600; }
+
+/* Markdown-lite: инлайновый код */
+.md-code {
+  font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+  font-size: 0.88em;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: 4px;
+  padding: 1px 5px;
+}

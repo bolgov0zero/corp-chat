@@ -117,9 +117,10 @@ router.patch('/:id', authMiddleware, (req, res) => {
   const { name } = req.body;
   if (name?.trim()) {
     db.prepare('UPDATE chats SET name = ? WHERE id = ?').run(name.trim(), req.params.id);
-    // Все участники (включая другие устройства инициатора) видят новое имя сразу
-    db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ?').all(req.params.id)
-      .forEach(({ user_id }) => sendTo(user_id, { type: 'reload_chats' }));
+    // Точечное событие с готовым объектом чата — участники обновляют имя без refetch всего списка
+    const updated = db.prepare('SELECT * FROM chats WHERE id = ?').get(req.params.id);
+    db.prepare('SELECT user_id, pinned_at FROM chat_members WHERE chat_id = ?').all(req.params.id)
+      .forEach(({ user_id, pinned_at }) => sendTo(user_id, { type: 'chat_updated', chat: { ...enrichChat(updated, user_id), pinned: pinned_at } }));
   }
   res.json(enrichChat(db.prepare('SELECT * FROM chats WHERE id = ?').get(req.params.id), req.user.id));
 });

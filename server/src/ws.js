@@ -273,11 +273,17 @@ function setup(server) {
         db.transaction(() => {
           unread.forEach(({ id }) => { stmtReadInsert.run(id, user.id); stmtReadUpdate.run(id, user.id); });
         })();
-        // status_update — только по обновлённым сообщениям и только их отправителям
+        // Одно событие-диапазон на отправителя вместо status_update на каждое
+        // сообщение (модель read_up_to из Telegram): меньше трафика и SQL
+        const bySender = new Map();
         unread.forEach(({ id, sender_id }) => {
           if (!sender_id) return; // удалённый аккаунт
-          const m = getMessageWithStatus(id, sender_id);
-          if (m) sendTo(sender_id, { type: 'status_update', message: m });
+          const r = bySender.get(sender_id) || { min: id, max: id };
+          r.min = Math.min(r.min, id); r.max = Math.max(r.max, id);
+          bySender.set(sender_id, r);
+        });
+        bySender.forEach((r, senderId) => {
+          sendTo(senderId, { type: 'status_range', chat_id, kind: 'read', min_id: r.min, max_id: r.max, reader_id: user.id });
         });
         // Синхронизация прочтения между устройствами самого пользователя
         getConn(user.id).forEach(w => { if (w !== ws && w.readyState === 1) w.send(JSON.stringify({ type: 'chat_read', chat_id })); });
@@ -368,7 +374,7 @@ function setup(server) {
     setImmediate(() => {
       try {
         const undelivered = db.prepare(`
-          SELECT m.id, m.sender_id FROM messages m
+          SELECT m.id, m.sender_id, m.chat_id FROM messages m
           JOIN chat_members cm ON cm.chat_id = m.chat_id AND cm.user_id = ?
           LEFT JOIN message_status ms ON ms.message_id = m.id AND ms.user_id = ?
           WHERE m.sender_id != ? AND m.deleted = 0 AND ms.delivered_at IS NULL
@@ -379,12 +385,17 @@ function setup(server) {
         db.transaction(() => {
           undelivered.forEach(({ id }) => { ins.run(id, user.id); upd.run(id, user.id); });
         })();
-        // status_update — только по реально доставленным сейчас сообщениям,
-        // а не по всей истории каждого отправителя (шторм при каждом подключении)
-        undelivered.forEach(({ id, sender_id }) => {
+        // Диапазоны по (отправитель, чат) вместо события на каждое сообщение
+        const byKey = new Map();
+        undelivered.forEach(({ id, sender_id, chat_id }) => {
           if (!sender_id) return; // удалённый аккаунт
-          const m = getMessageWithStatus(id, sender_id);
-          if (m) sendTo(sender_id, { type: 'status_update', message: m });
+          const key = sender_id + ':' + chat_id;
+          const r = byKey.get(key) || { sender_id, chat_id, min: id, max: id };
+          r.min = Math.min(r.min, id); r.max = Math.max(r.max, id);
+          byKey.set(key, r);
+        });
+        byKey.forEach(r => {
+          sendTo(r.sender_id, { type: 'status_range', chat_id: r.chat_id, kind: 'delivered', min_id: r.min, max_id: r.max, reader_id: user.id });
         });
       } catch (e) { console.error('auto-deliver error:', e); }
     });

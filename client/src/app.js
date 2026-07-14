@@ -14,7 +14,8 @@ const S = {
   newGroupAvatarBase64: null,
   presence: {},
   lastSeen: {}, // userId -> unix ts последнего онлайна // userId -> 'online'|'away'|'offline'
-  reactions: {}, // messageId -> [{reaction, count}]
+  reactions: {},
+  msgStatus: {}, // messageId -> {delivered, read, total} для событий status_range // messageId -> [{reaction, count}]
   chatHasMore: false,   // есть ли ещё сообщения выше
   chatOldestId: null,   // id самого старого загруженного сообщения
   chatHasMoreAfter: false, // есть ли сообщения ниже (после перехода вглубь истории)
@@ -54,10 +55,18 @@ let _fetchController = new AbortController();
 function saveDrafts() { try { localStorage.setItem('chat_drafts', JSON.stringify(S.drafts)); } catch {} }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+// Markdown-lite: **жирный**, __курсив__, `код` — применяется к уже экранированному тексту
+function mdLite(escaped) {
+  return escaped
+    .replace(/`([^`\n]+)`/g, '<code class="md-code">$1</code>')
+    .replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>')
+    .replace(/__([^_\n]+)__/g, '<i>$1</i>');
+}
+
 function linkifyText(text) {
   const urlRe = /(https?:\/\/[^\s]+)/g;
   return text.split(urlRe).map((part, i) => {
-    if (i % 2 !== 1) return esc(part).replace(/@([\w.-]+)/g, '<span class="mention">@$1</span>');
+    if (i % 2 !== 1) return mdLite(esc(part).replace(/@([\w.-]+)/g, '<span class="mention">@$1</span>'));
     return `<a class="msg-link" href="#" onclick="openExternalLink(event,this)" data-url="${esc(part)}">${esc(part)}</a>`;
   }).join('');
 }
@@ -516,6 +525,45 @@ function applyAvatars() {
   });
 }
 
+const _chatRowCache = new Map(); // key -> html последней отрисовки
+function syncChatListKeyed(list, items) {
+  const seen = new Set();
+  let prev = null;
+  items.forEach(it => {
+    seen.add(it.key);
+    let el = list.querySelector(`[data-key="${CSS.escape(it.key)}"]`);
+    if (el && _chatRowCache.get(it.key) !== it.html) {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = it.html;
+      const fresh = tmp.firstElementChild;
+      fresh.dataset.key = it.key;
+      el.replaceWith(fresh);
+      el = fresh;
+    } else if (!el) {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = it.html;
+      el = tmp.firstElementChild;
+      el.dataset.key = it.key;
+      list.appendChild(el);
+    }
+    _chatRowCache.set(it.key, it.html);
+    // Порядок: элемент должен стоять сразу после предыдущего
+    if (prev) {
+      if (prev.nextElementSibling !== el) list.insertBefore(el, prev.nextElementSibling);
+    } else if (list.firstElementChild !== el) {
+      list.insertBefore(el, list.firstElementChild);
+    }
+    prev = el;
+  });
+  // Удаляем строки, которых больше нет
+  [...list.children].forEach(ch => {
+    if (!ch.dataset.key || !seen.has(ch.dataset.key)) {
+      if (ch.dataset.key) _chatRowCache.delete(ch.dataset.key);
+      ch.remove();
+    }
+  });
+}
+
 function renderChatList() {
   const q = document.getElementById('search').value.toLowerCase();
   const list = document.getElementById('chats-list');
@@ -530,24 +578,45 @@ function renderChatList() {
   const pinned = filtered.filter(c => c.pinned || c.type === 'room');
   const rest = filtered.filter(c => !c.pinned && c.type !== 'room');
 
-  let html = '';
+  // Режим поиска — редкий путь, полная перерисовка
+  if (q || S.searchResults) {
+    let html = '';
+    if (!filtered.length) {
+      html += '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Нет чатов</div>';
+    } else {
+      if (pinned.length) {
+        html += `<div class="chat-list-section-label">Закреплённые</div>`;
+        html += pinned.map(c => renderChatRow(c)).join('');
+      }
+      html += `<div class="chat-list-section-label" style="${pinned.length?'padding-top:12px':''}">Все чаты</div>`;
+      html += rest.map(c => renderChatRow(c)).join('');
+    }
+    if (S.searchResults) {
+      html += `<div class="chat-list-section-label" style="padding-top:12px">Сообщения</div>`;
+      html += S.searchResults.length
+        ? S.searchResults.map(r => renderSearchRow(r)).join('')
+        : '<div style="padding:12px 20px;color:var(--muted);font-size:13px">Ничего не найдено</div>';
+    }
+    list.innerHTML = html;
+    _chatRowCache.clear();
+    applyAvatars();
+    return;
+  }
+
+  // Обычный режим: keyed-обновление — меняются только реально изменившиеся строки,
+  // остальные DOM-узлы (и их аватары) не трогаются — нет мигания при каждом событии
+  const items = [];
   if (!filtered.length) {
-    html += '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Нет чатов</div>';
+    items.push({ key: 'empty', html: '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Нет чатов</div>' });
   } else {
     if (pinned.length) {
-      html += `<div class="chat-list-section-label">Закреплённые</div>`;
-      html += pinned.map(c => renderChatRow(c)).join('');
+      items.push({ key: 'label-pinned', html: '<div class="chat-list-section-label">Закреплённые</div>' });
+      pinned.forEach(c => items.push({ key: 'chat-' + c.id, html: renderChatRow(c) }));
     }
-    html += `<div class="chat-list-section-label" style="${pinned.length?'padding-top:12px':''}">Все чаты</div>`;
-    html += rest.map(c => renderChatRow(c)).join('');
+    items.push({ key: 'label-all', html: `<div class="chat-list-section-label" style="${pinned.length?'padding-top:12px':''}">Все чаты</div>` });
+    rest.forEach(c => items.push({ key: 'chat-' + c.id, html: renderChatRow(c) }));
   }
-  if (S.searchResults) {
-    html += `<div class="chat-list-section-label" style="padding-top:12px">Сообщения</div>`;
-    html += S.searchResults.length
-      ? S.searchResults.map(r => renderSearchRow(r)).join('')
-      : '<div style="padding:12px 20px;color:var(--muted);font-size:13px">Ничего не найдено</div>';
-  }
-  list.innerHTML = html;
+  syncChatListKeyed(list, items);
   applyAvatars();
 }
 
@@ -970,6 +1039,7 @@ function renderMsg(m, isChatGroup, hideTime = false, grouped = false, isLast = t
 }
 
 function renderMsgIRC(m, isGroup) {
+  if (m.status && m.id > 0) S.msgStatus[m.id] = { ...m.status };
   const mine = m.sender_id===S.user.id;
   const time = fmtTime(m.sent_at);
   const isDeleted = m.deleted;
@@ -1780,9 +1850,43 @@ function connectWS() {
 
     if (data.type==='status_update') {
       const m = data.message;
+      if (m.status) S.msgStatus[m.id] = { ...m.status };
       if (S.activeChatId===m.chat_id && m.sender_id===S.user.id) {
         const wrap = document.querySelector(`[data-msg-id="${m.id}"] .status-wrap`);
         if (wrap) wrap.innerHTML = renderStatus(m.status);
+      }
+    }
+
+    if (data.type==='status_range') {
+      // Диапазон вместо события на каждое сообщение (модель read_up_to Telegram):
+      // инкремент корректен, т.к. сервер шлёт диапазон только по НОВО-прочитанным/доставленным
+      if (data.chat_id === S.activeChatId) {
+        document.querySelectorAll('[data-msg-id]').forEach(el => {
+          const id = parseInt(el.dataset.msgId);
+          if (!(id >= data.min_id && id <= data.max_id)) return;
+          if (parseInt(el.dataset.senderId) !== S.user.id) return;
+          const st = S.msgStatus[id];
+          if (!st) return;
+          if (data.kind === 'read') {
+            st.read = Math.min(st.total, st.read + 1);
+            st.delivered = Math.max(st.delivered, st.read);
+          } else {
+            st.delivered = Math.min(st.total, st.delivered + 1);
+          }
+          const wrap = el.querySelector('.status-wrap');
+          if (wrap) wrap.innerHTML = renderStatus(st);
+        });
+      }
+    }
+
+    if (data.type==='chat_updated') {
+      // Точечное обновление чата без refetch всего списка
+      const idx = S.chats.findIndex(c => c.id === data.chat.id);
+      if (idx >= 0) S.chats[idx] = data.chat; else S.chats.push(data.chat);
+      renderChatList();
+      if (S.activeChatId === data.chat.id) {
+        const nameEl = document.querySelector('.ch-name');
+        if (nameEl) nameEl.textContent = chatName(data.chat);
       }
     }
 
