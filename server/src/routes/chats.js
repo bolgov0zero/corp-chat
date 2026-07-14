@@ -28,8 +28,9 @@ function enrichChat(chat, userId) {
     JOIN chat_members cm ON cm.user_id = u.id WHERE cm.chat_id = ?
   `).all(chat.id);
   const last = db.prepare(`
-    SELECT m.id, m.text, m.sent_at, m.edited_at, m.deleted, u.display_name as sender_name, u.id as sender_id
-    FROM messages m JOIN users u ON u.id = m.sender_id
+    SELECT m.id, m.text, m.sent_at, m.edited_at, m.deleted,
+      COALESCE(u.display_name, 'Удалённый аккаунт') as sender_name, u.id as sender_id
+    FROM messages m LEFT JOIN users u ON u.id = m.sender_id
     WHERE m.chat_id = ? ORDER BY m.sent_at DESC LIMIT 1
   `).get(chat.id);
   // Непрочитанные (источник истины для счётчиков и синхронизации между устройствами)
@@ -54,24 +55,30 @@ router.get('/', authMiddleware, (req, res) => {
 
 // Create direct chat
 router.post('/direct', authMiddleware, (req, res) => {
-  const { user_id } = req.body;
-  if (!user_id) return res.status(400).json({ error: 'Missing user_id' });
+  const targetId = Number(req.body.user_id);
+  if (!targetId) return res.status(400).json({ error: 'Missing user_id' });
+  if (targetId === req.user.id) return res.status(400).json({ error: 'Cannot create chat with yourself' });
+  if (!db.prepare('SELECT 1 FROM users WHERE id = ?').get(targetId)) return res.status(404).json({ error: 'User not found' });
   // Check existing (including hidden)
   const existing = db.prepare(`
     SELECT c.id FROM chats c
     JOIN chat_members cm1 ON cm1.chat_id = c.id AND cm1.user_id = ?
     JOIN chat_members cm2 ON cm2.chat_id = c.id AND cm2.user_id = ?
     WHERE c.type = 'direct' LIMIT 1
-  `).get(req.user.id, user_id);
+  `).get(req.user.id, targetId);
   if (existing) {
     // Unhide for requester if it was hidden
     db.prepare('UPDATE chat_members SET hidden_at = NULL WHERE chat_id = ? AND user_id = ?').run(existing.id, req.user.id);
     return res.json(enrichChat(existing, req.user.id));
   }
-  const result = db.prepare("INSERT INTO chats (type, created_by) VALUES ('direct', ?)").run(req.user.id);
-  db.prepare('INSERT INTO chat_members (chat_id, user_id) VALUES (?, ?), (?, ?)').run(result.lastInsertRowid, req.user.id, result.lastInsertRowid, user_id);
-  sendTo(Number(user_id), { type: 'reload_chats' });
-  const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(result.lastInsertRowid);
+  // Чат и участники — в одной транзакции, чтобы при сбое не оставался чат без участников
+  const chatId = db.transaction(() => {
+    const result = db.prepare("INSERT INTO chats (type, created_by) VALUES ('direct', ?)").run(req.user.id);
+    db.prepare('INSERT INTO chat_members (chat_id, user_id) VALUES (?, ?), (?, ?)').run(result.lastInsertRowid, req.user.id, result.lastInsertRowid, targetId);
+    return result.lastInsertRowid;
+  })();
+  sendTo(targetId, { type: 'reload_chats' });
+  const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(chatId);
   res.json(enrichChat(chat, req.user.id));
 });
 
@@ -79,13 +86,17 @@ router.post('/direct', authMiddleware, (req, res) => {
 router.post('/group', authMiddleware, (req, res) => {
   const { name, member_ids } = req.body;
   if (!name?.trim() || !Array.isArray(member_ids)) return res.status(400).json({ error: 'Missing fields' });
-  const result = db.prepare("INSERT INTO chats (type, name, created_by) VALUES ('group', ?, ?)").run(name.trim(), req.user.id);
-  const allMembers = [...new Set([req.user.id, ...member_ids])];
-  const ins = db.prepare('INSERT INTO chat_members (chat_id, user_id) VALUES (?, ?)');
-  allMembers.forEach(uid => ins.run(result.lastInsertRowid, uid));
+  const allMembers = [...new Set([req.user.id, ...member_ids.map(Number)])];
+  // Чат и участники — в одной транзакции (несуществующий user_id откатит всё, а не оставит пустой чат)
+  const chatId = db.transaction(() => {
+    const result = db.prepare("INSERT INTO chats (type, name, created_by) VALUES ('group', ?, ?)").run(name.trim(), req.user.id);
+    const ins = db.prepare('INSERT INTO chat_members (chat_id, user_id) VALUES (?, ?)');
+    allMembers.forEach(uid => ins.run(result.lastInsertRowid, uid));
+    return result.lastInsertRowid;
+  })();
   // Notify all members except creator
   allMembers.filter(uid => uid !== req.user.id).forEach(uid => sendTo(uid, { type: 'reload_chats' }));
-  const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(result.lastInsertRowid);
+  const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(chatId);
   res.json(enrichChat(chat, req.user.id));
 });
 
@@ -96,7 +107,12 @@ router.patch('/:id', authMiddleware, (req, res) => {
   if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(req.params.id, req.user.id))
     return res.status(403).json({ error: 'Not a member' });
   const { name } = req.body;
-  if (name?.trim()) db.prepare('UPDATE chats SET name = ? WHERE id = ?').run(name.trim(), req.params.id);
+  if (name?.trim()) {
+    db.prepare('UPDATE chats SET name = ? WHERE id = ?').run(name.trim(), req.params.id);
+    // Все участники (включая другие устройства инициатора) видят новое имя сразу
+    db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ?').all(req.params.id)
+      .forEach(({ user_id }) => sendTo(user_id, { type: 'reload_chats' }));
+  }
   res.json(enrichChat(db.prepare('SELECT * FROM chats WHERE id = ?').get(req.params.id), req.user.id));
 });
 
@@ -139,6 +155,10 @@ router.post('/:id/leave', authMiddleware, (req, res) => {
   if (!chat) return res.status(404).json({ error: 'Not found' });
   if (chat.type === 'room') return res.status(403).json({ error: 'Cannot leave a room' });
   db.prepare('DELETE FROM chat_members WHERE chat_id = ? AND user_id = ?').run(req.params.id, req.user.id);
+  // Оставшиеся участники обновляют список, ушедший (все его устройства) убирает чат
+  db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ?').all(req.params.id)
+    .forEach(({ user_id }) => sendTo(user_id, { type: 'reload_chats' }));
+  sendTo(req.user.id, { type: 'chat_deleted', chat_id: Number(req.params.id) });
   res.json({ ok: true });
 });
 
@@ -209,6 +229,7 @@ router.delete('/admin/:id', authMiddleware, adminMiddleware, (req, res) => {
 // Admin: clear history
 router.delete('/admin/:id/messages', authMiddleware, adminMiddleware, (req, res) => {
   const chatId = Number(req.params.id);
+  deleteChatFiles(chatId); // иначе вложения остаются на диске сиротами
   db.prepare('DELETE FROM messages WHERE chat_id = ?').run(chatId);
   // Уведомляем всех участников чата — очистить историю и обновить превью в списке
   const members = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ?').all(chatId);

@@ -26,8 +26,9 @@ const vapidKeys = getOrCreateVapidKeys();
 // Если контакт сменился — все старые подписки невалидны, сбрасываем
 const savedContact = db.prepare("SELECT value FROM settings WHERE key = 'vapid_contact'").get()?.value;
 if (savedContact !== VAPID_CONTACT) {
-  db.prepare('DELETE FROM push_subscriptions').run();
+  const wiped = db.prepare('DELETE FROM push_subscriptions').run().changes;
   db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('vapid_contact', ?)").run(VAPID_CONTACT);
+  if (wiped) console.warn(`[Push] VAPID contact изменился (${savedContact} → ${VAPID_CONTACT}): удалено подписок: ${wiped}. Пользователи переподпишутся при следующем открытии PWA.`);
 }
 
 webpush.setVapidDetails(VAPID_CONTACT, vapidKeys.publicKey, vapidKeys.privateKey);

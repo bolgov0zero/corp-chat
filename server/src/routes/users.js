@@ -92,8 +92,26 @@ router.patch('/:id/password', authMiddleware, adminMiddleware, (req, res) => {
 });
 
 // Admin: delete user
+// Сообщения и чаты сохраняются: sender_id/created_by обнуляются, отправитель
+// отображается как «Удалённый аккаунт» (практика Telegram). Иначе DELETE падает
+// по FK (messages.sender_id REFERENCES users), если пользователь что-то писал.
 router.delete('/:id', authMiddleware, adminMiddleware, (req, res) => {
-  db.prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
+  const userId = Number(req.params.id);
+  if (!db.prepare('SELECT 1 FROM users WHERE id = ?').get(userId)) return res.status(404).json({ error: 'Not found' });
+  if (userId === req.user.id) return res.status(400).json({ error: 'Cannot delete yourself' });
+  // Собеседники по общим чатам — им уйдёт reload_chats после удаления
+  const peers = db.prepare(`
+    SELECT DISTINCT user_id FROM chat_members
+    WHERE chat_id IN (SELECT chat_id FROM chat_members WHERE user_id = ?) AND user_id != ?
+  `).all(userId, userId).map(r => r.user_id);
+  db.transaction(() => {
+    db.prepare('UPDATE messages SET sender_id = NULL WHERE sender_id = ?').run(userId);
+    db.prepare('UPDATE chats SET created_by = NULL WHERE created_by = ?').run(userId);
+    db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+  })();
+  sendTo(userId, { type: 'force_logout' });
+  try { fs.unlinkSync(path2.join(AVATAR_DIR, `${userId}.jpg`)); } catch {}
+  peers.forEach(uid => sendTo(uid, { type: 'reload_chats' }));
   res.json({ ok: true });
 });
 

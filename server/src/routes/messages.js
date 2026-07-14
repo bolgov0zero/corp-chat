@@ -15,11 +15,11 @@ router.get('/chat/:chatId', authMiddleware, (req, res) => {
   const rows = before
     ? db.prepare(`
         SELECT m.id, m.chat_id, m.text, m.sent_at, m.edited_at, m.deleted, m.attachment,
-          u.id as sender_id, u.display_name as sender_name, u.tag as sender_tag,
+          u.id as sender_id, COALESCE(u.display_name, 'Удалённый аккаунт') as sender_name, u.tag as sender_tag,
           m.reply_to_id,
           rm.text as reply_text, rm.deleted as reply_deleted,
-          ru.display_name as reply_sender_name
-        FROM messages m JOIN users u ON u.id = m.sender_id
+          COALESCE(ru.display_name, 'Удалённый аккаунт') as reply_sender_name
+        FROM messages m LEFT JOIN users u ON u.id = m.sender_id
         LEFT JOIN messages rm ON rm.id = m.reply_to_id
         LEFT JOIN users ru ON ru.id = rm.sender_id
         WHERE m.chat_id = ? AND m.id < ?
@@ -27,11 +27,11 @@ router.get('/chat/:chatId', authMiddleware, (req, res) => {
       `).all(chatId, before, limit)
     : db.prepare(`
         SELECT m.id, m.chat_id, m.text, m.sent_at, m.edited_at, m.deleted, m.attachment,
-          u.id as sender_id, u.display_name as sender_name, u.tag as sender_tag,
+          u.id as sender_id, COALESCE(u.display_name, 'Удалённый аккаунт') as sender_name, u.tag as sender_tag,
           m.reply_to_id,
           rm.text as reply_text, rm.deleted as reply_deleted,
-          ru.display_name as reply_sender_name
-        FROM messages m JOIN users u ON u.id = m.sender_id
+          COALESCE(ru.display_name, 'Удалённый аккаунт') as reply_sender_name
+        FROM messages m LEFT JOIN users u ON u.id = m.sender_id
         LEFT JOIN messages rm ON rm.id = m.reply_to_id
         LEFT JOIN users ru ON ru.id = rm.sender_id
         WHERE m.chat_id = ?

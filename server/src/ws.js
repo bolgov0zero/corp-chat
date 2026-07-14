@@ -97,10 +97,10 @@ function broadcastStatus(userId) {
 function getMessageWithStatus(msgId, viewerId) {
   const msg = db.prepare(`
     SELECT m.id, m.chat_id, m.text, m.sent_at, m.edited_at, m.deleted, m.attachment,
-      u.id as sender_id, u.display_name as sender_name,
+      u.id as sender_id, COALESCE(u.display_name, 'Удалённый аккаунт') as sender_name,
       m.reply_to_id,
-      rm.text as reply_text, ru.display_name as reply_sender_name
-    FROM messages m JOIN users u ON u.id = m.sender_id
+      rm.text as reply_text, COALESCE(ru.display_name, 'Удалённый аккаунт') as reply_sender_name
+    FROM messages m LEFT JOIN users u ON u.id = m.sender_id
     LEFT JOIN messages rm ON rm.id = m.reply_to_id
     LEFT JOIN users ru ON ru.id = rm.sender_id
     WHERE m.id = ?
@@ -108,7 +108,8 @@ function getMessageWithStatus(msgId, viewerId) {
   if (!msg) return null;
   if (msg.attachment) try { msg.attachment = JSON.parse(msg.attachment); } catch { msg.attachment = null; }
 
-  const memberCount = db.prepare('SELECT COUNT(*) as c FROM chat_members WHERE chat_id = ? AND user_id != ?').get(msg.chat_id, msg.sender_id).c;
+  // IS NOT вместо != — sender_id может быть NULL (удалённый аккаунт)
+  const memberCount = db.prepare('SELECT COUNT(*) as c FROM chat_members WHERE chat_id = ? AND user_id IS NOT ?').get(msg.chat_id, msg.sender_id).c;
   const delivered = db.prepare('SELECT COUNT(*) as c FROM message_status WHERE message_id = ? AND delivered_at IS NOT NULL').get(msgId).c;
   const read = db.prepare('SELECT COUNT(*) as c FROM message_status WHERE message_id = ? AND read_at IS NOT NULL').get(msgId).c;
 
