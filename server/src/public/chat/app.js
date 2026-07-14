@@ -19,7 +19,7 @@ const S = {
   chats: [], activeChatId: null,
   ws: null, wsRetry: 0,
   unread: {}, unreadMentions: {}, allUsers: [], drafts: (()=>{ try { return JSON.parse(localStorage.getItem('chat_drafts'))||{}; } catch { return {}; } })(),
-  settings: { theme: 'dark', fontSize: 'medium', chatView: 'irc' },
+  settings: { theme: 'dark', fontSize: 'medium' },
   ctx: { messageId: null, canEdit: false, isMine: false, replyText: '', replySenderName: '' },
   editingMessageId: null,
   replyTo: null,
@@ -1387,20 +1387,6 @@ function appendMsg(m) {
     const prevTime = parseInt(lastEl.dataset.sentAt || '0');
     grouped = sameTimeGroup({ sender_id: prevSenderId, sent_at: prevTime }, m);
   }
-  if (lastEl && grouped) {
-    const lastBubble = lastEl.querySelector('.bubble');
-    if (lastBubble) {
-      lastBubble.classList.remove('bubble-last');
-      if (!lastBubble.classList.contains('bubble-first') && !lastBubble.classList.contains('bubble-mid')) {
-        lastBubble.classList.add('bubble-first');
-      } else if (lastBubble.classList.contains('bubble-last')) {
-        lastBubble.classList.remove('bubble-last');
-        lastBubble.classList.add('bubble-mid');
-      }
-      const lastAvatar = lastEl.querySelector('.av.av-sm');
-      if (lastAvatar) lastAvatar.style.display = 'none';
-    }
-  }
   const isChatGroupAppend = chat?.type==='group' || chat?.type==='room';
   container.insertAdjacentHTML('beforeend', renderMsg(m, isChatGroupAppend, false, grouped, true));
   const newEl = container.lastElementChild;
@@ -1589,8 +1575,7 @@ function ctxCopy() {
   hideCtxMenu();
   const msgId = S.ctx.messageId;
   if (!msgId) return;
-  const el = document.querySelector(`[data-msg-id="${msgId}"] .bubble-text`)
-           || document.querySelector(`[data-msg-id="${msgId}"] .irc-text`);
+  const el = document.querySelector(`[data-msg-id="${msgId}"] .irc-text`);
   if (!el) return;
   navigator.clipboard.writeText(el.innerText).catch(() => {});
 }
@@ -1599,8 +1584,8 @@ function ctxReply() {
   hideCtxMenu();
   const msgId = S.ctx.messageId;
   if (!msgId) return;
-  const bubbleEl = document.querySelector(`[data-msg-id="${msgId}"] .bubble-text`) || document.querySelector(`[data-msg-id="${msgId}"] .irc-text`);
-  const text = bubbleEl?.innerText || '';
+  const textEl = document.querySelector(`[data-msg-id="${msgId}"] .irc-text`);
+  const text = textEl?.innerText || '';
   const msgEl = document.querySelector(`[data-msg-id="${msgId}"]`);
   const senderIdAttr = parseInt(msgEl?.dataset.senderId || '0');
   let senderName;
@@ -1728,8 +1713,7 @@ function hideCtxMenu() {
 function ctxEdit() {
   hideCtxMenu();
   if (!S.ctx.canEdit) return;
-  const el = document.querySelector(`[data-msg-id="${S.ctx.messageId}"] .bubble-text`)
-           || document.querySelector(`[data-msg-id="${S.ctx.messageId}"] .irc-text`);
+  const el = document.querySelector(`[data-msg-id="${S.ctx.messageId}"] .irc-text`);
   const text = el?.textContent?.replace(' изм.','').trim()||'';
   S.editingMessageId = S.ctx.messageId;
   const bar = document.getElementById('edit-bar');
@@ -2029,7 +2013,7 @@ function connectWS() {
           if (existing) {
             existing.outerHTML = reactionsHtml || '';
           } else if (reactionsHtml) {
-            const target = msgEl.querySelector('.msg-bubble-row') || msgEl.querySelector('.irc-content');
+            const target = msgEl.querySelector('.irc-content');
             if (target) target.insertAdjacentHTML('beforeend', reactionsHtml);
           }
           if (container) {
