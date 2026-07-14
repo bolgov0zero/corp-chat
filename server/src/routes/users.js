@@ -29,13 +29,13 @@ router.get('/', authMiddleware, (req, res) => {
 // Get presence statuses for direct chat peers
 router.get('/presence', authMiddleware, (req, res) => {
   const peers = db.prepare(`
-    SELECT DISTINCT u.id FROM users u
+    SELECT DISTINCT u.id, u.last_seen_at FROM users u
     JOIN chat_members cm1 ON cm1.user_id = u.id
     JOIN chat_members cm2 ON cm2.chat_id = cm1.chat_id AND cm2.user_id = ?
     JOIN chats c ON c.id = cm1.chat_id WHERE u.id != ? AND c.type = 'direct'
   `).all(req.user.id, req.user.id);
   const result = {};
-  peers.forEach(({ id }) => { result[id] = getStatus(id); });
+  peers.forEach(({ id, last_seen_at }) => { result[id] = { status: getStatus(id), last_seen: last_seen_at }; });
   res.json(result);
 });
 

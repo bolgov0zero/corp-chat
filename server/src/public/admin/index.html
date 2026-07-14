@@ -1363,6 +1363,7 @@ function userRowHtml(u) {
     <td><div class="td-actions">
       <button class="btn btn-ghost btn-sm" onclick="openEditUser(${u.id})">Изменить</button>
       <button class="btn btn-ghost btn-sm" onclick="openChangePass(${u.id})">Пароль</button>
+      <button class="btn btn-ghost btn-sm" onclick="logoutUserSessions(${u.id},'${jesc(u.display_name)}')" title="Завершить все сессии на всех устройствах">Выход</button>
       <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id},'${jesc(u.display_name)}')">Удалить</button>
     </div></td>
   </tr>`;
@@ -1444,6 +1445,13 @@ async function savePassword() {
   const data=await api('PATCH','/api/users/'+changingPassIdRef+'/password',{password});
   if (data.ok) { closeModal('modal-password'); toast('Пароль изменён','success'); }
   else document.getElementById('cp-err').textContent=data.error||'Ошибка';
+}
+
+function logoutUserSessions(id, name) {
+  confirm('Завершить сессии?', `Пользователь «${name}» будет разлогинен на всех устройствах.`, async () => {
+    await api('POST', `/api/admin/users/${id}/logout`);
+    toast('Сессии завершены','success');
+  });
 }
 
 function deleteUser(id, name) {

@@ -96,6 +96,7 @@ tryAlter('ALTER TABLE messages ADD COLUMN reply_to_id INTEGER REFERENCES message
 tryAlter('ALTER TABLE messages ADD COLUMN attachment TEXT');
 tryAlter('ALTER TABLE users ADD COLUMN tag TEXT DEFAULT NULL');
 tryAlter('ALTER TABLE chat_members ADD COLUMN pinned_at INTEGER');
+tryAlter('ALTER TABLE users ADD COLUMN last_seen_at INTEGER');
 
 // ── Полнотекстовый поиск (FTS5, external content) ──
 // Целостность обеспечивается JOIN с messages при выборке: осиротевшие FTS-записи

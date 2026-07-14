@@ -26,6 +26,7 @@ const S = {
   egChatId: null, egRemovedIds: new Set(), egAddIds: new Set(),
   newGroupAvatarBase64: null,
   presence: {},
+  lastSeen: {}, // userId -> unix ts последнего онлайна
   reactions: {},
   chatHasMore: false,
   chatOldestId: null,
@@ -789,7 +790,7 @@ async function openChat(chatId, aroundId = null) {
   const memberCount = chat.members?.length||0;
   const peerId = getPeerUserId(chat);
   const peerDot = peerId ? presenceDot(peerId) : '';
-  const sub = isRoom ? `🏠 Комната · ${memberCount} участников` : isGroup ? `${memberCount} участников` : 'Личный чат';
+  const sub = isRoom ? `🏠 Комната · ${memberCount} участников` : isGroup ? `${memberCount} участников` : (peerId ? peerStatusText(peerId) : 'Личный чат');
   const nameClickable = (isGroup || isRoom) ? `style="cursor:pointer" onclick="openGroupMembers(${chatId})"` : '';
 
   const main = document.getElementById('chat-main');
@@ -1967,6 +1968,13 @@ function connectWS() {
 
     if (data.type==='presence') {
       S.presence[data.user_id] = data.status;
+      if (data.last_seen) S.lastSeen[data.user_id] = data.last_seen;
+      // Обновляем подпись в шапке открытого личного чата («в сети» / «был(а) в …»)
+      const activeChat = S.chats.find(c=>c.id===S.activeChatId);
+      if (activeChat?.type === 'direct' && getPeerUserId(activeChat) === data.user_id) {
+        const subEl = document.querySelector('.ch-sub');
+        if (subEl) subEl.textContent = peerStatusText(data.user_id);
+      }
       const color = data.status==='online'?'#22c55e':data.status==='away'?'#eab308':'#ef4444';
       document.querySelectorAll(`.presence-dot[data-user-id="${data.user_id}"]`).forEach(dot => {
         dot.style.background = color; dot.title = data.status;
@@ -2071,7 +2079,27 @@ async function loadUsers() {
 // ── PRESENCE ──
 async function loadPresence() {
   const data = await api('GET', '/users/presence');
-  if (data) { S.presence = data; renderChatList(); }
+  if (data) {
+    S.presence = {}; S.lastSeen = {};
+    for (const [id, v] of Object.entries(data)) {
+      if (v && typeof v === 'object') { S.presence[id] = v.status; if (v.last_seen) S.lastSeen[id] = v.last_seen; }
+      else S.presence[id] = v; // совместимость со старым сервером
+    }
+    renderChatList();
+  }
+}
+
+// Текст статуса собеседника для шапки чата (как в Telegram)
+function peerStatusText(userId) {
+  const st = S.presence[userId] || 'offline';
+  if (st === 'online') return 'в сети';
+  if (st === 'away') return 'отошёл';
+  const ts = S.lastSeen[userId];
+  if (!ts) return 'не в сети';
+  const d = new Date(ts * 1000), now = new Date();
+  const time = d.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
+  if (d.toDateString() === now.toDateString()) return `был(а) в ${time}`;
+  return `был(а) ${d.toLocaleDateString('ru', { day: 'numeric', month: 'short' })} в ${time}`;
 }
 
 function presenceDot(userId) {

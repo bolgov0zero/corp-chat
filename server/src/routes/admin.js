@@ -287,6 +287,12 @@ router.post('/clients/:connId/force-update', async (req, res) => {
   res.json({ ok: true, downloadUrl });
 });
 
+// Завершить ВСЕ сессии пользователя (все устройства)
+router.post('/users/:id/logout', (req, res) => {
+  sendTo(Number(req.params.id), { type: 'force_logout' });
+  res.json({ ok: true });
+});
+
 // Принудительный выход
 router.post('/clients/:connId/force-logout', (req, res) => {
   sendToConn(Number(req.params.connId), { type: 'force_logout' });

@@ -88,7 +88,8 @@ function broadcastStatus(userId) {
     JOIN chat_members cm2 ON cm2.chat_id = cm1.chat_id AND cm2.user_id != cm1.user_id
     JOIN chats c ON c.id = cm1.chat_id WHERE cm1.user_id = ? AND c.type = 'direct'
   `).all(userId).map(r => r.user_id);
-  const payload = JSON.stringify({ type: 'presence', user_id: userId, status });
+  const payload = JSON.stringify({ type: 'presence', user_id: userId, status,
+    last_seen: status === 'offline' ? Math.floor(Date.now() / 1000) : undefined });
   peers.forEach(peerId => {
     getConn(peerId).forEach(ws => { if (ws.readyState === 1) ws.send(payload); });
   });
@@ -162,6 +163,12 @@ function setup(server) {
       let data; try { data = JSON.parse(raw); } catch { return; }
 
       if (data.type === 'message') {
+        // Flood-контроль: скользящее окно 20 сообщений / 10 сек на соединение
+        const nowMs = Date.now();
+        if (!ws._msgTimes) ws._msgTimes = [];
+        ws._msgTimes = ws._msgTimes.filter(t => nowMs - t < 10_000);
+        if (ws._msgTimes.length >= 20) return;
+        ws._msgTimes.push(nowMs);
         const { chat_id, reply_to_id, attachment } = data;
         // Лимит как в Telegram (4096 символов) — иначе одно гигантское сообщение
         // разойдётся всем участникам и осядет в БД
@@ -331,6 +338,7 @@ function setup(server) {
     });
 
     ws.on('close', () => {
+      try { db.prepare('UPDATE users SET last_seen_at = unixepoch() WHERE id = ?').run(user.id); } catch {}
       connMeta.delete(ws._connId);
       const conns = clients.get(user.id);
       if (conns) {
