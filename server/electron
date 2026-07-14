@@ -133,16 +133,23 @@ do_update() {
   # Проверяем git
   if ! command -v git &>/dev/null; then
     echo -e "  ${RED}✗ git не установлен${NC}"
-    return 1
+    sleep 3; return 1
   fi
 
   if ! git rev-parse --git-dir &>/dev/null; then
     echo -e "  ${RED}✗ Папка не является git-репозиторием${NC}"
+    sleep 3; return 1
+  fi
+
+  # fetch с видимой ошибкой — иначе при недоступном GitHub скрипт
+  # молча решал, что «уже последняя версия»
+  if ! git fetch origin main; then
+    echo -e "  ${RED}✗ Не удалось получить обновления (git fetch). Проверь доступ к GitHub.${NC}"
+    echo -ne "  Нажми Enter для возврата..."; read -r
     return 1
   fi
 
   LOCAL=$(git rev-parse HEAD)
-  git fetch origin main -q
   REMOTE=$(git rev-parse origin/main)
 
   if [ "$LOCAL" = "$REMOTE" ]; then
@@ -151,22 +158,31 @@ do_update() {
     return 0
   fi
 
-  echo -e "  ${YELLOW}→ Применение изменений...${NC}"
-  git checkout -- . -q 2>/dev/null
-  git pull origin main -q
+  echo -e "  ${YELLOW}→ Применение изменений ($(git rev-parse --short HEAD) → $(git rev-parse --short origin/main))...${NC}"
+  # reset --hard вместо checkout+pull: сбрасывает ВЕСЬ репозиторий (не только server/),
+  # локальные правки не блокируют обновление; untracked (chat_db) не трогается
+  if ! git reset --hard origin/main; then
+    echo -e "  ${RED}✗ Не удалось применить изменения${NC}"
+    echo -ne "  Нажми Enter для возврата..."; read -r
+    return 1
+  fi
 
   echo -e "  ${YELLOW}→ Установка зависимостей...${NC}"
-  npm install --omit=dev -q
+  if ! npm install --omit=dev; then
+    echo -e "  ${RED}✗ npm install не выполнился (нужен доступ к registry.npmjs.org)${NC}"
+    echo -ne "  Нажми Enter для возврата..."; read -r
+    return 1
+  fi
 
   echo -e "  ${YELLOW}→ Пересборка нативных модулей...${NC}"
-  npm rebuild better-sqlite3 -q
+  npm rebuild better-sqlite3
 
   echo -e "  ${YELLOW}→ Перезапуск службы...${NC}"
   systemctl restart "$SERVICE"
   sleep 2
 
   if systemctl is-active --quiet "$SERVICE"; then
-    echo -e "  ${GREEN}✓ Обновление успешно применено${NC}"
+    echo -e "  ${GREEN}✓ Обновление успешно применено ($(node -e "process.stdout.write(require('$APP_DIR/version.json').version)" 2>/dev/null))${NC}"
   else
     echo -e "  ${RED}✗ Служба не запустилась после обновления${NC}"
     echo -e "  ${DIM}journalctl -u $SERVICE -n 20 --no-pager${NC}"

@@ -338,17 +338,22 @@ router.post('/server/update', (req, res) => {
       return res.status(400).json({ error: 'Служба electron не активна или не найдена. Обновление невозможно.' });
     }
     const appDir = path.join(__dirname, '..', '..', '..');
+    // fetch + reset --hard: локальные правки на сервере не блокируют обновление,
+    // untracked-файлы (chat_db) не затрагиваются. Вывод — в journal для диагностики.
     const script = `
       cd "${appDir}" && \
-      git checkout -- . && \
-      git pull origin main && \
+      git fetch origin main && \
+      git reset --hard origin/main && \
       cd server && \
       npm install --omit=dev && \
       npm rebuild better-sqlite3 && \
       systemctl restart electron
     `;
     res.json({ ok: true });
-    setTimeout(() => exec(script), 300);
+    setTimeout(() => exec(script, (err, stdout, stderr) => {
+      if (err) console.error('[Update] server update failed:', err.message, '\n', stderr);
+      else console.log('[Update] server update applied:\n', stdout.slice(-500));
+    }), 300);
   });
 });
 
