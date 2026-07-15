@@ -176,6 +176,10 @@ function setup(server) {
         const text = typeof data.text === 'string' ? data.text.trim().slice(0, 4096) : '';
         if (!chat_id || (!text && !attachment)) return;
         if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chat_id, user.id)) return;
+        if (reply_to_id) {
+          const ref = db.prepare('SELECT chat_id FROM messages WHERE id = ?').get(reply_to_id);
+          if (!ref || ref.chat_id !== chat_id) return;
+        }
 
         // Unhide chat for any members who had hidden it (e.g. deleted direct chat)
         const hidden = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ? AND hidden_at IS NOT NULL').all(chat_id);

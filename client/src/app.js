@@ -15,7 +15,8 @@ const S = {
   presence: {},
   lastSeen: {}, // userId -> unix ts последнего онлайна // userId -> 'online'|'away'|'offline'
   reactions: {},
-  msgStatus: {}, // messageId -> {delivered, read, total} для событий status_range // messageId -> [{reaction, count}]
+  msgStatus: {},      // messageId -> {delivered, read, total} для событий status_range
+  statusApplied: {},  // messageId -> Set<'read:userId'|'delivered:userId'> для дедупликации
   chatHasMore: false,   // есть ли ещё сообщения выше
   chatOldestId: null,   // id самого старого загруженного сообщения
   chatHasMoreAfter: false, // есть ли сообщения ниже (после перехода вглубь истории)
@@ -703,6 +704,7 @@ async function openChat(chatId, aroundId = null) {
   S.chatOldestId = null;
   S.chatHasMoreAfter = false;
   S.chatNewestId = null;
+  S.statusApplied = {};
   _loadingMore = false;
   const _unreadAtOpen = S.unread[chatId] || 0;
   S.unread[chatId] = 0;
@@ -1840,15 +1842,17 @@ function connectWS() {
     }
 
     if (data.type==='status_range') {
-      // Диапазон вместо события на каждое сообщение (модель read_up_to Telegram):
-      // инкремент корректен, т.к. сервер шлёт диапазон только по НОВО-прочитанным/доставленным
       if (data.chat_id === S.activeChatId) {
+        const eventKey = `${data.kind}:${data.reader_id}`;
         document.querySelectorAll('[data-msg-id]').forEach(el => {
           const id = parseInt(el.dataset.msgId);
           if (!(id >= data.min_id && id <= data.max_id)) return;
           if (parseInt(el.dataset.senderId) !== S.user.id) return;
           const st = S.msgStatus[id];
           if (!st) return;
+          if (!S.statusApplied[id]) S.statusApplied[id] = new Set();
+          if (S.statusApplied[id].has(eventKey)) return;
+          S.statusApplied[id].add(eventKey);
           if (data.kind === 'read') {
             st.read = Math.min(st.total, st.read + 1);
             st.delivered = Math.max(st.delivered, st.read);
