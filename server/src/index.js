@@ -42,7 +42,9 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/chats', require('./routes/chats'));
 app.use('/api/messages', require('./routes/messages'));
-app.use('/api/upload', require('./routes/upload'));
+const uploadRouter = require('./routes/upload');
+app.use('/api/upload', uploadRouter);
+uploadRouter.startCleanupJob();
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/push',  require('./routes/push'));
 

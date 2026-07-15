@@ -1,6 +1,11 @@
 const router = require('express').Router();
+const path = require('path');
+const fs = require('fs');
 const db = require('../db');
 const { authMiddleware } = require('../auth');
+
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', '..', '..', 'chat_db', 'chat.db');
+const FILES_DIR = path.join(path.dirname(DB_PATH), 'files');
 
 // Общий SELECT сообщения с данными отправителя и цитаты
 const MSG_SELECT = `
@@ -98,6 +103,12 @@ router.get('/chat/:chatId', authMiddleware, (req, res) => {
   const result = messages.map(m => {
     let attachment = null;
     if (m.attachment) { try { attachment = JSON.parse(m.attachment); } catch {} }
+    if (attachment?.url) {
+      const filename = attachment.url.replace(/^\/files\//, '');
+      if (!fs.existsSync(path.join(FILES_DIR, filename))) {
+        attachment = { ...attachment, expired: true };
+      }
+    }
     let mentions = null;
     if (m.mentions) { try { mentions = JSON.parse(m.mentions); } catch {} }
     return {

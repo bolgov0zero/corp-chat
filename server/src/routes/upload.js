@@ -38,6 +38,27 @@ const storage = multer.diskStorage({
 // Permissive limit — real limits are validated after upload
 const upload = multer({ storage, limits: { fileSize: 500 * 1024 * 1024 } });
 
+function startCleanupJob() {
+  const run = () => {
+    const lifetimeDays = parseInt(getSetting('upload_file_lifetime', '0'));
+    if (!lifetimeDays) return;
+    const cutoffMs = Date.now() - lifetimeDays * 86_400_000;
+    try {
+      for (const filename of fs.readdirSync(FILES_DIR)) {
+        const filePath = path.join(FILES_DIR, filename);
+        try {
+          if (fs.statSync(filePath).mtimeMs < cutoffMs) {
+            fs.unlinkSync(filePath);
+            console.log('[Cleanup] Удалён устаревший файл:', filename);
+          }
+        } catch {}
+      }
+    } catch (e) { console.warn('[Cleanup] Ошибка:', e.message); }
+  };
+  run();
+  setInterval(run, 6 * 3_600_000);
+}
+
 // sharp опционален: без него всё работает, просто не будет миниатюр
 let sharp = null;
 try { sharp = require('sharp'); } catch { console.warn('[Upload] sharp не установлен — миниатюры отключены'); }
@@ -84,3 +105,4 @@ router.post('/', authMiddleware, upload.single('file'), async (req, res) => {
 });
 
 module.exports = router;
+module.exports.startCleanupJob = startCleanupJob;

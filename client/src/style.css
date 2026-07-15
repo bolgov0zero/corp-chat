@@ -603,6 +603,11 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
 .bubble-image { margin: 4px 0; cursor: zoom-in; border-radius: 10px; overflow: hidden; max-width: 280px; min-height: 160px; background: var(--hover-row); }
 .bubble-image img { display: block; width: 100%; max-height: 300px; min-height: 160px; object-fit: cover; }
 
+/* Expired attachment */
+.bubble-image.bubble-expired { display: flex; align-items: center; justify-content: center; cursor: default; min-height: 48px; }
+.bubble-image.bubble-expired span { font-size: 12px; color: var(--muted); }
+.bubble-file.bubble-expired { cursor: default; opacity: .6; pointer-events: none; }
+
 /* File attachment */
 .bubble-file { display: flex; align-items: center; gap: 10px; margin: 4px 0; padding: 10px 12px; border-radius: 10px; background: var(--hover-row); cursor: pointer; max-width: 320px; transition: background .15s; }
 .bubble-file:hover { background: var(--surface2); }

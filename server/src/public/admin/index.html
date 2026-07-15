@@ -1977,6 +1977,14 @@ async function renderSettings() {
               </div>
             </div>
           </div>
+          <div style="border-top:1px solid var(--c-border);padding-top:16px">
+            <div style="font-size:11px;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Хранение</div>
+            <div class="fg" style="margin:0">
+              <label>Время жизни файлов (дни, 0 = навсегда)</label>
+              <input id="file-lifetime" type="number" min="0" max="3650" value="${settings.upload_file_lifetime || 0}" style="font-family:var(--f-mono);font-size:13px">
+              <div style="margin-top:5px;font-size:11px;color:var(--c-muted)">Файлы старше указанного числа дней удаляются автоматически. Проверка раз в 6 часов.</div>
+            </div>
+          </div>
           <button class="btn btn-primary" onclick="saveUploadSettings()" style="align-self:flex-start">Сохранить</button>
         </div>
       </div>
@@ -2049,6 +2057,7 @@ async function saveUploadSettings() {
     upload_image_extensions: document.getElementById('img-extensions').value,
     upload_file_max_size: document.getElementById('file-max-size').value,
     upload_file_extensions: document.getElementById('file-extensions').value,
+    upload_file_lifetime: document.getElementById('file-lifetime').value,
   };
   await api('PUT','/api/admin/settings',data);
   toast('Настройки вложений сохранены','success');
