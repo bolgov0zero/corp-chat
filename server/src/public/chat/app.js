@@ -1929,7 +1929,7 @@ function connectWS() {
           S.ws.send(JSON.stringify({type:'delivered', message_id:message.id}));
         } else if (!isViewing() && message.sender_id !== S.user.id) {
           S.unread[chatId] = (S.unread[chatId]||0)+1;
-        if (message.mentions?.includes(S.user.id)) S.unreadMentions[chatId] = (S.unreadMentions[chatId]||0)+1;
+          if (message.mentions?.includes(S.user.id)) S.unreadMentions[chatId] = (S.unreadMentions[chatId]||0)+1;
           const title = chatName(chat) || 'Electron';
           const body = `${message.sender_name}: ${message.text || (message.attachment ? '🖼 Изображение' : '')}`;
           webNotify(title, body, chatId);

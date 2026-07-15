@@ -1689,7 +1689,7 @@ function connectWS() {
         } else if (!isViewing() && message.sender_id !== S.user.id) {
           // Окно скрыто/свёрнуто — уведомляем, не отмечаем прочитанным
           S.unread[chatId] = (S.unread[chatId]||0)+1;
-        if (message.mentions?.includes(S.user.id)) S.unreadMentions[chatId] = (S.unreadMentions[chatId]||0)+1;
+          if (message.mentions?.includes(S.user.id)) S.unreadMentions[chatId] = (S.unreadMentions[chatId]||0)+1;
           const title = chatName(chat) || 'Electron';
           const body = `${message.sender_name}: ${message.text || (message.attachment ? '🖼 Изображение' : '')}`;
           window.electron?.notify(title, body, chatId);
