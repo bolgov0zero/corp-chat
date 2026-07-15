@@ -359,6 +359,7 @@ tbody tr{transition:background-color 100ms ease}
 /* ── TABLE ACTIONS FADE ── */
 .td-actions{opacity:.3;transition:opacity 150ms ease}
 tr:hover .td-actions{opacity:1}
+.td-actions-clients{opacity:1}
 
 /* ── BADGE PULSE (online) ── */
 .badge-green{animation:none}
@@ -1734,12 +1735,20 @@ async function loadClients(force=false) {
         <td>${verBadge}</td>
         <td style="color:var(--c-muted);font-size:11px;font-family:var(--f-mono)">${duration}</td>
         <td>
-          <div class="td-actions">
-            <button class="btn btn-ghost btn-xs" ${hasUpdate?`onclick="forceUpdate(${c.connId},'${jesc(c.displayName||c.username)}','${jesc(c.hostname)}','${jesc(c.clientVersion)}','${jesc(latestVersion||'')}')"`:' disabled style="opacity:.3;cursor:default"'}>
-              <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-            </button>
-            <button class="btn btn-danger btn-xs" onclick="forceLogout(${c.connId},'${jesc(c.displayName||c.username)}','${jesc(c.hostname)}')">
-              <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <div class="td-actions td-actions-clients">
+            ${hasUpdate
+              ? `<button class="btn btn-success btn-sm" onclick="forceUpdate(${c.connId},'${jesc(c.displayName||c.username)}','${jesc(c.hostname)}','${jesc(c.clientVersion)}','${jesc(latestVersion||'')}')">
+                  <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                  Обновить
+                </button>`
+              : `<button class="btn btn-ghost btn-sm" disabled style="opacity:.25;cursor:default">
+                  <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                  Обновить
+                </button>`
+            }
+            <button class="btn btn-danger btn-sm" onclick="forceLogout(${c.connId},'${jesc(c.displayName||c.username)}','${jesc(c.hostname)}')">
+              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Выйти
             </button>
           </div>
         </td>
