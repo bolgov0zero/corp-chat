@@ -2507,6 +2507,9 @@ async function forceInstallUpdate() {
   document.getElementById('force-update-fill').style.width = '0%';
   document.getElementById('force-update-pct').textContent = '0%';
   document.getElementById('force-update-sub').textContent = 'Загрузка обновления…';
+  // Сбрасываем анимацию прогресс-бара при повторном запуске
+  const fill = document.getElementById('force-update-fill');
+  if (fill) { fill.style.transition = 'none'; fill.style.width = '0%'; void fill.offsetWidth; fill.style.transition = ''; }
   openModal('modal-force-update');
   window.electron.onUpdateProgress(p => {
     document.getElementById('force-update-fill').style.width = p + '%';

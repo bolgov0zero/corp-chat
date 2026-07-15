@@ -24,10 +24,13 @@ function httpsGet(url) {
   });
 }
 
+let _activeUpdateReq = null;
+
 function downloadFile(url, dest, onProgress) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(dest);
     const req = net.request({ url, redirect: 'follow' });
+    _activeUpdateReq = req;
     req.setHeader('User-Agent', 'Electron');
     req.on('response', res => {
       const total = parseInt(res.headers['content-length'] || '0');
@@ -73,6 +76,8 @@ ipcMain.handle('check-update', async () => {
 });
 
 ipcMain.handle('install-update', async (_, downloadUrl) => {
+  // Прерываем предыдущую загрузку, если она ещё идёт
+  if (_activeUpdateReq) { try { _activeUpdateReq.abort(); } catch {} _activeUpdateReq = null; }
   const ext = process.platform === 'win32' ? '.exe' : process.platform === 'darwin' ? '.dmg' : '.AppImage';
   const tmpFile = path.join(os.tmpdir(), `electron-update${ext}`);
   try {
@@ -101,8 +106,9 @@ ipcMain.handle('install-update', async (_, downloadUrl) => {
       const execPath = `/Applications/${appFile}/Contents/MacOS/${appFile.replace('.app', '')}`;
       app.relaunch({ execPath }); app.isQuiting = true; app.quit();
     }
+    _activeUpdateReq = null;
     return { ok: true };
-  } catch(e) { return { error: e.message }; }
+  } catch(e) { _activeUpdateReq = null; return { error: e.message }; }
 });
 
 // ── HIGH AVAILABILITY ──
