@@ -385,6 +385,21 @@ ipcMain.handle('set-autostart', (_, enabled) => {
   }
 });
 
+ipcMain.handle('download-file', async (_, { url, filename }) => {
+  const { session } = require('electron');
+  const dest = path.join(app.getPath('downloads'), filename || 'file');
+  return new Promise((resolve, reject) => {
+    mainWindow.webContents.session.on('will-download', (event, item) => {
+      item.setSavePath(dest);
+      item.on('done', (_, state) => {
+        if (state === 'completed') resolve(dest);
+        else reject(new Error('Download failed'));
+      });
+    });
+    mainWindow.webContents.downloadURL(url);
+  });
+});
+
 // Detect if launched at login (should start hidden in tray)
 function shouldStartHidden() {
   if (process.platform === 'darwin') {

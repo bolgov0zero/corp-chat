@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('electron', {
   getOS: () => ipcRenderer.invoke('get-os'),
   getAutostart: () => ipcRenderer.invoke('get-autostart'),
   setAutostart: (enabled) => ipcRenderer.invoke('set-autostart', enabled),
+  downloadFile: (opts) => ipcRenderer.invoke('download-file', opts),
   // High Availability
   listDrives: () => ipcRenderer.invoke('ha-list-drives'),
   getHAConfig: () => ipcRenderer.invoke('ha-get-config'),

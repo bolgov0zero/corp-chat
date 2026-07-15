@@ -359,16 +359,16 @@ window.addEventListener('DOMContentLoaded', async () => {
     e.preventDefault();
     document.getElementById('drag-overlay')?.classList.remove('visible');
     if (!S.activeChatId) return;
-    const file = Array.from(e.dataTransfer.files).find(f => f.type.startsWith('image/'));
-    if (file) await uploadImageFile(file);
+    const file = e.dataTransfer.files[0];
+    if (file) await uploadFile(file);
   });
 
   // Paste image from clipboard
   document.addEventListener('paste', async e => {
     if (!S.activeChatId) return;
     const file = Array.from(e.clipboardData.items)
-      .find(i => i.type.startsWith('image/'))?.getAsFile();
-    if (file) { e.preventDefault(); await uploadImageFile(file); }
+      .find(i => i.kind === 'file')?.getAsFile();
+    if (file) { e.preventDefault(); await uploadFile(file); }
   });
 
   // Open chat from URL param (SW notification click)
@@ -428,6 +428,7 @@ function enterApp() {
     }
   });
   loadUsers();
+  loadUploadSettings();
   connectWS();
   loadPresence();
   // Show notification permission banner or re-subscribe if already granted
@@ -774,7 +775,7 @@ function renderChatRow(c) {
   const name = chatName(c);
   const u = S.unread[c.id]||0;
   const lm = c.last_message;
-  let preview = lm ? (lm.deleted ? 'Сообщение удалено' : (lm.text || (lm.attachment ? '🖼 Изображение' : ''))) : 'Нет сообщений';
+  let preview = lm ? (lm.deleted ? 'Сообщение удалено' : (lm.text || (lm.attachment ? (lm.attachment.mime?.startsWith('image/') ? '🖼 Изображение' : '📎 ' + (lm.attachment.name || 'Файл')) : ''))) : 'Нет сообщений';
   if (preview.length>40) preview = preview.slice(0,40)+'…';
   // Черновик приоритетнее последнего сообщения (как в Telegram)
   const draft = (c.id !== S.activeChatId) ? S.drafts[c.id] : null;
@@ -900,8 +901,11 @@ async function openChat(chatId, aroundId = null) {
       <div class="composer-inner">
         <div id="image-preview-bar" style="display:none" class="input-reply-bar">
           <img class="img-preview-thumb" src="" style="width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0">
+          <div class="attach-preview-icon" style="display:none;width:40px;height:40px;border-radius:6px;flex-shrink:0;background:var(--surface2);display:none;align-items:center;justify-content:center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
           <div class="reply-bar-content">
-            <div class="reply-bar-name">Изображение</div>
+            <div class="reply-bar-name">Вложение</div>
             <div class="reply-bar-text img-preview-name"></div>
           </div>
           <button onclick="clearImagePreview()" class="icon-btn" style="width:24px;height:24px">
@@ -930,7 +934,11 @@ async function openChat(chatId, aroundId = null) {
           <button class="composer-icon-btn" title="Прикрепить изображение" onclick="pickImage()">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
           </button>
+          <button class="composer-icon-btn" title="Прикрепить файл" onclick="pickFile()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          </button>
           <input type="file" id="img-file-input" accept="image/*" style="display:none" onchange="onImagePicked(this)">
+          <input type="file" id="file-input" accept="*" style="display:none" onchange="onFilePicked(this)">
           <textarea id="msg-input" rows="1" placeholder="Сообщение…" onkeydown="handleKey(event)" oninput="onMsgInput(this)"></textarea>
           <button class="send-btn" id="send-btn" onmousedown="event.preventDefault()" onclick="sendOrEdit()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -1342,7 +1350,20 @@ function renderMsgIRC(m, isGroup) {
        </div>`;
 
   const att = m.attachment;
-  const attachHtml = (!isDeleted && att?.url) ? `<div class="bubble-image" style="margin:4px 0;max-width:260px" onclick="openLightbox('${httpProto()}://${S.server}${att.url}')"><img src="${httpProto()}://${S.server}${att.thumb || att.url}" loading="lazy"></div>` : '';
+  let attachHtml = '';
+  if (!isDeleted && att?.url) {
+    const attUrl = `${httpProto()}://${S.server}${att.url}`;
+    if (att.mime?.startsWith('image/')) {
+      attachHtml = `<div class="bubble-image" style="margin:4px 0;max-width:260px" onclick="openLightbox('${attUrl}')"><img src="${httpProto()}://${S.server}${att.thumb || att.url}" loading="lazy"></div>`;
+    } else {
+      const sizeFmt = att.size ? (att.size > 1048576 ? (att.size/1048576).toFixed(1)+' МБ' : Math.round(att.size/1024)+' КБ') : '';
+      attachHtml = `<div class="bubble-file" onclick="downloadAttachment('${attUrl}','${(att.name||'file').replace(/'/g,"\\'")}')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div class="bubble-file-info"><div class="bubble-file-name">${att.name||'Файл'}</div>${sizeFmt?`<div class="bubble-file-size">${sizeFmt}</div>`:''}</div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </div>`;
+    }
+  }
 
   return `<div class="irc-msg${isGroup?' irc-grouped':''}${m._optimistic?' msg-optimistic':''}" data-msg-id="${m.id}" data-sender-id="${m.sender_id}" data-sent-at="${m.sent_at}"${m._optimistic?' data-optimistic="1"':''}
     oncontextmenu="${!isDeleted?`showCtxMenu(event,${m.id},${m.sent_at},${mine})`:'event.preventDefault()'}">
@@ -1620,22 +1641,59 @@ function hideReplyBar() {
   document.getElementById('composer-pill')?.classList.remove('has-reply');
 }
 
-// ── IMAGE ATTACH ──
+// ── FILE / IMAGE ATTACH ──
 let _pendingAttachment = null;
+let _uploadSettings = {
+  image: { maxSizeMb: 10, extensions: ['jpeg','jpg','png','gif','webp'] },
+  file:  { maxSizeMb: 50, extensions: [] },
+};
+
+async function loadUploadSettings() {
+  try {
+    const res = await fetch(`${httpProto()}://${S.server}/api/upload/settings`, {
+      headers: { 'Authorization': `Bearer ${S.token}` },
+    });
+    if (res.ok) _uploadSettings = await res.json();
+  } catch {}
+}
 
 function pickImage() {
   document.getElementById('img-file-input')?.click();
+}
+
+function pickFile() {
+  document.getElementById('file-input')?.click();
 }
 
 async function onImagePicked(input) {
   const file = input.files?.[0];
   if (!file) return;
   input.value = '';
-  await uploadImageFile(file);
+  await uploadFile(file);
 }
 
-async function uploadImageFile(file) {
-  if (!file || !file.type.startsWith('image/')) return;
+async function onFilePicked(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  input.value = '';
+  await uploadFile(file);
+}
+
+async function uploadFile(file) {
+  if (!file) return;
+  const isImage = file.type.startsWith('image/');
+  const cfg = isImage ? _uploadSettings.image : _uploadSettings.file;
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+
+  if (file.size > cfg.maxSizeMb * 1024 * 1024) {
+    showActionToast(`Файл слишком большой (макс. ${cfg.maxSizeMb} МБ)`);
+    return;
+  }
+  if (cfg.extensions.length > 0 && !cfg.extensions.includes(ext)) {
+    showActionToast(`Расширение .${ext} не разрешено`);
+    return;
+  }
+
   const formData = new FormData();
   formData.append('file', file);
   const sendBtn = document.getElementById('send-btn');
@@ -1646,9 +1704,16 @@ async function uploadImageFile(file) {
       headers: { 'Authorization': `Bearer ${S.token}` },
       body: formData,
     });
-    if (!res.ok) throw new Error('upload failed');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showActionToast(err.error || 'Ошибка загрузки');
+      if (sendBtn && !document.getElementById('msg-input')?.value.trim()) {
+        sendBtn.style.background='transparent'; sendBtn.style.color='var(--muted)'; sendBtn.style.boxShadow='none';
+      }
+      return;
+    }
     _pendingAttachment = await res.json();
-    showImagePreviewBar();
+    showAttachmentPreviewBar();
   } catch {
     if (sendBtn && !document.getElementById('msg-input')?.value.trim()) {
       sendBtn.style.background='transparent'; sendBtn.style.color='var(--muted)'; sendBtn.style.boxShadow='none';
@@ -1656,15 +1721,24 @@ async function uploadImageFile(file) {
   }
 }
 
-function showImagePreviewBar() {
-  let bar = document.getElementById('image-preview-bar');
+// Keep alias for backward-compat callers (drag-drop, paste)
+async function uploadImageFile(file) { return uploadFile(file); }
+
+function showAttachmentPreviewBar() {
+  const bar = document.getElementById('image-preview-bar');
   if (!bar) return;
   const att = _pendingAttachment;
   if (!att) { bar.style.display = 'none'; return; }
   bar.style.display = '';
-  bar.querySelector('.img-preview-thumb').src = `${httpProto()}://${S.server}${att.url}`;
-  bar.querySelector('.img-preview-name').textContent = att.name || 'Изображение';
+  const isImage = att.mime?.startsWith('image/');
+  const thumb = bar.querySelector('.img-preview-thumb');
+  if (thumb) { thumb.src = isImage ? `${httpProto()}://${S.server}${att.url}` : ''; thumb.style.display = isImage ? '' : 'none'; }
+  const icon = bar.querySelector('.attach-preview-icon');
+  if (icon) icon.style.display = isImage ? 'none' : '';
+  bar.querySelector('.img-preview-name').textContent = att.name || (isImage ? 'Изображение' : 'Файл');
 }
+
+function showImagePreviewBar() { showAttachmentPreviewBar(); }
 
 function clearImagePreview() {
   _pendingAttachment = null;
@@ -1700,6 +1774,19 @@ function closeLightbox() {
     lb.removeEventListener('animationend', onEnd);
   };
   lb.addEventListener('animationend', onEnd);
+}
+
+function downloadAttachment(url, filename) {
+  if (window.electron?.downloadFile) {
+    window.electron.downloadFile({ url, filename });
+  } else {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || 'file';
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.click();
+  }
 }
 
 function scrollToMsg(msgId) {
@@ -1933,7 +2020,7 @@ function connectWS() {
           S.unread[chatId] = (S.unread[chatId]||0)+1;
           if (message.mentions?.includes(S.user.id)) S.unreadMentions[chatId] = (S.unreadMentions[chatId]||0)+1;
           const title = chatName(chat) || 'Electron';
-          const body = `${message.sender_name}: ${message.text || (message.attachment ? '🖼 Изображение' : '')}`;
+          const body = `${message.sender_name}: ${message.text || (message.attachment ? (message.attachment.mime?.startsWith('image/') ? '🖼 Изображение' : '📎 ' + (message.attachment.name || 'Файл')) : '')}`;
           webNotify(title, body, chatId);
           playNotificationSound();
           if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'delivered', message_id:message.id}));
@@ -1946,7 +2033,7 @@ function connectWS() {
         if (message.mentions?.includes(S.user.id)) S.unreadMentions[chatId] = (S.unreadMentions[chatId]||0)+1;
         const chat2 = S.chats.find(c=>c.id===chatId);
         const title = chatName(chat2) || 'Electron';
-        const body = `${message.sender_name}: ${message.text || (message.attachment ? '🖼 Изображение' : '')}`;
+        const body = `${message.sender_name}: ${message.text || (message.attachment ? (message.attachment.mime?.startsWith('image/') ? '🖼 Изображение' : '📎 ' + (message.attachment.name || 'Файл')) : '')}`;
         webNotify(title, body, chatId);
         playNotificationSound();
         if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'delivered', message_id:message.id}));

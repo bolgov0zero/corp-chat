@@ -1945,6 +1945,42 @@ async function renderSettings() {
           </p>
         </div>
       </div>
+
+      <div class="card">
+        <div class="card-head"><h3>Вложения</h3></div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:20px">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Изображения</div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div class="fg" style="margin:0">
+                <label>Макс. размер (МБ)</label>
+                <input id="img-max-size" type="number" min="1" max="500" value="${settings.upload_image_max_size || 10}" style="font-family:var(--f-mono);font-size:13px">
+              </div>
+              <div class="fg" style="margin:0">
+                <label>Разрешённые расширения</label>
+                <input id="img-extensions" type="text" value="${settings.upload_image_extensions || 'jpeg,jpg,png,gif,webp'}" placeholder="jpeg,jpg,png,gif,webp" style="font-family:var(--f-mono);font-size:13px">
+                <div style="margin-top:5px;font-size:11px;color:var(--c-muted)">Через запятую без пробелов и точек</div>
+              </div>
+            </div>
+          </div>
+          <div style="border-top:1px solid var(--c-border);padding-top:16px">
+            <div style="font-size:11px;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Файлы</div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div class="fg" style="margin:0">
+                <label>Макс. размер (МБ)</label>
+                <input id="file-max-size" type="number" min="1" max="500" value="${settings.upload_file_max_size || 50}" style="font-family:var(--f-mono);font-size:13px">
+              </div>
+              <div class="fg" style="margin:0">
+                <label>Разрешённые расширения</label>
+                <input id="file-extensions" type="text" value="${settings.upload_file_extensions || ''}" placeholder="pdf,docx,xlsx,zip (пусто = любые)" style="font-family:var(--f-mono);font-size:13px">
+                <div style="margin-top:5px;font-size:11px;color:var(--c-muted)">Пусто = любые расширения разрешены</div>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="saveUploadSettings()" style="align-self:flex-start">Сохранить</button>
+        </div>
+      </div>
+
     </div>`;
 
   // Bind Enter key for token input
@@ -2005,6 +2041,17 @@ async function clearGithubToken() {
   await api('PUT','/api/admin/settings',{github_token:''});
   toast('Токен удалён','success');
   renderSettings();
+}
+
+async function saveUploadSettings() {
+  const data = {
+    upload_image_max_size: document.getElementById('img-max-size').value,
+    upload_image_extensions: document.getElementById('img-extensions').value,
+    upload_file_max_size: document.getElementById('file-max-size').value,
+    upload_file_extensions: document.getElementById('file-extensions').value,
+  };
+  await api('PUT','/api/admin/settings',data);
+  toast('Настройки вложений сохранены','success');
 }
 
 /* ── TOPBAR HELPER ── */
