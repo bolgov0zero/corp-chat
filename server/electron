@@ -2,65 +2,82 @@
 
 SERVICE="electron"
 APP_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
-GITHUB_REPO="bolgov0zero/corp-chat"
 DB_PATH="${DB_PATH:-$APP_DIR/../chat_db/chat.db}"
 
-# ── Цвета ──
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-BOLD='\033[1m'
-DIM='\033[2m'
-NC='\033[0m'
+RED=$'\033[0;31m'
+GREEN=$'\033[0;32m'
+YELLOW=$'\033[1;33m'
+CYAN=$'\033[0;36m'
+BOLD=$'\033[1m'
+DIM=$'\033[2m'
+NC=$'\033[0m'
+
+SPIN_PID=""
+
+trap 'kill "$SPIN_PID" 2>/dev/null; clear; exit 0' INT TERM
 
 # ── Статус службы ──
 get_status() {
   systemctl is-active "$SERVICE" 2>/dev/null
 }
 
+# ── Спиннер ──
+start_spin() {
+  local msg="$1"
+  (
+    local frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+    local i=0
+    trap '' INT TERM
+    while true; do
+      printf "\r  ${CYAN}${frames[$i]}${NC}  $msg   "
+      i=$(( (i+1) % 10 ))
+      sleep 0.08
+    done
+  ) &
+  SPIN_PID=$!
+}
+
+stop_spin() {
+  local code=$1
+  local msg="$2"
+  { kill "$SPIN_PID" 2>/dev/null; wait "$SPIN_PID" 2>/dev/null; } 2>/dev/null
+  SPIN_PID=""
+  if [ "$code" = "0" ]; then
+    printf "\r  ${GREEN}✓${NC}  %-42s\n" "$msg"
+  else
+    printf "\r  ${RED}✗${NC}  %-42s\n" "$msg"
+  fi
+}
+
 # ── Информационная панель ──
 show_panel() {
   clear
-  local status=$(get_status)
-  local uptime_str=""
-  local pid_str=""
+  local status
+  status=$(get_status)
 
   if [ "$status" = "active" ]; then
     STATUS_COLOR=$GREEN
     STATUS_ICON="●"
     STATUS_TEXT="Работает"
-    uptime_str=$(systemctl show "$SERVICE" --property=ActiveEnterTimestamp --value 2>/dev/null | xargs -I{} date -d "{}" "+%d.%m.%Y %H:%M" 2>/dev/null || echo "—")
-    pid_str=$(systemctl show "$SERVICE" --property=MainPID --value 2>/dev/null || echo "—")
   else
     STATUS_COLOR=$RED
     STATUS_ICON="○"
     STATUS_TEXT="Остановлен"
   fi
 
-  # Размер БД
-  if [ -f "$DB_PATH" ]; then
-    DB_SIZE=$(du -sh "$DB_PATH" 2>/dev/null | cut -f1)
-  else
-    DB_SIZE="—"
-  fi
+  [ -f "$DB_PATH" ] && DB_SIZE=$(du -sh "$DB_PATH" 2>/dev/null | cut -f1) || DB_SIZE="—"
 
-  # Кол-во пользователей
   if command -v sqlite3 &>/dev/null && [ -f "$DB_PATH" ]; then
     USER_COUNT=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM users;" 2>/dev/null || echo "—")
-    MSG_COUNT=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM messages;" 2>/dev/null || echo "—")
+    MSG_COUNT=$(sqlite3  "$DB_PATH" "SELECT COUNT(*) FROM messages;" 2>/dev/null || echo "—")
     CHAT_COUNT=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM chats;" 2>/dev/null || echo "—")
   else
-    USER_COUNT="—"
-    MSG_COUNT="—"
-    CHAT_COUNT="—"
+    USER_COUNT="—"; MSG_COUNT="—"; CHAT_COUNT="—"
   fi
 
-  # Порт
   PORT=$(systemctl show "$SERVICE" --property=Environment --value 2>/dev/null | grep -o 'PORT=[0-9]*' | cut -d= -f2)
   PORT="${PORT:-3000}"
 
-  # Версия сервера
   VERSION_FILE="$APP_DIR/version.json"
   if command -v node &>/dev/null && [ -f "$VERSION_FILE" ]; then
     SERVER_VERSION=$(node -e "try{process.stdout.write(require('$VERSION_FILE').version)}catch{process.stdout.write('—')}" 2>/dev/null)
@@ -68,84 +85,81 @@ show_panel() {
     SERVER_VERSION="—"
   fi
 
-  # Аптайм
   UPTIME_STR="—"
   if [ "$status" = "active" ]; then
     START_TS=$(systemctl show "$SERVICE" --property=ActiveEnterTimestampMonotonic --value 2>/dev/null)
     if [ -n "$START_TS" ] && [ "$START_TS" != "0" ]; then
       NOW_MONO=$(awk '{printf "%.0f", $1 * 1000000}' /proc/uptime)
-      ELAPSED_US=$(( NOW_MONO - START_TS ))
-      ELAPSED_SEC=$(( ELAPSED_US / 1000000 ))
+      ELAPSED_SEC=$(( (NOW_MONO - START_TS) / 1000000 ))
       DAYS=$(( ELAPSED_SEC / 86400 ))
       HOURS=$(( (ELAPSED_SEC % 86400) / 3600 ))
       MINS=$(( (ELAPSED_SEC % 3600) / 60 ))
-      if [ $DAYS -gt 0 ]; then
-        UPTIME_STR="${DAYS}д ${HOURS}ч ${MINS}м"
-      elif [ $HOURS -gt 0 ]; then
-        UPTIME_STR="${HOURS}ч ${MINS}м"
-      else
-        UPTIME_STR="${MINS}м"
-      fi
+      if   [ $DAYS  -gt 0 ]; then UPTIME_STR="${DAYS}д ${HOURS}ч ${MINS}м"
+      elif [ $HOURS -gt 0 ]; then UPTIME_STR="${HOURS}ч ${MINS}м"
+      else                        UPTIME_STR="${MINS}м"; fi
     fi
   fi
 
-  echo ""
-  echo -e "  ${BOLD}╔══════════════════════════════════════════════╗${NC}"
-  echo -e "  ${BOLD}║           Electron — Управление              ║${NC}"
-  echo -e "  ${BOLD}╚══════════════════════════════════════════════╝${NC}"
-  echo ""
-  echo -e "  ${BOLD}Статус:${NC}      ${STATUS_COLOR}${STATUS_ICON} ${STATUS_TEXT}${NC}"
-  if [ "$status" = "active" ]; then
-    echo -e "  ${BOLD}Версия:${NC}      ${DIM}${SERVER_VERSION}${NC}"
-    echo -e "  ${BOLD}Аптайм:${NC}      ${DIM}${UPTIME_STR}${NC}"
-    echo -e "  ${BOLD}Запущен:${NC}     ${DIM}${uptime_str}${NC}"
-    echo -e "  ${BOLD}Порт:${NC}        ${DIM}${PORT}${NC}"
-  fi
-  echo ""
-  echo -e "  ${BOLD}── База данных ─────────────────────────────${NC}"
-  echo -e "  ${BOLD}Размер БД:${NC}   ${CYAN}${DB_SIZE}${NC}"
-  echo -e "  ${BOLD}Пользователи:${NC}${CYAN}${USER_COUNT}${NC}"
-  echo -e "  ${BOLD}Сообщений:${NC}   ${CYAN}${MSG_COUNT}${NC}"
-  echo -e "  ${BOLD}Чатов:${NC}       ${CYAN}${CHAT_COUNT}${NC}"
-  echo ""
-  echo -e "  ${BOLD}── Действия ────────────────────────────────${NC}"
+  NOW=$(date "+%H:%M:%S")
+
+  printf "\n"
+  printf "  ${BOLD}╔══════════════════════════════════════════════╗${NC}\n"
+  printf "  ${BOLD}║         ⚡  Electron  Server                 ║${NC}\n"
+  printf "  ${BOLD}╚══════════════════════════════════════════════╝${NC}\n"
+  printf "\n"
+  printf "  ${STATUS_COLOR}${BOLD}%s${NC}  ${BOLD}%-10s${NC}${STATUS_COLOR}%s${NC}   ${DIM}%s${NC}\n" \
+    "$STATUS_ICON" "Статус:" "$STATUS_TEXT" "$NOW"
 
   if [ "$status" = "active" ]; then
-    echo -e "  ${BOLD}1.${NC} Остановить"
-  else
-    echo -e "  ${BOLD}1.${NC} Запустить"
+    printf "     ${BOLD}%-10s${NC}${DIM}%s${NC}\n" "Версия:"  "$SERVER_VERSION"
+    printf "     ${BOLD}%-10s${NC}${DIM}%s${NC}\n" "Аптайм:"  "$UPTIME_STR"
+    printf "     ${BOLD}%-10s${NC}${DIM}%s${NC}\n" "Порт:"    "$PORT"
   fi
-  echo -e "  ${BOLD}2.${NC} Перезапустить"
-  echo -e "  ${BOLD}3.${NC} Обновить сервер с GitHub"
-  echo -e "  ${BOLD}4.${NC} Показать логи"
-  echo -e "  ${BOLD}0.${NC} Выйти"
-  echo ""
-  echo -ne "  Выбери действие: "
+
+  printf "\n"
+  printf "  ${DIM}────────────────────────────────────────────${NC}\n"
+  printf "  ${CYAN}  ${BOLD}%-16s${NC}${CYAN}%s${NC}\n"       "Пользователи"  "$USER_COUNT"
+  printf "  ${CYAN}  ${BOLD}%-16s${NC}${CYAN}%s${NC}\n"       "Сообщений"     "$MSG_COUNT"
+  printf "  ${CYAN}  ${BOLD}%-16s${NC}${CYAN}%s${NC}  ${DIM}(%s)${NC}\n" "Чатов" "$CHAT_COUNT" "$DB_SIZE"
+  printf "  ${DIM}────────────────────────────────────────────${NC}\n"
+  printf "\n"
+
+  if [ "$status" = "active" ]; then
+    printf "  ${DIM}[1]${NC} Остановить    ${DIM}[2]${NC} Перезапустить\n"
+  else
+    printf "  ${DIM}[1]${NC} Запустить     ${DIM}[2]${NC} Перезапустить\n"
+  fi
+  printf "  ${DIM}[3]${NC} Обновить      ${DIM}[4]${NC} Логи\n"
+  printf "  ${DIM}[0]${NC} Выйти\n"
+  printf "\n"
+  printf "  → "
 }
 
 # ── Обновление с GitHub ──
 do_update() {
-  echo ""
-  echo -e "  ${YELLOW}→ Получение обновлений с GitHub...${NC}"
+  clear
+  printf "\n"
+  printf "  ${BOLD}╔══════════════════════════════════════════════╗${NC}\n"
+  printf "  ${BOLD}║           Обновление сервера                 ║${NC}\n"
+  printf "  ${BOLD}╚══════════════════════════════════════════════╝${NC}\n"
+  printf "\n"
 
   cd "$APP_DIR"
 
-  # Проверяем git
-  if ! command -v git &>/dev/null; then
-    echo -e "  ${RED}✗ git не установлен${NC}"
-    sleep 3; return 1
+  # Шаг 1: git
+  start_spin "Проверка репозитория"
+  if ! command -v git &>/dev/null || ! git rev-parse --git-dir &>/dev/null; then
+    stop_spin 1 "git недоступен"
+    printf "\n  Нажми Enter..."; read -r
+    return 1
   fi
+  stop_spin 0 "Репозиторий найден"
 
-  if ! git rev-parse --git-dir &>/dev/null; then
-    echo -e "  ${RED}✗ Папка не является git-репозиторием${NC}"
-    sleep 3; return 1
-  fi
-
-  # fetch с видимой ошибкой — иначе при недоступном GitHub скрипт
-  # молча решал, что «уже последняя версия»
-  if ! git fetch origin main; then
-    echo -e "  ${RED}✗ Не удалось получить обновления (git fetch). Проверь доступ к GitHub.${NC}"
-    echo -ne "  Нажми Enter для возврата..."; read -r
+  # Шаг 2: fetch
+  start_spin "Загрузка обновлений"
+  if ! git fetch origin main >/tmp/electron-update.log 2>&1; then
+    stop_spin 1 "Нет доступа к GitHub"
+    printf "\n  Нажми Enter..."; read -r
     return 1
   fi
 
@@ -153,80 +167,93 @@ do_update() {
   REMOTE=$(git rev-parse origin/main)
 
   if [ "$LOCAL" = "$REMOTE" ]; then
-    echo -e "  ${GREEN}✓ Уже установлена последняя версия${NC}"
+    stop_spin 0 "Уже последняя версия"
+    printf "\n"
     sleep 2
     return 0
   fi
 
-  echo -e "  ${YELLOW}→ Применение изменений ($(git rev-parse --short HEAD) → $(git rev-parse --short origin/main))...${NC}"
-  # reset --hard вместо checkout+pull: сбрасывает ВЕСЬ репозиторий (не только server/),
-  # локальные правки не блокируют обновление; untracked (chat_db) не трогается
-  if ! git reset --hard origin/main; then
-    echo -e "  ${RED}✗ Не удалось применить изменения${NC}"
-    echo -ne "  Нажми Enter для возврата..."; read -r
+  SHORT_FROM=$(git rev-parse --short HEAD)
+  SHORT_TO=$(git rev-parse --short origin/main)
+  stop_spin 0 "Загружено ($SHORT_FROM → $SHORT_TO)"
+
+  # Шаг 3: apply
+  start_spin "Применение изменений"
+  if ! git reset --hard origin/main >>/tmp/electron-update.log 2>&1; then
+    stop_spin 1 "Не удалось применить изменения"
+    printf "\n  Нажми Enter..."; read -r
     return 1
   fi
+  stop_spin 0 "Изменения применены"
 
-  echo -e "  ${YELLOW}→ Установка зависимостей...${NC}"
-  if ! npm install --omit=dev; then
-    echo -e "  ${RED}✗ npm install не выполнился (нужен доступ к registry.npmjs.org)${NC}"
-    echo -ne "  Нажми Enter для возврата..."; read -r
+  # Шаг 4: npm install
+  start_spin "Установка зависимостей"
+  if ! npm install --omit=dev >>/tmp/electron-update.log 2>&1; then
+    stop_spin 1 "npm install завершился с ошибкой"
+    printf "\n  ${DIM}Лог: /tmp/electron-update.log${NC}\n"
+    printf "\n  Нажми Enter..."; read -r
     return 1
   fi
+  stop_spin 0 "Зависимости установлены"
 
-  echo -e "  ${YELLOW}→ Пересборка нативных модулей...${NC}"
-  npm rebuild better-sqlite3
+  # Шаг 5: rebuild
+  start_spin "Пересборка модулей"
+  npm rebuild better-sqlite3 >>/tmp/electron-update.log 2>&1
+  stop_spin 0 "Модули пересобраны"
 
-  echo -e "  ${YELLOW}→ Перезапуск службы...${NC}"
-  systemctl restart "$SERVICE"
+  # Шаг 6: restart
+  start_spin "Перезапуск службы"
+  systemctl restart "$SERVICE" >>/tmp/electron-update.log 2>&1
   sleep 2
 
   if systemctl is-active --quiet "$SERVICE"; then
-    echo -e "  ${GREEN}✓ Обновление успешно применено ($(node -e "process.stdout.write(require('$APP_DIR/version.json').version)" 2>/dev/null))${NC}"
+    stop_spin 0 "Служба запущена"
   else
-    echo -e "  ${RED}✗ Служба не запустилась после обновления${NC}"
-    echo -e "  ${DIM}journalctl -u $SERVICE -n 20 --no-pager${NC}"
+    stop_spin 1 "Служба не стартовала"
+    printf "\n  ${DIM}Лог: /tmp/electron-update.log${NC}\n"
+    printf "\n  Нажми Enter..."; read -r
+    return 1
   fi
-  sleep 3
+
+  NEW_VER=$(node -e "process.stdout.write(require('$APP_DIR/version.json').version)" 2>/dev/null)
+  printf "\n  ${GREEN}${BOLD}✓ Обновление завершено — %s${NC}\n\n" "$NEW_VER"
+  printf "  Нажми Enter для возврата..."
+  read -r
 }
 
 # ── Главный цикл ──
 while true; do
   show_panel
-  read -r choice
+  read -t 5 -r choice
+  RC=$?
 
+  [ $RC -gt 128 ] && continue  # таймаут — обновить панель (живой аптайм/время)
+
+  local_status=$(get_status)
   case "$choice" in
     1)
-      status=$(get_status)
-      if [ "$status" = "active" ]; then
-        echo -e "\n  ${YELLOW}→ Остановка...${NC}"
-        systemctl stop "$SERVICE"
+      if [ "$local_status" = "active" ]; then
+        systemctl stop "$SERVICE" 2>/dev/null
       else
-        echo -e "\n  ${YELLOW}→ Запуск...${NC}"
-        systemctl start "$SERVICE"
+        systemctl start "$SERVICE" 2>/dev/null
       fi
-      sleep 2
+      sleep 1
       ;;
     2)
-      echo -e "\n  ${YELLOW}→ Перезапуск...${NC}"
-      systemctl restart "$SERVICE"
-      sleep 2
+      systemctl restart "$SERVICE" 2>/dev/null
+      sleep 1
       ;;
-    3)
-      do_update
-      ;;
+    3) do_update ;;
     4)
-      echo ""
+      clear
+      printf "\n"
       journalctl -u "$SERVICE" -n 40 --no-pager
-      echo ""
-      echo -ne "  Нажми Enter для возврата..."
+      printf "\n  Нажми Enter для возврата..."
       read -r
       ;;
     0|q|Q)
-      echo ""
+      clear
       exit 0
-      ;;
-    *)
       ;;
   esac
 done
