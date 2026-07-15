@@ -101,27 +101,43 @@ show_panel() {
     fi
   fi
 
+  local NOW
   NOW=$(date "+%H:%M:%S")
+
+  # Выравнивание с учётом кириллицы: ${#str} считает символы, не байты
+  _row() {
+    local label="$1" value="$2" extra="${3:-}"
+    local pad=$(( 14 - ${#label} ))
+    [ $pad -lt 1 ] && pad=1
+    local sp
+    sp=$(printf '%*s' "$pad" '')
+    if [ -n "$extra" ]; then
+      printf "    ${BOLD}%s${NC}%s%s  ${DIM}%s${NC}\n" "$label" "$sp" "$value" "$extra"
+    else
+      printf "    ${BOLD}%s${NC}%s%s\n" "$label" "$sp" "$value"
+    fi
+  }
 
   printf "\n"
   printf "  ${BOLD}╔══════════════════════════════════════════════╗${NC}\n"
   printf "  ${BOLD}║         ⚡  Electron  Server                 ║${NC}\n"
   printf "  ${BOLD}╚══════════════════════════════════════════════╝${NC}\n"
   printf "\n"
-  printf "  ${STATUS_COLOR}${BOLD}%s${NC}  ${BOLD}%-10s${NC}${STATUS_COLOR}%s${NC}   ${DIM}%s${NC}\n" \
-    "$STATUS_ICON" "Статус:" "$STATUS_TEXT" "$NOW"
+
+  printf "  ${STATUS_COLOR}${BOLD}%s  %s${NC}  ${DIM}%s${NC}\n" "$STATUS_ICON" "$STATUS_TEXT" "$NOW"
+  printf "\n"
 
   if [ "$status" = "active" ]; then
-    printf "     ${BOLD}%-10s${NC}${DIM}%s${NC}\n" "Версия:"  "$SERVER_VERSION"
-    printf "     ${BOLD}%-10s${NC}${DIM}%s${NC}\n" "Аптайм:"  "$UPTIME_STR"
-    printf "     ${BOLD}%-10s${NC}${DIM}%s${NC}\n" "Порт:"    "$PORT"
+    _row "Версия"  "${DIM}${SERVER_VERSION}${NC}"
+    _row "Аптайм"  "${DIM}${UPTIME_STR}${NC}"
+    _row "Порт"    "${DIM}${PORT}${NC}"
+    printf "\n"
   fi
 
-  printf "\n"
   printf "  ${DIM}────────────────────────────────────────────${NC}\n"
-  printf "  ${CYAN}  ${BOLD}%-16s${NC}${CYAN}%s${NC}\n"       "Пользователи"  "$USER_COUNT"
-  printf "  ${CYAN}  ${BOLD}%-16s${NC}${CYAN}%s${NC}\n"       "Сообщений"     "$MSG_COUNT"
-  printf "  ${CYAN}  ${BOLD}%-16s${NC}${CYAN}%s${NC}  ${DIM}(%s)${NC}\n" "Чатов" "$CHAT_COUNT" "$DB_SIZE"
+  _row "Пользователи"  "${CYAN}${USER_COUNT}${NC}"
+  _row "Сообщений"     "${CYAN}${MSG_COUNT}${NC}"
+  _row "Чатов"         "${CYAN}${CHAT_COUNT}${NC}" "$DB_SIZE"
   printf "  ${DIM}────────────────────────────────────────────${NC}\n"
   printf "\n"
 
@@ -277,10 +293,7 @@ do_update() {
 # ── Главный цикл ──
 while true; do
   show_panel
-  read -t 5 -r choice
-  RC=$?
-
-  [ $RC -gt 128 ] && continue  # таймаут — обновить панель (живой аптайм/время)
+  read -r choice
 
   local_status=$(get_status)
   case "$choice" in
