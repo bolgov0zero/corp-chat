@@ -385,19 +385,25 @@ ipcMain.handle('set-autostart', (_, enabled) => {
   }
 });
 
-ipcMain.handle('download-file', async (_, { url, filename }) => {
-  const { session } = require('electron');
+ipcMain.handle('download-file', (_, { url, filename }) => {
   const dest = path.join(app.getPath('downloads'), filename || 'file');
   return new Promise((resolve, reject) => {
-    mainWindow.webContents.session.on('will-download', (event, item) => {
+    mainWindow.webContents.session.once('will-download', (event, item) => {
       item.setSavePath(dest);
-      item.on('done', (_, state) => {
+      item.once('done', (__, state) => {
         if (state === 'completed') resolve(dest);
-        else reject(new Error('Download failed'));
+        else reject(new Error('Download failed: ' + state));
       });
     });
     mainWindow.webContents.downloadURL(url);
   });
+});
+
+ipcMain.handle('file-exists', (_, filePath) => fs.existsSync(filePath));
+
+ipcMain.handle('open-file', (_, filePath) => {
+  const { shell } = require('electron');
+  return shell.openPath(filePath);
 });
 
 // Detect if launched at login (should start hidden in tray)

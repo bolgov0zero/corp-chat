@@ -261,6 +261,8 @@ function enterApp() {
   document.getElementById('screen-main').classList.add('active');
   updateMeAvatar();
   document.getElementById('me-name').textContent = S.user.display_name;
+  loadDownloadedFiles();
+  verifyDownloadedFiles();
   loadChats();
   loadUsers();
   loadUploadSettings();
@@ -1110,10 +1112,19 @@ function renderMsgIRC(m, isGroup) {
         attachHtml = `<div class="bubble-image" onclick="openLightbox('${attUrl}')"><img src="${httpProto()}://${S.server}${att.thumb || att.url}" loading="lazy"></div>`;
       } else {
         const sizeFmt = att.size ? (att.size > 1048576 ? (att.size/1048576).toFixed(1)+' МБ' : Math.round(att.size/1024)+' КБ') : '';
-        attachHtml = `<div class="bubble-file" onclick="downloadAttachment('${attUrl}','${(att.name||'file').replace(/'/g,"\\'")}')">
+        const localPath = _downloadedFiles[attUrl];
+        const isDone = !!(window.electron && localPath);
+        const safeLocal = (localPath||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        const safeUrl = attUrl.replace(/'/g,"\\'");
+        const safeName = (att.name||'file').replace(/'/g,"\\'");
+        const clickAction = isDone ? `openDownloadedFile('${safeLocal}')` : `downloadAttachment('${safeUrl}','${safeName}')`;
+        const rightEl = isDone
+          ? `<span class="bubble-file-open-label">Открыть</span>`
+          : `<svg class="dl-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+        attachHtml = `<div class="bubble-file${isDone?' bubble-file-done':''}" data-att-url="${attUrl}" onclick="${clickAction}">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           <div class="bubble-file-info"><div class="bubble-file-name">${att.name||'Файл'}</div>${sizeFmt?`<div class="bubble-file-size">${sizeFmt}</div>`:''}</div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          ${rightEl}
         </div>`;
       }
     }
@@ -1530,15 +1541,74 @@ function closeLightbox() {
   lb.addEventListener('animationend', onEnd);
 }
 
-function downloadAttachment(url, filename) {
+// ── DOWNLOADED FILES ──
+let _downloadedFiles = {};
+
+function loadDownloadedFiles() {
+  try { _downloadedFiles = JSON.parse(localStorage.getItem('downloaded_files') || '{}'); } catch {}
+}
+
+function saveDownloadedFiles() {
+  try { localStorage.setItem('downloaded_files', JSON.stringify(_downloadedFiles)); } catch {}
+}
+
+async function verifyDownloadedFiles() {
+  if (!window.electron?.fileExists) return;
+  const verified = {};
+  for (const [url, localPath] of Object.entries(_downloadedFiles)) {
+    if (await window.electron.fileExists(localPath)) verified[url] = localPath;
+  }
+  _downloadedFiles = verified;
+  saveDownloadedFiles();
+}
+
+function openDownloadedFile(localPath) {
+  window.electron?.openFile(localPath);
+}
+
+let _dlToastTimer = null;
+function showDownloadSuccessToast() {
+  let el = document.getElementById('download-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'download-toast';
+    el.innerHTML = `<svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline class="dt-check" points="20 6 9 17 4 12"/></svg>`;
+    document.body.appendChild(el);
+  }
+  const check = el.querySelector('.dt-check');
+  if (check) { check.style.transition = 'none'; check.style.strokeDashoffset = '24'; }
+  el.classList.remove('dt-show');
+  clearTimeout(_dlToastTimer);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (check) check.style.transition = '';
+    el.classList.add('dt-show');
+  }));
+  _dlToastTimer = setTimeout(() => el.classList.remove('dt-show'), 2000);
+}
+
+function updateAttachmentButtons(url, localPath) {
+  document.querySelectorAll(`.bubble-file[data-att-url="${CSS.escape(url)}"]`).forEach(el => {
+    el.classList.add('bubble-file-done');
+    el.setAttribute('onclick', `openDownloadedFile('${localPath.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')`);
+    const icon = el.querySelector('.dl-icon');
+    if (icon) icon.outerHTML = `<span class="bubble-file-open-label">Открыть</span>`;
+  });
+}
+
+async function downloadAttachment(url, filename) {
   if (window.electron?.downloadFile) {
-    window.electron.downloadFile({ url, filename });
+    try {
+      const localPath = await window.electron.downloadFile({ url, filename });
+      if (localPath) {
+        _downloadedFiles[url] = localPath;
+        saveDownloadedFiles();
+        showDownloadSuccessToast();
+        updateAttachmentButtons(url, localPath);
+      }
+    } catch { showActionToast('Ошибка скачивания'); }
   } else {
     const a = document.createElement('a');
-    a.href = url;
-    a.download = filename || 'file';
-    a.target = '_blank';
-    a.rel = 'noopener';
+    a.href = url; a.download = filename || 'file'; a.target = '_blank'; a.rel = 'noopener';
     a.click();
   }
 }
