@@ -2501,23 +2501,43 @@ async function installUpdate() {
   }
 }
 
+function _wsSendUpdateProgress(pct, status, error) {
+  try {
+    if (S.ws?.readyState === 1) S.ws.send(JSON.stringify({ type: 'update_progress', pct, status, error: error || null }));
+  } catch {}
+}
+
 async function forceInstallUpdate() {
   if (!_updateDownloadUrl) return;
   closeModal('modal-update');
-  document.getElementById('force-update-fill').style.width = '0%';
-  document.getElementById('force-update-pct').textContent = '0%';
-  document.getElementById('force-update-sub').textContent = 'Загрузка обновления…';
-  // Сбрасываем анимацию прогресс-бара при повторном запуске
+  // Сбрасываем прогресс-бар при повторном запуске
   const fill = document.getElementById('force-update-fill');
   if (fill) { fill.style.transition = 'none'; fill.style.width = '0%'; void fill.offsetWidth; fill.style.transition = ''; }
+  document.getElementById('force-update-pct').textContent = '0%';
+  document.getElementById('force-update-sub').textContent = 'Загрузка обновления…';
   openModal('modal-force-update');
+
+  _wsSendUpdateProgress(0, 'downloading');
+
   window.electron.onUpdateProgress(p => {
     document.getElementById('force-update-fill').style.width = p + '%';
     document.getElementById('force-update-pct').textContent = p + '%';
-    if (p >= 100) document.getElementById('force-update-sub').textContent = 'Установка…';
+    if (p >= 100) {
+      document.getElementById('force-update-sub').textContent = 'Установка…';
+      _wsSendUpdateProgress(100, 'installing');
+    } else {
+      _wsSendUpdateProgress(p, 'downloading');
+    }
   });
+
+  window.electron.onUpdateRestarting(() => {
+    document.getElementById('force-update-sub').textContent = 'Перезапуск…';
+    _wsSendUpdateProgress(100, 'restarting');
+  });
+
   const result = await window.electron.installUpdate(_updateDownloadUrl);
   if (result?.error) {
     document.getElementById('force-update-sub').textContent = 'Ошибка: ' + result.error;
+    _wsSendUpdateProgress(0, 'error', result.error);
   }
 }

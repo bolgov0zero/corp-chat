@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const https = require('https');
 const { authMiddleware, adminMiddleware } = require('../auth');
-const { sendTo, getStatus, getClients, sendToConn, getConnCount, getConnMeta } = require('../ws');
+const { sendTo, getStatus, getClients, sendToConn, getConnCount, getConnMeta, initUpdateProgress, getUpdateProgress } = require('../ws');
 
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', '..', '..', 'chat_db', 'chat.db');
 const FILES_DIR = path.join(path.dirname(DB_PATH), 'files');
@@ -286,8 +286,13 @@ router.post('/clients/:connId/force-update', async (req, res) => {
                 : assets.find(a => /x86_64\.AppImage$/i.test(a.name)) || assets.find(a => /\.AppImage$/i.test(a.name));
     downloadUrl = asset?.browser_download_url || null;
   } catch {}
+  initUpdateProgress(connId);
   sendToConn(connId, { type: 'force_update', downloadUrl });
   res.json({ ok: true, downloadUrl });
+});
+
+router.get('/updates/progress', (req, res) => {
+  res.json(getUpdateProgress());
 });
 
 // Завершить ВСЕ сессии пользователя (все устройства)

@@ -83,6 +83,10 @@ ipcMain.handle('install-update', async (_, downloadUrl) => {
   try {
     await downloadFile(downloadUrl, tmpFile, p => mainWindow?.webContents.send('update-progress', p));
 
+    mainWindow?.webContents.send('update-restarting');
+    // Небольшая пауза чтобы рендерер успел отправить WS-сообщение 'restarting' серверу
+    await new Promise(r => setTimeout(r, 300));
+
     if (process.platform === 'win32') {
       const { spawn } = require('child_process');
       spawn(tmpFile, ['/S'], { detached: true, stdio: 'ignore' }).unref();

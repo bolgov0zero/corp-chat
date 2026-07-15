@@ -373,6 +373,23 @@ tr:hover .td-actions{opacity:1}
 .ver-tooltip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%) translateY(4px);background:var(--c-surface2);border:1px solid var(--c-border);border-radius:6px;padding:5px 10px;font-size:11px;font-family:var(--f-mono);font-weight:600;color:var(--c-text);white-space:nowrap;opacity:0;transition:opacity .15s,transform .15s;pointer-events:none;z-index:10}
 .ver-tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--c-border)}
 
+/* ── CLIENT UPDATE PROGRESS MODAL ── */
+.upd-row{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;column-gap:12px;row-gap:6px;padding:12px 14px;border-radius:10px;background:var(--c-surface2);border:1px solid var(--c-border)}
+.upd-row-info{grid-column:1;grid-row:1;display:flex;flex-direction:column;gap:2px}
+.upd-name{font-size:13px;font-weight:600;color:var(--c-text)}
+.upd-host{font-size:11px;color:var(--c-muted);font-family:var(--f-mono)}
+.upd-chip{grid-column:2;grid-row:1;align-self:center;white-space:nowrap;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.2px}
+.upd-chip-pending{background:var(--c-surface);color:var(--c-muted);border:1px solid var(--c-border)}
+.upd-chip-downloading{background:var(--c-blue-dim);color:var(--c-blue-text)}
+.upd-chip-installing{background:var(--c-orange-dim);color:var(--c-orange-text)}
+.upd-chip-restarting{background:var(--c-purple-dim);color:var(--c-purple-text)}
+.upd-chip-restarted{background:var(--c-green-dim);color:var(--c-green-text)}
+.upd-chip-error{background:var(--c-red-dim);color:var(--c-red-text)}
+.upd-bar-wrap{grid-column:1/-1;grid-row:2;display:flex;align-items:center;gap:8px}
+.upd-bar{flex:1;height:4px;border-radius:2px;background:var(--c-border);overflow:hidden}
+.upd-fill{height:100%;border-radius:2px;transition:width .5s ease,background .3s}
+.upd-pct{font-size:11px;color:var(--c-muted);font-variant-numeric:tabular-nums;min-width:30px;text-align:right}
+
 /* ── SETTINGS ── */
 .settings-wrap{max-width:540px;display:flex;flex-direction:column;gap:16px}
 
@@ -613,6 +630,17 @@ tr:hover .td-actions{opacity:1}
       <button class="btn btn-ghost" onclick="closeModal('modal-confirm')">Отмена</button>
       <button class="btn btn-danger" id="confirm-ok">Подтвердить</button>
     </div>
+  </div>
+</div>
+
+<!-- Client update progress modal -->
+<div class="modal-bg" id="modal-upd-prog">
+  <div class="modal" style="width:560px;max-height:80vh">
+    <div class="modal-head">
+      <h3>Обновление клиентов</h3>
+      <button class="modal-close" onclick="closeUpdProgModal()">✕</button>
+    </div>
+    <div class="modal-body" id="upd-prog-list" style="padding:12px 16px;display:flex;flex-direction:column;gap:8px"></div>
   </div>
 </div>
 
@@ -1721,12 +1749,63 @@ async function loadClients(force=false) {
   </table>`;
 }
 
+/* ── UPDATE PROGRESS MODAL ── */
+let _updProgPoll = null;
+const _updProgChipLabel = { pending:'Ожидание…', downloading:'Загрузка', installing:'Установка', restarting:'Перезапуск…', restarted:'Обновлён', error:'Ошибка' };
+const _updProgFillColor = { pending:'var(--c-muted)', downloading:'var(--c-blue)', installing:'var(--c-orange)', restarting:'var(--c-purple)', restarted:'var(--c-green)', error:'var(--c-red)' };
+
+function openUpdProgModal(clients) {
+  const list = document.getElementById('upd-prog-list');
+  list.innerHTML = clients.map(c => `
+    <div class="upd-row" data-conn="${c.connId}">
+      <div class="upd-row-info">
+        <div class="upd-name">${esc(c.displayName || c.username || '?')}</div>
+        <div class="upd-host">${esc(c.hostname||'—')} · <span style="font-family:var(--f-mono)">${esc(c.clientVersion||'—')}</span></div>
+      </div>
+      <span class="upd-chip upd-chip-pending">Ожидание…</span>
+      <div class="upd-bar-wrap">
+        <div class="upd-bar"><div class="upd-fill" style="width:0%;background:var(--c-muted)"></div></div>
+        <span class="upd-pct">0%</span>
+      </div>
+    </div>`).join('');
+  openModal('modal-upd-prog');
+  _updProgPoll = setInterval(pollUpdProg, 700);
+}
+
+async function pollUpdProg() {
+  let items; try { items = await api('GET', '/api/admin/updates/progress'); } catch { return; }
+  items.forEach(item => {
+    const row = document.querySelector(`[data-conn="${item.connId}"]`);
+    if (!row) return;
+    const fill = row.querySelector('.upd-fill');
+    const pctEl = row.querySelector('.upd-pct');
+    const chip = row.querySelector('.upd-chip');
+    const st = item.status || 'pending';
+    const pct = item.pct || 0;
+    if (fill) { fill.style.width = pct + '%'; fill.style.background = _updProgFillColor[st] || 'var(--c-muted)'; }
+    if (pctEl) pctEl.textContent = pct + '%';
+    if (chip) {
+      chip.className = `upd-chip upd-chip-${st}`;
+      chip.textContent = st === 'downloading' ? `Загрузка ${pct}%`
+        : st === 'error' ? `Ошибка${item.error ? ': ' + item.error : ''}`
+        : (_updProgChipLabel[st] || st);
+    }
+  });
+}
+
+function closeUpdProgModal() {
+  clearInterval(_updProgPoll); _updProgPoll = null;
+  closeModal('modal-upd-prog');
+}
+
 async function forceUpdate(connId,name,hostname,curVer,newVer) {
   confirm('Принудительное обновление',
     `Пользователь: ${name}\nКомпьютер: ${hostname}\nТекущая версия: ${curVer} → ${newVer}\n\nКлиент получит команду обновления и перезапустится автоматически.`,
-    async()=>{
-      await api('POST',`/api/admin/clients/${connId}/force-update`);
-      toast('Команда обновления отправлена','success');
+    async () => {
+      await api('POST', `/api/admin/clients/${connId}/force-update`);
+      const clients = getClients ? getClients() : [];
+      const clientData = [{ connId, displayName: name, username: name, hostname, clientVersion: curVer }];
+      openUpdProgModal(clientData);
     });
 }
 
@@ -1735,7 +1814,7 @@ async function forceUpdateAll(outdated, latestVersion) {
     `Устаревших клиентов: ${outdated.length}\nДоступная версия: ${latestVersion}\n\nВсе клиенты получат команду обновления и перезапустятся автоматически.`,
     async () => {
       await Promise.all(outdated.map(c => api('POST', `/api/admin/clients/${c.connId}/force-update`)));
-      toast(`Команда отправлена ${outdated.length} клиентам`, 'success');
+      openUpdProgModal(outdated);
     });
 }
 

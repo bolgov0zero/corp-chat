@@ -7,7 +7,14 @@ contextBridge.exposeInMainWorld('electron', {
   getVersion: () => ipcRenderer.invoke('get-version'),
   checkUpdate: () => ipcRenderer.invoke('check-update'),
   installUpdate: (url) => ipcRenderer.invoke('install-update', url),
-  onUpdateProgress: (cb) => ipcRenderer.on('update-progress', (_, p) => cb(p)),
+  onUpdateProgress: (cb) => {
+    ipcRenderer.removeAllListeners('update-progress');
+    ipcRenderer.on('update-progress', (_, p) => cb(p));
+  },
+  onUpdateRestarting: (cb) => {
+    ipcRenderer.removeAllListeners('update-restarting');
+    ipcRenderer.once('update-restarting', cb);
+  },
   onWindowFocus: (cb) => ipcRenderer.on('window-focus', (_, focused) => cb(focused)),
   onOpenChat: (cb) => ipcRenderer.on('open-chat', (_, chatId) => cb(chatId)),
   getHostname: () => ipcRenderer.invoke('get-hostname'),

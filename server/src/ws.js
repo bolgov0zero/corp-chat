@@ -47,6 +47,27 @@ let connCounter = 0;
 // connId -> { ws, userId, username, displayName, hostname, clientVersion, osPlatform, osRelease, connectedAt }
 const connMeta = new Map();
 
+// connId -> { username, displayName, hostname, clientVersion, pct, status, error, startedAt }
+// status: 'pending' | 'downloading' | 'installing' | 'restarting' | 'restarted' | 'error'
+const updateProgress = new Map();
+
+function initUpdateProgress(connId) {
+  const meta = connMeta.get(connId);
+  if (!meta) return;
+  updateProgress.set(connId, {
+    username: meta.username, displayName: meta.displayName,
+    hostname: meta.hostname, clientVersion: meta.clientVersion,
+    pct: 0, status: 'pending', error: null, startedAt: Date.now(),
+  });
+  // Чистим записи старше 30 мин чтобы карта не росла бесконечно
+  const cutoff = Date.now() - 30 * 60 * 1000;
+  for (const [id, entry] of updateProgress) {
+    if (entry.startedAt < cutoff) updateProgress.delete(id);
+  }
+}
+function getUpdateProgress() { return Array.from(updateProgress.entries()).map(([connId, e]) => ({ connId, ...e })); }
+function clearUpdateProgress(connIds) { connIds.forEach(id => updateProgress.delete(id)); }
+
 function getConn(userId) { return clients.get(userId) || new Set(); }
 
 function broadcast(chatId, payload, excludeUserId = null) {
@@ -356,11 +377,22 @@ function setup(server) {
         if (meta) { meta.hostname = data.hostname || '—'; meta.clientVersion = data.clientVersion || '—'; meta.osPlatform = data.osPlatform || '—'; meta.osRelease = data.osRelease || '—'; meta.installScope = data.installScope || null; }
       }
 
+      if (data.type === 'update_progress') {
+        const entry = updateProgress.get(ws._connId);
+        if (entry) {
+          entry.pct = typeof data.pct === 'number' ? data.pct : entry.pct;
+          entry.status = data.status || entry.status;
+          entry.error = data.error || null;
+        }
+      }
+
       if (data.type === 'ping') ws.send(JSON.stringify({ type: 'pong' }));
     });
 
     ws.on('close', () => {
       try { db.prepare('UPDATE users SET last_seen_at = unixepoch() WHERE id = ?').run(user.id); } catch {}
+      const updEntry = updateProgress.get(ws._connId);
+      if (updEntry && updEntry.status === 'restarting') { updEntry.status = 'restarted'; updEntry.pct = 100; }
       connMeta.delete(ws._connId);
       const conns = clients.get(user.id);
       if (conns) {
@@ -432,4 +464,4 @@ function getConnCount() { return connMeta.size; }
 
 function getConnMeta(connId) { return connMeta.get(connId) || null; }
 
-module.exports = { setup, broadcast, sendTo, getStatus, getClients, sendToConn, getConnCount, getConnMeta };
+module.exports = { setup, broadcast, sendTo, getStatus, getClients, sendToConn, getConnCount, getConnMeta, initUpdateProgress, getUpdateProgress, clearUpdateProgress };
