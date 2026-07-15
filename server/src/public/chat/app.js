@@ -285,7 +285,9 @@ function refreshActivity() {
     if (S.activeChatId && S.ws?.readyState===1) {
       S.ws.send(JSON.stringify({type:'read', chat_id: S.activeChatId}));
       S.unread[S.activeChatId] = 0;
+      S.unreadMentions[S.activeChatId] = 0;
       updateUnreadTotal();
+      renderChatList();
     }
   }
   if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'set_status', status: viewing ? 'online' : 'away'}));
