@@ -1576,6 +1576,17 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
   animation: msgIn 150ms ease-out;
 }
 
+@keyframes msgHighlight {
+  0%   { background: transparent; }
+  15%  { background: var(--accent-soft); }
+  70%  { background: var(--accent-soft); }
+  100% { background: transparent; }
+}
+.msg-highlight {
+  border-radius: 8px;
+  animation: msgHighlight 2s ease forwards;
+}
+
 /* ── Optimistic message ── */
 .msg-optimistic {
   opacity: 0.6;

@@ -1614,8 +1614,9 @@ function scrollToMsg(msgId) {
   // Сообщения нет в DOM (глубоко в истории) — перезагружаем чат окном вокруг него
   if (!el) { if (S.activeChatId) openChat(S.activeChatId, msgId); return; }
   el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.classList.remove('msg-highlight');
+  void el.offsetWidth;
   el.classList.add('msg-highlight');
-  setTimeout(() => el.classList.remove('msg-highlight'), 1500);
 }
 function hideCtxMenu() {
   document.getElementById('ctx-menu').classList.remove('open');
