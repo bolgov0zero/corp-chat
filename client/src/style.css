@@ -619,10 +619,14 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
 .bubble-file-done .bubble-file-name { color: var(--accent); }
 
 /* Download success toast */
-#download-toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) scale(.75); z-index: 9999; background: var(--surface); border-radius: 20px; width: 88px; height: 88px; display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 40px rgba(0,0,0,.28); opacity: 0; transition: opacity .18s ease, transform .18s ease; pointer-events: none; }
-#download-toast.dt-show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
-.dt-check { stroke-dasharray: 24; stroke-dashoffset: 24; transition: stroke-dashoffset .35s ease .1s; }
-#download-toast.dt-show .dt-check { stroke-dashoffset: 0; }
+@keyframes dtPopIn { from { opacity:0; transform:translate(-50%,-50%) scale(.75); } to { opacity:1; transform:translate(-50%,-50%) scale(1); } }
+@keyframes dtPopOut { from { opacity:1; transform:translate(-50%,-50%) scale(1); } to { opacity:0; transform:translate(-50%,-50%) scale(.75); } }
+@keyframes dtDraw { from { stroke-dashoffset:24; } to { stroke-dashoffset:0; } }
+#download-toast { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(.75); z-index:9999; background:var(--surface); border-radius:20px; width:88px; height:88px; display:flex; align-items:center; justify-content:center; box-shadow:0 12px 40px rgba(0,0,0,.28); opacity:0; pointer-events:none; }
+#download-toast.dt-show { animation: dtPopIn .18s ease forwards; }
+#download-toast.dt-was-shown:not(.dt-show) { animation: dtPopOut .18s ease forwards; }
+.dt-check { stroke-dasharray:24; stroke-dashoffset:24; }
+#download-toast.dt-show .dt-check { animation: dtDraw .35s ease .1s forwards; }
 
 /* Lightbox */
 #lightbox { display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,.85); align-items: center; justify-content: center; cursor: zoom-out; }
