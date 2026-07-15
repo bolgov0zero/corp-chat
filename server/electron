@@ -147,7 +147,7 @@ do_check_update() {
   cd "$APP_DIR"
 
   start_spin "Запрос к GitHub"
-  if ! git fetch origin main >/tmp/electron-check.log 2>&1; then
+  if ! GIT_TERMINAL_PROMPT=0 timeout 30 git fetch origin main >/tmp/electron-check.log 2>&1; then
     stop_spin 1 "Нет доступа к GitHub"
     printf "\n  Нажми Enter..."; read -r
     return 1
@@ -205,7 +205,7 @@ do_update() {
 
   # Шаг 2: fetch
   start_spin "Загрузка обновлений"
-  if ! git fetch origin main >/tmp/electron-update.log 2>&1; then
+  if ! GIT_TERMINAL_PROMPT=0 timeout 30 git fetch origin main >/tmp/electron-update.log 2>&1; then
     stop_spin 1 "Нет доступа к GitHub"
     printf "\n  Нажми Enter..."; read -r
     return 1
