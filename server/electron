@@ -15,7 +15,7 @@ NC=$'\033[0m'
 
 SPIN_PID=""
 
-trap 'kill "$SPIN_PID" 2>/dev/null; clear; exit 0' INT TERM
+trap 'kill -9 "$SPIN_PID" 2>/dev/null; printf "\r\033[K"; clear; exit 0' INT TERM
 
 # ── Статус службы ──
 get_status() {
@@ -28,7 +28,7 @@ start_spin() {
   (
     local frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
     local i=0
-    trap '' INT TERM
+    trap '' INT
     while true; do
       printf "\r  ${CYAN}${frames[$i]}${NC}  $msg   "
       i=$(( (i+1) % 10 ))
@@ -41,7 +41,7 @@ start_spin() {
 stop_spin() {
   local code=$1
   local msg="$2"
-  { kill "$SPIN_PID" 2>/dev/null; wait "$SPIN_PID" 2>/dev/null; } 2>/dev/null
+  kill -9 "$SPIN_PID" 2>/dev/null; wait "$SPIN_PID" 2>/dev/null
   SPIN_PID=""
   if [ "$code" = "0" ]; then
     printf "\r  ${GREEN}✓${NC}  %-42s\n" "$msg"
