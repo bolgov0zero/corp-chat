@@ -1617,6 +1617,7 @@ function scrollToMsg(msgId) {
   el.classList.remove('msg-highlight');
   void el.offsetWidth;
   el.classList.add('msg-highlight');
+  el.addEventListener('animationend', () => el.classList.remove('msg-highlight'), { once: true });
 }
 function hideCtxMenu() {
   document.getElementById('ctx-menu').classList.remove('open');

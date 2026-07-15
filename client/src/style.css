@@ -1584,7 +1584,7 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
 }
 .msg-highlight {
   border-radius: 8px;
-  animation: msgHighlight 2s ease forwards;
+  animation: msgHighlight 2s ease;
 }
 
 /* ── Optimistic message ── */
