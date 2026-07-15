@@ -1624,6 +1624,9 @@ select:focus-visible, .user-row:focus-visible, .chat-item:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+/* Поле ввода сообщения — без рамки: текстовые поля матчат :focus-visible
+   даже при клике мышью, а композер и так визуально выделен пилюлей */
+.composer-pill textarea:focus-visible { outline: none; }
 
 /* Единый стиль скроллбаров во всех прокручиваемых областях */
 .users-list, .update-notes, .modal-body-pad, .nc-list {
