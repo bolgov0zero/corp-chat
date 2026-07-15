@@ -245,13 +245,16 @@ router.get('/settings', (req, res) => {
 });
 
 router.put('/settings', (req, res) => {
-  const allowed = ['github_token', 'edit_time_limit'];
+  const allowed = ['github_token', 'edit_time_limit',
+    'upload_image_max_size', 'upload_image_extensions',
+    'upload_file_max_size', 'upload_file_extensions', 'upload_file_lifetime'];
   const upsert = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
   const del = db.prepare('DELETE FROM settings WHERE key = ?');
+  const keepEmpty = ['upload_image_extensions', 'upload_file_extensions', 'upload_file_lifetime'];
   for (const key of allowed) {
     if (key in req.body) {
-      const val = req.body[key]?.trim();
-      if (val) upsert.run(key, val);
+      const val = req.body[key]?.trim() ?? '';
+      if (val || keepEmpty.includes(key)) upsert.run(key, val);
       else del.run(key);
     }
   }
