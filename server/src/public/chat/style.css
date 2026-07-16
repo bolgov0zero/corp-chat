@@ -319,8 +319,6 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
 .chat-main { grid-column: 2; grid-row: 1; }
 #chat-input-bar { grid-column: 2; grid-row: 2; }
 
-body.sidebar-hidden #screen-main { grid-template-columns: 0 1fr; }
-body.sidebar-hidden .sidebar { display: none; }
 
 /* ══════════════════════════════════════════
    SIDEBAR

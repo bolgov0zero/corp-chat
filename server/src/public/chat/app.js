@@ -446,9 +446,6 @@ function updateSidebarThemeIcon() {
   if (moon) moon.style.display = isDark ? 'none' : '';
 }
 
-function toggleSidebar() {
-  document.body.classList.toggle('sidebar-hidden');
-}
 
 // ── SETTINGS ──
 function applySettings() {
