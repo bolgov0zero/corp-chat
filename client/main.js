@@ -266,9 +266,21 @@ function updateTray() {
   if (app.dock) app.dock.setBadge(unreadCount > 0 ? String(unreadCount) : '');
 }
 
+const _winBoundsFile = path.join(app.getPath('userData'), 'window-bounds.json');
+function _loadWinBounds() {
+  try { return JSON.parse(fs.readFileSync(_winBoundsFile, 'utf8')); } catch { return null; }
+}
+function _saveWinBounds() {
+  if (!mainWindow || mainWindow.isMinimized() || mainWindow.isMaximized()) return;
+  try { fs.writeFileSync(_winBoundsFile, JSON.stringify(mainWindow.getBounds())); } catch {}
+}
+
 function createWindow() {
+  const bounds = _loadWinBounds();
   mainWindow = new BrowserWindow({
-    width: 1100, height: 720, minWidth: 820, minHeight: 540,
+    width: bounds?.width ?? 1100, height: bounds?.height ?? 720,
+    x: bounds?.x, y: bounds?.y,
+    minWidth: 820, minHeight: 540,
     title: 'Electron',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false },
     show: false,
@@ -276,7 +288,10 @@ function createWindow() {
   mainWindow.setMenuBarVisibility(false);
   mainWindow.loadFile(path.join(__dirname, 'src', 'index.html'));
   mainWindow.once('ready-to-show', () => mainWindow.show());
+  mainWindow.on('resize', _saveWinBounds);
+  mainWindow.on('move', _saveWinBounds);
   mainWindow.on('close', e => {
+    _saveWinBounds();
     if (!app.isQuiting) {
       e.preventDefault();
       mainWindow.hide();
