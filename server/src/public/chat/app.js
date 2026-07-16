@@ -977,7 +977,14 @@ async function openChat(chatId, aroundId = null) {
       addSwipeReply(msgsEl2);
     }
   }
-  document.getElementById('msg-input')?.focus();
+  if (S.activeChatId !== chatId) return;
+  const inputEl = document.getElementById('msg-input');
+  if (inputEl) {
+    inputEl.value = S.drafts[chatId] || '';
+    autoResize(inputEl);
+    onMsgInput(inputEl);
+  }
+  inputEl?.focus();
 
   // Mobile: show chat panel
   openMobileChat();

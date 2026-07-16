@@ -893,12 +893,13 @@ async function openChat(chatId, aroundId = null) {
     const msgsEl = document.getElementById('messages');
     if (msgsEl) msgsEl.addEventListener('scroll', onMessagesScroll, { passive: true });
   }
-  // Восстанавливаем сохранённый черновик этого чата
+  // Восстанавливаем черновик (если не переключились на другой чат пока грузились)
+  if (S.activeChatId !== chatId) return;
   const inputEl = document.getElementById('msg-input');
-  if (inputEl && S.drafts[chatId]) {
-    inputEl.value = S.drafts[chatId];
+  if (inputEl) {
+    inputEl.value = S.drafts[chatId] || '';
     autoResize(inputEl);
-    onMsgInput(inputEl); // обновить состояние кнопки отправки
+    onMsgInput(inputEl);
   }
   inputEl?.focus();
 }
