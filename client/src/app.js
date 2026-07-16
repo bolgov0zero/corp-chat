@@ -1266,11 +1266,20 @@ function clearTyping(chatId) {
     item.classList.remove('typing-preview');
   }
 }
+function _stickyBottom() {
+  const msgs = document.getElementById('messages');
+  if (msgs && msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight < 30)
+    msgs.scrollTop = msgs.scrollHeight;
+}
+
 function autoResize(el) {
+  const msgs = document.getElementById('messages');
+  const atBottom = msgs && msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight < 30;
   el.style.overflow = 'hidden';
   el.style.height = '20px'; // min = одна строка
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
   if (el.scrollHeight > 120) el.style.overflow = 'auto';
+  if (atBottom && msgs) msgs.scrollTop = msgs.scrollHeight;
 }
 
 function sendOrEdit() {
@@ -1329,6 +1338,7 @@ function cancelEdit() {
   hideReplyBar();
   const input = document.getElementById('msg-input');
   if (input) { input.value=''; input.style.height='auto'; }
+  _stickyBottom();
 }
 
 // ── CONTEXT MENU ──
@@ -1398,6 +1408,7 @@ function showReplyBar() {
   bar.style.display = '';
   document.getElementById('composer-pill')?.classList.add('has-reply');
   document.getElementById('msg-input')?.focus();
+  _stickyBottom();
 }
 
 function hideReplyBar() {
