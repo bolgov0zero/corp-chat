@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, Notification, ipcMain, net } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, nativeTheme, Notification, ipcMain, net } = require('electron');
 
 if (process.platform === 'linux') app.commandLine.appendSwitch('no-sandbox');
 const path = require('path');
@@ -194,24 +194,6 @@ function makeIconPNG(drawSymbol) {
   return makePNGFromPixels(W, H, px);
 }
 
-function drawElectron(px, W, H) {
-  const cx = (W - 1) / 2, cy = (H - 1) / 2;
-  const a = W * 0.36, b = W * 0.115;
-  for (let orbit = 0; orbit < 3; orbit++) {
-    const th = (orbit * Math.PI) / 3;
-    for (let t = 0; t < 2 * Math.PI; t += 0.012) {
-      const ex = cx + a * Math.cos(t) * Math.cos(th) - b * Math.sin(t) * Math.sin(th);
-      const ey = cy + a * Math.cos(t) * Math.sin(th) + b * Math.sin(t) * Math.cos(th);
-      px(ex, ey);
-      px(ex + Math.cos(th + Math.PI / 2), ey + Math.sin(th + Math.PI / 2));
-    }
-  }
-  const r = 2;
-  for (let dy = -r; dy <= r; dy++)
-    for (let dx = -r; dx <= r; dx++)
-      if (dx * dx + dy * dy <= r * r) px(cx + dx, cy + dy);
-}
-
 function drawEnvelope(px, W, H) {
   const x1 = 5, y1 = 9, x2 = 26, y2 = 22;
   for (let t = 0; t < 2; t++) {
@@ -227,15 +209,27 @@ function drawEnvelope(px, W, H) {
   }
 }
 
-const NORMAL_ICON_BUF = makeIconPNG(drawElectron);
-const BLINK_ICON_BUF  = makeIconPNG(drawEnvelope);
+const BLINK_ICON_BUF = makeIconPNG(drawEnvelope);
 
 function makeIconImage(buf) {
   return nativeImage.createFromBuffer(buf, { scaleFactor: process.platform === 'darwin' ? 2 : 1 });
 }
 
-function getNormalImage() { return makeIconImage(NORMAL_ICON_BUF); }
-function getBlinkImage()  { return makeIconImage(BLINK_ICON_BUF); }
+const _ASSETS = path.join(__dirname, 'src', 'assets');
+
+function getNormalImage() {
+  if (process.platform === 'darwin') {
+    const img = nativeImage.createEmpty();
+    img.addRepresentation({ scaleFactor: 1, buffer: fs.readFileSync(path.join(_ASSETS, 'trayTemplate.png')) });
+    img.addRepresentation({ scaleFactor: 2, buffer: fs.readFileSync(path.join(_ASSETS, 'trayTemplate-2x.png')) });
+    img.setTemplateImage(true);
+    return img;
+  }
+  const name = nativeTheme.shouldUseDarkColors ? 'tray-white-24.png' : 'tray-dark-24.png';
+  return nativeImage.createFromPath(path.join(_ASSETS, name));
+}
+
+function getBlinkImage() { return makeIconImage(BLINK_ICON_BUF); }
 
 function startBlink() {
   if (blinkInterval) return;
@@ -282,6 +276,7 @@ function createWindow() {
     x: bounds?.x, y: bounds?.y,
     minWidth: 820, minHeight: 540,
     title: 'Electron',
+    icon: path.join(_ASSETS, 'icon-512.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false },
     show: false,
   });
