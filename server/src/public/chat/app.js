@@ -2379,6 +2379,19 @@ function getPeerUserId(chat) {
   return chat.members?.find(m => m.id !== S.user.id)?.id || null;
 }
 
+function triggerEgAvatarUpload() { document.getElementById('eg-avatar-input').click(); }
+function onEgAvatarChange(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    S.egAvatarBase64 = e.target.result.split(',')[1];
+    const el = document.getElementById('eg-av');
+    el.style.backgroundImage = `url('${e.target.result}')`;
+    el.style.backgroundSize = 'cover'; el.textContent = '';
+  };
+  reader.readAsDataURL(file);
+}
+
 function triggerGroupAvatarUpload() { document.getElementById('group-avatar-input').click(); }
 async function onGroupAvatarChange(input) {
   const file = input.files[0]; if (!file) return;
@@ -2464,8 +2477,16 @@ async function openEditGroup(chatId) {
   S.egChatId = chatId;
   S.egRemovedIds = new Set();
   S.egAddIds = new Set();
+  S.egAvatarBase64 = null;
   const chat = S.chats.find(c=>c.id===chatId);
   document.getElementById('eg-name').value = chat.name||'';
+  document.getElementById('eg-avatar-input').value = '';
+  const av = document.getElementById('eg-av');
+  av.style.backgroundImage = ''; av.style.backgroundSize = ''; av.textContent = initials(chat.name||'G');
+  const avatarUrl = `${httpProto()}://${S.server}/api/chats/${chatId}/avatar?t=${Date.now()}`;
+  const img = new Image();
+  img.onload = () => { av.style.backgroundImage = `url('${avatarUrl}')`; av.style.backgroundSize = 'cover'; av.textContent = ''; };
+  img.src = avatarUrl;
   renderEgMembers(chat.members||[]);
   renderEgAdd(chat.members||[]);
   openModal('modal-edit-group');
@@ -2506,11 +2527,14 @@ function egToggleAdd(el, id) {
 async function saveGroupEdit() {
   const name = document.getElementById('eg-name').value.trim();
   const chatId = S.egChatId;
-  await Promise.all([
+  const ops = [
     name && api('PATCH',`/chats/${chatId}`,{name}),
     ...[...S.egRemovedIds].map(uid=>api('DELETE',`/chats/${chatId}/members/${uid}`)),
     ...[...S.egAddIds].map(uid=>api('POST',`/chats/${chatId}/members`,{user_id:uid})),
-  ]);
+  ];
+  if (S.egAvatarBase64) ops.push(api('POST',`/chats/${chatId}/avatar`,{data:S.egAvatarBase64}));
+  await Promise.all(ops);
+  S.egAvatarBase64 = null;
   closeModal('modal-edit-group');
   await loadChats();
   if (S.activeChatId===chatId) openChat(chatId);

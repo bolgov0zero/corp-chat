@@ -157,6 +157,32 @@ router.delete('/chats/:id/members/:userId', (req, res) => {
   res.json({ ok: true });
 });
 
+// Rename room
+router.patch('/rooms/:id', (req, res) => {
+  const { name } = req.body;
+  if (!name?.trim()) return res.status(400).json({ error: 'Missing name' });
+  db.prepare("UPDATE chats SET name = ? WHERE id = ? AND type = 'room'").run(name.trim(), req.params.id);
+  const members = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ?').all(req.params.id);
+  members.forEach(({ user_id }) => sendTo(user_id, { type: 'chat_updated', chat_id: Number(req.params.id), name: name.trim() }));
+  res.json({ ok: true });
+});
+
+// Upload avatar for any chat/room (admin)
+function isImgBuf(buf) {
+  return (buf[0]===0xFF&&buf[1]===0xD8)||(buf[0]===0x89&&buf[1]===0x50)||
+         (buf[0]===0x47&&buf[1]===0x49)||(buf[0]===0x52&&buf[1]===0x49);
+}
+router.post('/chats/:id/avatar', (req, res) => {
+  const { data } = req.body;
+  if (!data) return res.status(400).json({ error: 'Missing data' });
+  const buf = Buffer.from(data, 'base64');
+  if (!isImgBuf(buf)) return res.status(400).json({ error: 'Not an image' });
+  const avatarDir = path.join(__dirname, '..', '..', '..', 'chat_db', 'avatar');
+  fs.mkdirSync(avatarDir, { recursive: true });
+  fs.writeFileSync(path.join(avatarDir, `chat_${req.params.id}.jpg`), buf);
+  res.json({ ok: true });
+});
+
 router.get('/users', (req, res) => {
   const fs = require('fs');
   const path = require('path');

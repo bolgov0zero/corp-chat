@@ -359,8 +359,17 @@
   <div class="modal">
     <div class="modal-hdr"><span>Редактировать группу</span><button class="icon-btn" onclick="closeModal('modal-edit-group')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="modal-body-pad">
-      <div class="field"><label>Название</label><input id="eg-name"></div>
-      <div style="margin-top:12px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Участники</div>
+      <div class="nc-group-top" style="margin-bottom:14px">
+        <div class="profile-av-wrap" onclick="triggerEgAvatarUpload()" title="Фото группы" style="cursor:pointer">
+          <div class="av av-md av-green av-round" id="eg-av"></div>
+          <div class="profile-av-overlay">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </div>
+        </div>
+        <input id="eg-name" class="nc-name-input" placeholder="Название группы">
+      </div>
+      <input type="file" id="eg-avatar-input" accept="image/*" style="display:none" onchange="onEgAvatarChange(this)">
+      <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Участники</div>
       <div id="eg-members" class="users-list"></div>
       <div style="margin-top:12px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Добавить</div>
       <div id="eg-add" class="users-list"></div>

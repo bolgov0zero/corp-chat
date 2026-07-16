@@ -604,6 +604,18 @@ tr:hover .td-actions{opacity:1}
       <button class="modal-close" onclick="closeModal('modal-members')">✕</button>
     </div>
     <div class="modal-body">
+      <div id="room-edit-meta" style="display:none;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <div style="position:relative;cursor:pointer;flex-shrink:0" onclick="triggerRoomAvatarUpload()">
+            <div class="av" id="room-edit-av" style="border-radius:10px;width:48px;height:48px;font-size:18px;line-height:48px;text-align:center"></div>
+            <div style="position:absolute;inset:0;background:rgba(0,0,0,.4);border-radius:10px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0">
+              <svg width="16" height="16" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </div>
+          </div>
+          <input id="room-edit-name" class="input" placeholder="Название комнаты" style="flex:1">
+        </div>
+        <input type="file" id="room-avatar-input" accept="image/*" style="display:none" onchange="onRoomAvatarChange(this)">
+      </div>
       <div class="members-section-title">Текущие участники</div>
       <div class="members-list" id="members-list"></div>
       <div class="add-members-section" id="add-members-section">
@@ -1284,7 +1296,7 @@ function renderRoomsTable() {
       <td style="font-family:var(--f-mono);font-size:11px">${r.message_count}</td>
       <td style="color:var(--c-muted);font-size:11px">${fmtDate(r.created_at)}</td>
       <td><div class="td-actions">
-        <button class="btn btn-ghost btn-sm" onclick="openRoomMembers(${r.id},'${jesc(r.name||'')}')">Участники</button>
+        <button class="btn btn-ghost btn-sm" onclick="openRoomEdit(${r.id},'${jesc(r.name||'')}')">Изменить</button>
         <button class="btn btn-ghost btn-sm" onclick="clearHistory(${r.id})">Очистить</button>
         <button class="btn btn-danger btn-sm" onclick="deleteRoom(${r.id})">Удалить</button>
       </div></td>
@@ -1327,14 +1339,40 @@ async function submitCreateRoom() {
   else toast(data?.error||'Ошибка','error');
 }
 
-async function openRoomMembers(chatId, name) {
+let _roomEditAvatarBase64 = null;
+function triggerRoomAvatarUpload() { document.getElementById('room-avatar-input').click(); }
+function onRoomAvatarChange(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _roomEditAvatarBase64 = e.target.result.split(',')[1];
+    const el = document.getElementById('room-edit-av');
+    el.style.backgroundImage = `url('${e.target.result}')`;
+    el.style.backgroundSize = 'cover'; el.textContent = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function openRoomEdit(chatId, name) {
   membersForChatId=chatId; membersForChatType='room';
   selectedAddMembers=new Set();
-  document.getElementById('members-title').textContent=name;
+  _roomEditAvatarBase64=null;
+  document.getElementById('members-title').textContent='Изменить комнату';
+  document.getElementById('room-edit-meta').style.display='';
+  document.getElementById('room-edit-name').value=name;
+  document.getElementById('room-avatar-input').value='';
+  // Текущая аватарка
+  const av=document.getElementById('room-edit-av');
+  av.style.backgroundImage=''; av.style.backgroundSize='';
+  av.textContent=name?name[0].toUpperCase():'R';
+  av.className='av'; av.style.background='';
+  const img=new Image();
+  img.onload=()=>{ av.style.backgroundImage=`url('/api/chats/${chatId}/avatar?t=${Date.now()}')`; av.style.backgroundSize='cover'; av.textContent=''; };
+  img.src=`/api/chats/${chatId}/avatar?t=${Date.now()}`;
   document.getElementById('add-members-section').style.display='';
   document.getElementById('members-footer').innerHTML=`
-    <button class="btn btn-ghost" onclick="closeModal('modal-members')">Закрыть</button>
-    <button class="btn btn-primary" onclick="addSelectedMembers()">Добавить выбранных</button>`;
+    <button class="btn btn-ghost" onclick="closeModal('modal-members')">Отмена</button>
+    <button class="btn btn-primary" onclick="saveRoomEdit()">Сохранить</button>`;
   const [members,allU]=await Promise.all([api('GET','/api/admin/chats/'+chatId+'/members'),api('GET','/api/admin/users')]);
   const memberIds=new Set(members.map(m=>m.id));
   document.getElementById('members-list').innerHTML=members.map(m=>`
@@ -1350,6 +1388,19 @@ async function openRoomMembers(chatId, name) {
       <div><div class="cname">${esc(u.display_name)}</div><div class="cuname">@${esc(u.username)}</div></div>
     </div>`).join('')||'<p style="color:var(--c-muted);font-size:12px;padding:8px 0">Все пользователи уже в комнате</p>';
   openModal('modal-members');
+}
+
+async function saveRoomEdit() {
+  const name=document.getElementById('room-edit-name').value.trim();
+  const chatId=membersForChatId;
+  const ops=[];
+  if (name) ops.push(api('PATCH',`/api/admin/rooms/${chatId}`,{name}));
+  if (_roomEditAvatarBase64) ops.push(api('POST',`/api/admin/chats/${chatId}/avatar`,{data:_roomEditAvatarBase64}));
+  if (selectedAddMembers.size) ops.push(...[...selectedAddMembers].map(uid=>api('POST',`/api/admin/chats/${chatId}/members`,{user_id:uid})));
+  await Promise.all(ops);
+  toast('Комната обновлена','success');
+  closeModal('modal-members');
+  renderRooms();
 }
 
 function deleteRoom(id) {
@@ -1553,6 +1604,7 @@ function filterChats(q) {
 async function openMembersReadonly(chatId, chatName) {
   membersForChatId=chatId; membersForChatType=null;
   document.getElementById('members-title').textContent=chatName;
+  document.getElementById('room-edit-meta').style.display='none';
   document.getElementById('add-members-section').style.display='none';
   document.getElementById('members-footer').innerHTML=`<button class="btn btn-ghost" onclick="closeModal('modal-members')">Закрыть</button>`;
   const members=await api('GET','/api/admin/chats/'+chatId+'/members');
