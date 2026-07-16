@@ -89,7 +89,13 @@ ipcMain.handle('install-update', async (_, downloadUrl) => {
 
     if (process.platform === 'win32') {
       const { spawn } = require('child_process');
-      spawn(tmpFile, ['/S'], { detached: true, stdio: 'ignore' }).unref();
+      // Антивирус может держать блокировку на только что скачанном файле — повторяем до 5 раз
+      let launched = false;
+      for (let i = 0; i < 5 && !launched; i++) {
+        if (i > 0) await new Promise(r => setTimeout(r, 1000));
+        try { spawn(tmpFile, ['/S'], { detached: true, stdio: 'ignore' }).unref(); launched = true; }
+        catch (e) { if (e.code !== 'EBUSY' || i === 4) throw e; }
+      }
       app.isQuiting = true; app.quit();
     } else if (process.platform === 'linux') {
       fs.chmodSync(tmpFile, 0o755);
