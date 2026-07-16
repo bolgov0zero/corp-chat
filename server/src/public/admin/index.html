@@ -1812,7 +1812,6 @@ async function forceUpdate(connId,name,hostname,curVer,newVer) {
     `Пользователь: ${name}\nКомпьютер: ${hostname}\nТекущая версия: ${curVer} → ${newVer}\n\nКлиент получит команду обновления и перезапустится автоматически.`,
     async () => {
       await api('POST', `/api/admin/clients/${connId}/force-update`);
-      const clients = getClients ? getClients() : [];
       const clientData = [{ connId, displayName: name, username: name, hostname, clientVersion: curVer }];
       openUpdProgModal(clientData);
     });
