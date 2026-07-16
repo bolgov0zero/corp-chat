@@ -332,7 +332,7 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
 
 /* Sidebar hidden / peek */
 body.sidebar-notransition .sidebar { transition: none !important; }
-body.sidebar-hidden #screen-main { grid-template-columns: 0 1fr; }
+body.sidebar-hidden #screen-main { grid-template-columns: 1fr; }
 body.sidebar-hidden .sidebar {
   position: absolute;
   left: 0; top: 0; bottom: 0;
