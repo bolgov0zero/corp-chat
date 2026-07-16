@@ -290,8 +290,7 @@ function refreshActivity() {
       renderChatList();
     }
   }
-  if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'set_status', status: viewing ? 'online' : 'away'}));
-  updateSidebarStatus(viewing ? 'online' : 'away');
+  if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'set_status', status: viewing ? 'online' : 'offline'}));
 }
 
 if (window.visualViewport) {
@@ -420,7 +419,6 @@ function enterApp() {
   document.getElementById('screen-login').classList.remove('active');
   document.getElementById('screen-main').classList.add('active');
   updateMeAvatar();
-  document.getElementById('me-name').textContent = S.user.display_name;
   loadChats().then(() => {
     if (S._pendingOpenChatId) {
       const c = S.chats.find(c => c.id === S._pendingOpenChatId);
@@ -457,14 +455,16 @@ function updateMeAvatar() {
   el.className = `av av-sm ${avatarColor(S.user.id)}`;
 }
 
-function updateSidebarStatus(status) {
-  const dot = document.getElementById('me-status-dot');
-  const txt = document.getElementById('me-status-text');
-  if (!dot || !txt) return;
-  const map = { online: { color: '#22c55e', label: 'онлайн' }, away: { color: '#eab308', label: 'отошёл' }, offline: { color: '#ef4444', label: 'не в сети' } };
-  const s = map[status] || map.online;
-  dot.style.background = s.color;
-  txt.textContent = s.label;
+function updateSidebarThemeIcon() {
+  const isDark = S.settings.theme === 'dark';
+  const sun = document.getElementById('sidebar-theme-sun');
+  const moon = document.getElementById('sidebar-theme-moon');
+  if (sun) sun.style.display = isDark ? '' : 'none';
+  if (moon) moon.style.display = isDark ? 'none' : '';
+}
+
+function toggleSidebar() {
+  document.body.classList.toggle('sidebar-hidden');
 }
 
 // ── SETTINGS ──
@@ -475,10 +475,7 @@ function applySettings() {
   document.documentElement.classList.add('font-'+S.settings.fontSize);
   document.querySelectorAll('#theme-seg button').forEach(b => b.classList.toggle('active', b.textContent.trim()===(S.settings.theme==='light'?'Светлая':'Тёмная')));
   document.querySelectorAll('#font-seg button').forEach(b => b.classList.toggle('active', b.textContent.trim()===S.settings.fontSize[0].toUpperCase()));
-  const sunIcon = document.getElementById('theme-icon-sun');
-  const moonIcon = document.getElementById('theme-icon-moon');
-  if (sunIcon) sunIcon.style.display = isDark ? '' : 'none';
-  if (moonIcon) moonIcon.style.display = isDark ? 'none' : '';
+  updateSidebarThemeIcon();
   // Цвет системного UI (статус-бар, клавиатура) следует теме
   document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
   const themeColorMeta = document.querySelector('meta[name="theme-color"]');
@@ -523,7 +520,6 @@ async function saveDisplayName() {
     const res = await api('PATCH', '/users/me', { display_name: name });
     if (res?.ok) {
       S.user.display_name = name;
-      document.getElementById('me-name').textContent = name;
       saveSession();
     }
   }
@@ -2223,17 +2219,10 @@ function connectWS() {
         const subEl = document.querySelector('.ch-sub');
         if (subEl) subEl.textContent = peerStatusText(data.user_id);
       }
-      const color = data.status==='online'?'#22c55e':data.status==='away'?'#eab308':'#ef4444';
+      const isOnline = data.status === 'online';
       document.querySelectorAll(`.presence-dot[data-user-id="${data.user_id}"]`).forEach(dot => {
-        dot.style.background = color; dot.title = data.status;
+        dot.style.display = isOnline ? '' : 'none';
       });
-      if (S.activeChatId) {
-        const chat = S.chats.find(c=>c.id===S.activeChatId);
-        if (chat && getPeerUserId(chat) === data.user_id) {
-          const dotEl = document.querySelector('.chat-header .presence-dot');
-          if (dotEl) { dotEl.style.background = color; dotEl.title = data.status; }
-        }
-      }
     }
 
     if (data.type==='status_update') {
@@ -2322,7 +2311,7 @@ function connectWS() {
       try { ws.send(JSON.stringify({ type: 'ping' })); } catch {}
     }, 20000);
     setTimeout(() => {
-      const initStatus = document.hidden ? 'away' : 'online';
+      const initStatus = document.hidden ? 'offline' : 'online';
       if (ws.readyState === 1) {
         ws.send(JSON.stringify({ type: 'set_status', status: initStatus }));
         const isPwa = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
@@ -2338,7 +2327,6 @@ function connectWS() {
           installScope: isPwa ? 'pwa' : 'web',
         }));
       }
-      updateSidebarStatus(initStatus);
     }, 300);
   };
   ws.onerror = () => ws.close();
@@ -2373,23 +2361,39 @@ async function loadPresence() {
   }
 }
 
-// Текст статуса собеседника для шапки чата (как в Telegram)
+function formatLastSeen(ts) {
+  if (!ts) return 'не в сети';
+  const d = new Date(ts * 1000);
+  const diffSec = Math.floor((Date.now() - ts * 1000) / 1000);
+  if (diffSec < 60) return 'только что';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `был(а) в сети ${diffMin} мин. назад`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `был(а) в сети ${diffH} ч. назад`;
+  const time = d.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
+  const today = new Date(); today.setHours(0,0,0,0);
+  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+  const msgDay = new Date(d); msgDay.setHours(0,0,0,0);
+  if (msgDay.getTime() === today.getTime()) return `был(а) в сети сегодня в ${time}`;
+  if (msgDay.getTime() === yesterday.getTime()) return `был(а) в сети вчера в ${time}`;
+  const diffDays = Math.floor((today - msgDay) / 86400000);
+  if (diffDays < 7) {
+    const days = ['воскресенье','понедельник','вторник','среду','четверг','пятницу','субботу'];
+    return `был(а) в сети в ${days[d.getDay()]} в ${time}`;
+  }
+  return `был(а) в сети ${d.toLocaleDateString('ru', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+}
+
 function peerStatusText(userId) {
   const st = S.presence[userId] || 'offline';
   if (st === 'online') return 'в сети';
-  if (st === 'away') return 'отошёл';
-  const ts = S.lastSeen[userId];
-  if (!ts) return 'не в сети';
-  const d = new Date(ts * 1000), now = new Date();
-  const time = d.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
-  if (d.toDateString() === now.toDateString()) return `был(а) в ${time}`;
-  return `был(а) ${d.toLocaleDateString('ru', { day: 'numeric', month: 'short' })} в ${time}`;
+  return formatLastSeen(S.lastSeen[userId]);
 }
 
 function presenceDot(userId) {
-  const s = S.presence[userId] || 'offline';
-  const color = s === 'online' ? '#22c55e' : s === 'away' ? '#eab308' : '#ef4444';
-  return `<span class="presence-dot" data-user-id="${userId}" style="background:${color}" title="${s}"></span>`;
+  const online = (S.presence[userId] || 'offline') === 'online';
+  if (!online) return '';
+  return `<span class="presence-dot" data-user-id="${userId}"></span>`;
 }
 
 function getPeerUserId(chat) {

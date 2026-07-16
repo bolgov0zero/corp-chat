@@ -42,8 +42,7 @@ function refreshActivity() {
     updateUnreadTotal();
     renderChatList();
   }
-  if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'set_status', status: viewing ? 'online' : 'away'}));
-  updateSidebarStatus(viewing ? 'online' : 'away');
+  if (S.ws?.readyState===1) S.ws.send(JSON.stringify({type:'set_status', status: viewing ? 'online' : 'offline'}));
 }
 
 // ── PAGINATION ──
@@ -183,7 +182,6 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.addEventListener('click', e => {
     hideCtxMenu();
     document.getElementById('ctx-chat-menu').style.display = 'none';
-    closeSidebarMenu();
     if (!e.target.closest('#mention-popup')) hideMentionPopup();
     // Close emoji picker if click outside
     const picker = document.getElementById('emoji-picker');
@@ -266,7 +264,6 @@ function enterApp() {
   document.getElementById('screen-login').classList.remove('active');
   document.getElementById('screen-main').classList.add('active');
   updateMeAvatar();
-  document.getElementById('me-name').textContent = S.user.display_name;
   loadDownloadedFiles();
   verifyDownloadedFiles();
   loadChats();
@@ -294,14 +291,12 @@ function updateMeAvatar() {
   el.className = `av av-sm ${avatarColor(S.user.id)}`;
 }
 
-function updateSidebarStatus(status) {
-  const dot = document.getElementById('me-status-dot');
-  const txt = document.getElementById('me-status-text');
-  if (!dot || !txt) return;
-  const map = { online: { color: '#22c55e', label: 'онлайн' }, away: { color: '#eab308', label: 'отошёл' }, offline: { color: '#ef4444', label: 'не в сети' } };
-  const s = map[status] || map.online;
-  dot.style.background = s.color;
-  txt.textContent = s.label;
+function updateSidebarThemeIcon() {
+  const isDark = S.settings.theme === 'dark';
+  const sun = document.getElementById('sidebar-theme-sun');
+  const moon = document.getElementById('sidebar-theme-moon');
+  if (sun) sun.style.display = isDark ? '' : 'none';
+  if (moon) moon.style.display = isDark ? 'none' : '';
 }
 
 // ── SETTINGS ──
@@ -312,43 +307,13 @@ function applySettings() {
   document.documentElement.classList.add('font-'+S.settings.fontSize);
   document.querySelectorAll('#theme-seg button').forEach(b => b.classList.toggle('active', b.textContent.trim()===(S.settings.theme==='light'?'Светлая':'Тёмная')));
   document.querySelectorAll('#font-seg button').forEach(b => b.classList.toggle('active', b.textContent.trim()===S.settings.fontSize[0].toUpperCase()));
-  updateSidebarMenuTheme();
+  updateSidebarThemeIcon();
 }
 function setTheme(t) { S.settings.theme=t; applySettings(); saveSession(); }
 function toggleTheme() { setTheme(S.settings.theme === 'dark' ? 'light' : 'dark'); }
 function setFontSize(f) { S.settings.fontSize=f; applySettings(); saveSession(); }
-
-function updateSidebarMenuTheme() {
-  const isDark = S.settings.theme === 'dark';
-  const lbl = document.getElementById('sidebar-menu-theme-label');
-  if (lbl) lbl.textContent = isDark ? 'Светлая тема' : 'Тёмная тема';
-  const sun = document.getElementById('sidebar-menu-theme-sun');
-  const moon = document.getElementById('sidebar-menu-theme-moon');
-  if (sun) sun.style.display = isDark ? '' : 'none';
-  if (moon) moon.style.display = isDark ? 'none' : '';
-}
-function openSidebarMenu(event) {
-  event.stopPropagation();
-  const menu = document.getElementById('sidebar-menu');
-  const rect = event.currentTarget.getBoundingClientRect();
-  updateSidebarMenuTheme();
-  menu.classList.add('open');
-  const mw = 190;
-  let left = rect.right - mw;
-  if (left < 4) left = 4;
-  menu.style.left = left + 'px';
-  menu.style.top = (rect.bottom + 4) + 'px';
-}
-function closeSidebarMenu() {
-  document.getElementById('sidebar-menu')?.classList.remove('open');
-  if (document.body.classList.contains('sidebar-hidden') &&
-      !document.querySelector('.sidebar:hover')) {
-    _scheduleHideSidebar();
-  }
-}
 let _sidebarPeekTimer = null;
 function toggleSidebar() {
-  closeSidebarMenu();
   document.body.classList.add('sidebar-notransition');
   const hidden = document.body.classList.toggle('sidebar-hidden');
   document.body.classList.remove('sidebar-peeking');
@@ -364,21 +329,13 @@ function _scheduleHideSidebar() {
 function initSidebarPeek() {
   const zone = document.getElementById('sidebar-peek-zone');
   const sidebar = document.querySelector('.sidebar');
-  const menu = document.getElementById('sidebar-menu');
   if (!zone || !sidebar) return;
   zone.addEventListener('mouseenter', () => {
     clearTimeout(_sidebarPeekTimer);
     document.body.classList.add('sidebar-peeking');
   });
-  sidebar.addEventListener('mouseleave', () => {
-    if (menu?.classList.contains('open')) return;
-    _scheduleHideSidebar();
-  });
+  sidebar.addEventListener('mouseleave', _scheduleHideSidebar);
   sidebar.addEventListener('mouseenter', () => clearTimeout(_sidebarPeekTimer));
-  if (menu) {
-    menu.addEventListener('mouseenter', () => clearTimeout(_sidebarPeekTimer));
-    menu.addEventListener('mouseleave', _scheduleHideSidebar);
-  }
 }
 async function openSettings() {
   document.getElementById('modal-settings').classList.add('open');
@@ -423,7 +380,6 @@ async function saveDisplayName() {
     const res = await api('PATCH', '/users/me', { display_name: name });
     if (res?.ok) {
       S.user.display_name = name;
-      document.getElementById('me-name').textContent = name;
       saveSession();
     }
   }
@@ -457,7 +413,6 @@ async function saveProfile() {
   const res = await api('PATCH', '/users/me', { display_name: name });
   if (res?.ok) {
     S.user.display_name = name;
-    document.getElementById('me-name').textContent = name;
     const dn = document.getElementById('settings-display-name');
     if (dn) dn.textContent = name;
     saveSession();
@@ -2149,19 +2104,11 @@ function connectWS() {
         const subEl = document.querySelector('.ch-sub');
         if (subEl) subEl.textContent = peerStatusText(data.user_id);
       }
-      const color = data.status==='online'?'#22c55e':data.status==='away'?'#eab308':'#ef4444';
-      // Точечно обновляем все presence-dot с этим user_id — без полного renderChatList
+      const online = data.status === 'online';
+      // Точечно обновляем presence-dot: зелёный если онлайн, скрываем если нет
       document.querySelectorAll(`.presence-dot[data-user-id="${data.user_id}"]`).forEach(dot => {
-        dot.style.background = color;
-        dot.title = data.status;
+        dot.style.display = online ? '' : 'none';
       });
-      if (S.activeChatId) {
-        const chat = S.chats.find(c=>c.id===S.activeChatId);
-        if (chat && getPeerUserId(chat) === data.user_id) {
-          const dotEl = document.querySelector('.chat-header .presence-dot');
-          if (dotEl) { dotEl.style.background = color; dotEl.title = data.status; }
-        }
-      }
     }
 
     if (data.type==='status_update') {
@@ -2256,9 +2203,8 @@ function connectWS() {
     loadChats();
     // Delay status send: at launch document.hidden may still be true while window is appearing
     setTimeout(() => {
-      const initStatus = document.hidden ? 'away' : 'online';
+      const initStatus = document.hidden ? 'offline' : 'online';
       if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'set_status', status: initStatus }));
-      updateSidebarStatus(initStatus);
     }, 300);
     // Отправить метаданные клиента
     try {
@@ -2296,22 +2242,38 @@ async function loadPresence() {
 }
 
 // Текст статуса собеседника для шапки чата (как в Telegram)
-function peerStatusText(userId) {
-  const st = S.presence[userId] || 'offline';
-  if (st === 'online') return 'в сети';
-  if (st === 'away') return 'отошёл';
-  const ts = S.lastSeen[userId];
+function formatLastSeen(ts) {
   if (!ts) return 'не в сети';
   const d = new Date(ts * 1000), now = new Date();
+  const diffSec = Math.floor((Date.now() - ts * 1000) / 1000);
+  if (diffSec < 60) return 'только что';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `был(а) в сети ${diffMin} мин. назад`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `был(а) в сети ${diffH} ч. назад`;
   const time = d.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
-  if (d.toDateString() === now.toDateString()) return `был(а) в ${time}`;
-  return `был(а) ${d.toLocaleDateString('ru', { day: 'numeric', month: 'short' })} в ${time}`;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+  const msgDay = new Date(d); msgDay.setHours(0,0,0,0);
+  if (msgDay.getTime() === today.getTime()) return `был(а) в сети сегодня в ${time}`;
+  if (msgDay.getTime() === yesterday.getTime()) return `был(а) в сети вчера в ${time}`;
+  const diffDays = Math.floor((today - msgDay) / 86400000);
+  if (diffDays < 7) {
+    const days = ['воскресенье','понедельник','вторник','среду','четверг','пятницу','субботу'];
+    return `был(а) в сети в ${days[d.getDay()]} в ${time}`;
+  }
+  return `был(а) в сети ${d.toLocaleDateString('ru', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+}
+
+function peerStatusText(userId) {
+  if ((S.presence[userId] || 'offline') === 'online') return 'в сети';
+  return formatLastSeen(S.lastSeen[userId]);
 }
 
 function presenceDot(userId) {
-  const s = S.presence[userId] || 'offline';
-  const color = s === 'online' ? '#22c55e' : s === 'away' ? '#eab308' : '#ef4444';
-  return `<span class="presence-dot" data-user-id="${userId}" style="background:${color}" title="${s}"></span>`;
+  const online = (S.presence[userId] || 'offline') === 'online';
+  if (!online) return '';
+  return `<span class="presence-dot" data-user-id="${userId}"></span>`;
 }
 
 function getPeerUserId(chat) {
@@ -2648,9 +2610,11 @@ async function checkUpdate(silent = false) {
     document.getElementById('update-progress-text').textContent = `Загрузка ${p}%`;
   });
 
-  closeSettings(); // закрываем настройки перед показом модалки обновления
-  const modal = document.getElementById('modal-update');
-  if (modal && !modal.classList.contains('open')) openModal('modal-update');
+  if (!silent) {
+    closeSettings();
+    const modal = document.getElementById('modal-update');
+    if (modal && !modal.classList.contains('open')) openModal('modal-update');
+  }
 }
 
 // Автопроверка обновлений раз в минуту

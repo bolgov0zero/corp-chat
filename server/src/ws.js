@@ -40,7 +40,7 @@ function deleteAttachmentFile(attachment) {
 
 // userId -> Set<ws>
 const clients = new Map();
-// userId -> 'online'|'away'|'offline'
+// userId -> 'online'|'offline'
 const userStatus = new Map();
 
 let connCounter = 0;
@@ -83,20 +83,22 @@ function sendTo(userId, payload) {
 }
 
 function getStatus(userId) { return userStatus.get(userId) || 'offline'; }
+// Есть ли у пользователя хоть одно активное WS-соединение (для админки)
+function isConnected(userId) {
+  const conns = clients.get(userId);
+  if (!conns) return false;
+  for (const ws of conns) { if (ws.readyState === 1) return true; }
+  return false;
+}
 
-// Агрегированный статус пользователя по всем его устройствам:
-// online, если хоть одно устройство активно; иначе away, если есть «отошедшее»; иначе offline.
-// Это убирает «мигание» статуса, когда одно устройство уходит в фон, а другое активно.
+// Агрегированный статус: online если хоть одно устройство активно, иначе offline.
 function computeStatus(userId) {
   const conns = clients.get(userId);
   if (!conns || !conns.size) return 'offline';
-  let anyAway = false;
   for (const ws of conns) {
-    if (ws.readyState !== 1) continue;
-    if (ws._status === 'online') return 'online';
-    if (ws._status === 'away') anyAway = true;
+    if (ws.readyState === 1 && ws._status === 'online') return 'online';
   }
-  return anyAway ? 'away' : 'offline';
+  return 'offline';
 }
 
 // Пересчитать агрегат и разослать собеседникам ТОЛЬКО при реальном изменении статуса.
@@ -109,8 +111,12 @@ function broadcastStatus(userId) {
     JOIN chat_members cm2 ON cm2.chat_id = cm1.chat_id AND cm2.user_id != cm1.user_id
     JOIN chats c ON c.id = cm1.chat_id WHERE cm1.user_id = ? AND c.type = 'direct'
   `).all(userId).map(r => r.user_id);
-  const payload = JSON.stringify({ type: 'presence', user_id: userId, status,
-    last_seen: status === 'offline' ? Math.floor(Date.now() / 1000) : undefined });
+  let last_seen;
+  if (status === 'offline') {
+    const row = db.prepare('SELECT last_seen_at FROM users WHERE id = ?').get(userId);
+    last_seen = row?.last_seen_at || Math.floor(Date.now() / 1000);
+  }
+  const payload = JSON.stringify({ type: 'presence', user_id: userId, status, last_seen });
   peers.forEach(peerId => {
     getConn(peerId).forEach(ws => { if (ws.readyState === 1) ws.send(payload); });
   });
@@ -340,7 +346,13 @@ function setup(server) {
 
       if (data.type === 'set_status') {
         const s = data.status;
-        if (s === 'online' || s === 'away') { ws._status = s; broadcastStatus(user.id); }
+        if (s === 'online' || s === 'offline') {
+          if (s === 'offline') {
+            try { db.prepare('UPDATE users SET last_seen_at = unixepoch() WHERE id = ?').run(user.id); } catch {}
+          }
+          ws._status = s;
+          broadcastStatus(user.id);
+        }
       }
 
       if (data.type === 'react') {
@@ -464,4 +476,4 @@ function getConnCount() { return connMeta.size; }
 
 function getConnMeta(connId) { return connMeta.get(connId) || null; }
 
-module.exports = { setup, broadcast, sendTo, getStatus, getClients, sendToConn, getConnCount, getConnMeta, initUpdateProgress, getUpdateProgress, clearUpdateProgress };
+module.exports = { setup, broadcast, sendTo, getStatus, isConnected, getClients, sendToConn, getConnCount, getConnMeta, initUpdateProgress, getUpdateProgress, clearUpdateProgress };

@@ -319,6 +319,9 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
 .chat-main { grid-column: 2; grid-row: 1; }
 #chat-input-bar { grid-column: 2; grid-row: 2; }
 
+body.sidebar-hidden #screen-main { grid-template-columns: 0 1fr; }
+body.sidebar-hidden .sidebar { display: none; }
+
 /* ══════════════════════════════════════════
    SIDEBAR
    ══════════════════════════════════════════ */
@@ -338,24 +341,13 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
 
 .sidebar-top { padding: 14px 14px 0; }
 
-/* User header row */
-.sidebar-me {
-  display: flex; align-items: center; gap: 10px;
+/* Toolbar row */
+.sidebar-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
   padding: 0 0 10px;
 }
-.me-name {
-  flex: 1;
-  font-size: 14px; font-weight: 600;
-  color: var(--text);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.me-status {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 12px; color: var(--muted);
-}
-.me-status-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: #22c55e; flex-shrink: 0;
+.sidebar-toolbar-left {
+  display: flex; align-items: center; gap: 2px;
 }
 
 /* Icon buttons */
@@ -479,15 +471,13 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
 .av-lg  { width: 44px; height: 44px; font-size: 17px; border-radius: 12px; }
 .av-xl  { width: 64px; height: 64px; font-size: 22px; border-radius: 18px; }
 
-/* Sidebar avatar — 36×36 radius 12, color from av-* class */
-.sidebar-me .av { border-radius: 12px; width: 36px; height: 36px; font-size: 14px; }
-
 /* Avatar wrap for presence dot */
 .av-wrap { position: relative; flex-shrink: 0; }
 .presence-dot {
   position: absolute; bottom: -1px; right: -1px;
   width: 10px; height: 10px; border-radius: 50%;
   border: 2px solid var(--side-bg);
+  background: #22c55e;
 }
 .chat-header .presence-dot { border-color: var(--header-bg); }
 
@@ -1605,10 +1595,6 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
   opacity: 0.6;
 }
 
-/* ── Presence dot transition ── */
-.presence-dot {
-  transition: background-color 300ms ease;
-}
 
 /* ── Skeleton loader ── */
 @keyframes shimmer {

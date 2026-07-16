@@ -252,9 +252,8 @@ tbody tr:hover td{background:var(--c-surface2)}
 .av{display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;position:relative}
 .av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .status-dot{position:absolute;bottom:-1px;right:-1px;border-radius:50%;border:2px solid var(--c-surface);flex-shrink:0}
-.status-dot.online{background:var(--c-green)}
-.status-dot.away{background:var(--c-orange)}
-.status-dot.offline{display:none}
+.status-dot.connected{background:var(--c-green)}
+.status-dot.disconnected{display:none}
 .user-cell{display:flex;align-items:center;gap:9px}
 .uc-name{font-size:13px;font-weight:600;color:var(--c-text)}
 .uc-sub{font-size:11px;color:var(--c-muted)}
@@ -762,12 +761,12 @@ function fmtOS(platform, release, installScope) {
   return `<div style="display:flex;align-items:center;gap:5px">${icon}<span style="font-size:12px">${name}</span>${ver}</div>`;
 }
 
-function avHtml(name, size=32, radius=8, userId=null, status=null, _hasAvatar=false) {
+function avHtml(name, size=32, radius=8, userId=null, connected=false, _hasAvatar=false) {
   const bg = avColor(name);
   const fs = Math.round(size * 0.38);
   const dotSz = Math.round(size * 0.28);
-  const dotHtml = status && status !== 'offline'
-    ? `<div class="status-dot ${status}" style="width:${dotSz}px;height:${dotSz}px"></div>` : '';
+  const dotHtml = connected
+    ? `<div class="status-dot connected" style="width:${dotSz}px;height:${dotSz}px"></div>` : '';
   if (userId) {
     // Avatar hidden until image resolves — no colored block flash
     const inits = `<span style="display:none">${initials(name)}</span>`;
@@ -912,16 +911,16 @@ function startBgClientsPolling() {
 }
 
 function auCardsHtml(users) {
-  const active = users.filter(u => u.status === 'online' || u.status === 'away');
+  const active = users.filter(u => u.connected);
   return active.length ? active.map(u => `
     <div class="au-card">
-      ${avHtml(u.display_name,34,9,u.id,u.status,u.has_avatar)}
+      ${avHtml(u.display_name,34,9,u.id,u.connected,u.has_avatar)}
       <div class="au-info">
         <div class="au-name">${esc(u.display_name)}</div>
-        <div class="au-detail" style="color:${u.status==='online'?'var(--c-green-text)':'var(--c-orange-text)'}">${u.status==='online'?'онлайн':'отошёл'}</div>
+        <div class="au-detail" style="color:var(--c-green-text)">подключён</div>
       </div>
     </div>`).join('')
-    : `<div style="color:var(--c-muted);font-size:12px;padding:4px 0">Нет активных пользователей</div>`;
+    : `<div style="color:var(--c-muted);font-size:12px;padding:4px 0">Нет подключённых пользователей</div>`;
 }
 
 async function refreshDashboardData() {
@@ -963,13 +962,9 @@ async function refreshDashboardData() {
     if (s.serverVersion) set('dash-server-version', s.serverVersion);
 
     // Active users
-    const active = users.filter(u => u.status === 'online' || u.status === 'away');
-    const onlineCnt = active.filter(u => u.status === 'online').length;
-    const awayCnt   = active.filter(u => u.status === 'away').length;
+    const connectedCnt = users.filter(u => u.connected).length;
     setH('dash-au-grid',   auCardsHtml(users));
-    setH('dash-au-badges',
-      (onlineCnt ? `<span class="badge badge-green">${onlineCnt} онлайн</span>` : '') +
-      (awayCnt   ? `<span class="badge badge-orange" style="margin-left:4px">${awayCnt} отошли</span>` : ''));
+    setH('dash-au-badges', connectedCnt ? `<span class="badge badge-green">${connectedCnt} подключено</span>` : '');
 
     // Sparkline
     fetchAndRenderSparkline('sparkline-svg', sparkRange);
@@ -1104,9 +1099,7 @@ async function renderDashboard() {
   const [s, users] = await Promise.all([api('GET','/api/admin/stats'), api('GET','/api/admin/users')]);
   const apiLatency = Date.now() - t0;
   updateNavBadges();
-  const active = users.filter(u=>u.status==='online'||u.status==='away');
-  const onlineCnt = active.filter(u=>u.status==='online').length;
-  const awayCnt = active.filter(u=>u.status==='away').length;
+  const connectedCnt = users.filter(u=>u.connected).length;
 
   // Stat cards
   const statCards = [
@@ -1217,7 +1210,7 @@ async function renderDashboard() {
       <div class="card-head">
         <div style="display:flex;align-items:center;gap:8px">
           <h3>Активные пользователи</h3>
-          <span id="dash-au-badges">${onlineCnt ? `<span class="badge badge-green">${onlineCnt} онлайн</span>` : ''}${awayCnt ? `<span class="badge badge-orange" style="margin-left:4px">${awayCnt} отошли</span>` : ''}</span>
+          <span id="dash-au-badges">${connectedCnt ? `<span class="badge badge-green">${connectedCnt} подключено</span>` : ''}</span>
         </div>
         <button class="btn btn-ghost btn-sm" onclick="renderDashboard()">
           <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
@@ -1378,17 +1371,15 @@ async function renderUsers() {
   renderUsersTable(allUsers);
 }
 
-function statusBadge(s) {
-  if (s==='online') return '<span class="badge badge-green">В сети</span>';
-  if (s==='away') return '<span class="badge badge-orange">Отошёл</span>';
-  return '<span class="badge badge-gray">Офлайн</span>';
+function statusBadge(connected) {
+  return connected ? '<span class="badge badge-green">Подключён</span>' : '<span class="badge badge-gray">Отключён</span>';
 }
 
 function userRowHtml(u) {
   return `<tr>
-    <td><div class="user-cell">${avHtml(u.display_name,30,8,u.id,u.status,u.has_avatar)}<div><div class="uc-name">${esc(u.display_name)}</div><div class="uc-sub">@${esc(u.username)}</div></div></div></td>
+    <td><div class="user-cell">${avHtml(u.display_name,30,8,u.id,u.connected,u.has_avatar)}<div><div class="uc-name">${esc(u.display_name)}</div><div class="uc-sub">@${esc(u.username)}</div></div></div></td>
     <td>${u.is_admin?'<span class="badge badge-blue">Администратор</span>':'<span class="badge badge-gray">Пользователь</span>'}</td>
-    <td>${statusBadge(u.status)}</td>
+    <td>${statusBadge(u.connected)}</td>
     <td style="color:var(--c-muted);font-size:11px">${fmtDate(u.created_at)}</td>
     <td><div class="td-actions">
       <button class="btn btn-ghost btn-sm" onclick="openEditUser(${u.id})">Изменить</button>
@@ -1705,9 +1696,7 @@ async function loadClients(force=false) {
     <tbody>
     ${clients.map(c=>{
       const hasUpdate=latestVersion&&semverGt(latestVersion,c.clientVersion);
-      const statusBadgeHtml=c.status==='online'?'<span class="badge badge-green">онлайн</span>'
-        :c.status==='away'?'<span class="badge badge-orange">отошёл</span>'
-        :'<span class="badge badge-gray">офлайн</span>';
+      const statusBadgeHtml='<span class="badge badge-green">Подключён</span>';
       const verBadge=hasUpdate
         ?`<span class="ver-wrap"><span class="ver-old">${esc(c.clientVersion)}</span><span class="ver-update-btn"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg><span class="ver-tooltip">Доступна ${esc(latestVersion)}</span></span></span>`
         :`<span class="ver-ok">${esc(c.clientVersion)}</span>`;

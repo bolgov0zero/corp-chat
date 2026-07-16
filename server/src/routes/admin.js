@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const https = require('https');
 const { authMiddleware, adminMiddleware } = require('../auth');
-const { sendTo, getStatus, getClients, sendToConn, getConnCount, getConnMeta, initUpdateProgress, getUpdateProgress } = require('../ws');
+const { sendTo, getStatus, isConnected, getClients, sendToConn, getConnCount, getConnMeta, initUpdateProgress, getUpdateProgress } = require('../ws');
 
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', '..', '..', 'chat_db', 'chat.db');
 const FILES_DIR = path.join(path.dirname(DB_PATH), 'files');
@@ -164,7 +164,7 @@ router.get('/users', (req, res) => {
   const users = db.prepare('SELECT id, username, display_name, is_admin, tag, created_at FROM users ORDER BY created_at DESC').all();
   res.json(users.map(u => ({
     ...u,
-    status: getStatus(u.id),
+    connected: isConnected(u.id),
     has_avatar: fs.existsSync(path.join(avatarDir, `${u.id}.jpg`)),
   })));
 });

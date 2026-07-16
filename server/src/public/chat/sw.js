@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'corp-chat-v16';
+const CACHE = 'corp-chat-v17';
 // index.html (/chat/) намеренно не прекэшируем — он всегда из сети,
 // иначе закэшированная страница может рендериться без актуального viewport/вёрстки
 const STATIC = ['/chat/app.js', '/chat/style.css', '/chat/manifest.json', '/chat/icons/icon.svg'];
