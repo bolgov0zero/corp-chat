@@ -605,14 +605,20 @@ tr:hover .td-actions{opacity:1}
     </div>
     <div class="modal-body">
       <div id="room-edit-meta" style="display:none;margin-bottom:16px">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-          <div style="position:relative;cursor:pointer;flex-shrink:0" onclick="triggerRoomAvatarUpload()">
-            <div class="av" id="room-edit-av" style="border-radius:10px;width:48px;height:48px;font-size:18px;line-height:48px;text-align:center"></div>
-            <div style="position:absolute;inset:0;background:rgba(0,0,0,.4);border-radius:10px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0">
-              <svg width="16" height="16" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <div class="fg" style="display:flex;align-items:flex-end;gap:12px">
+          <div>
+            <label style="display:block;font-size:11px;font-weight:600;color:var(--c-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px">Фото</label>
+            <div style="position:relative;cursor:pointer;width:48px;height:48px" onclick="triggerRoomAvatarUpload()">
+              <div class="av" id="room-edit-av" style="border-radius:10px;width:48px;height:48px;font-size:18px;border:1.5px solid var(--c-border)"></div>
+              <div style="position:absolute;inset:0;background:rgba(0,0,0,.4);border-radius:10px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0">
+                <svg width="14" height="14" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              </div>
             </div>
           </div>
-          <input id="room-edit-name" class="input" placeholder="Название комнаты" style="flex:1">
+          <div style="flex:1">
+            <label>Название</label>
+            <input id="room-edit-name" placeholder="Название комнаты">
+          </div>
         </div>
         <input type="file" id="room-avatar-input" accept="image/*" style="display:none" onchange="onRoomAvatarChange(this)">
       </div>
