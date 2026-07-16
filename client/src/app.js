@@ -1512,6 +1512,7 @@ function showAttachmentPreviewBar() {
   const icon = bar.querySelector('.attach-preview-icon');
   if (icon) icon.style.display = isImage ? 'none' : '';
   bar.querySelector('.img-preview-name').textContent = att.name || (isImage ? 'Изображение' : 'Файл');
+  _stickyBottom();
 }
 
 function showImagePreviewBar() { showAttachmentPreviewBar(); }
