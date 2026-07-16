@@ -1572,6 +1572,7 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
   box-shadow: 0 16px 40px rgba(0,0,0,.2);
   padding: 8px;
   display: grid; grid-template-columns: repeat(6, 36px); gap: 2px;
+  max-height: calc(100vh - 16px); overflow-y: auto;
 }
 .emoji-item {
   width: 36px; height: 36px;

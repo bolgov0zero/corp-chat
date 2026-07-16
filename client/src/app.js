@@ -910,9 +910,16 @@ function toggleEmojiPicker(e) {
   }
   const btn = e.currentTarget;
   const rect = btn.getBoundingClientRect();
+  picker.style.bottom = picker.style.top = picker.style.left = picker.style.right = '';
   picker.style.display = 'grid';
+  picker.style.right = Math.max(4, window.innerWidth - rect.right) + 'px';
   picker.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
-  picker.style.right = (window.innerWidth - rect.right) + 'px';
+  requestAnimationFrame(() => {
+    const pr = picker.getBoundingClientRect();
+    if (pr.top < 8) { picker.style.bottom = ''; picker.style.top = (rect.bottom + 8) + 'px'; }
+    if (pr.bottom > window.innerHeight - 4) { picker.style.top = ''; picker.style.bottom = '4px'; }
+    if (pr.left < 4) { picker.style.right = ''; picker.style.left = '4px'; }
+  });
 }
 
 function insertEmoji(em) {
