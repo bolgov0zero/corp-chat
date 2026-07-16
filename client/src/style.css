@@ -330,6 +330,33 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
   .sidebar { background: var(--modal-bg); }
 }
 
+/* Sidebar hidden / peek */
+body.sidebar-notransition .sidebar { transition: none !important; }
+body.sidebar-hidden #screen-main { grid-template-columns: 0 1fr; }
+body.sidebar-hidden .sidebar {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: var(--sidebar-w);
+  transform: translateX(calc(-1 * var(--sidebar-w)));
+  z-index: 10;
+  border-right: none;
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.22s;
+}
+body.sidebar-hidden.sidebar-peeking .sidebar {
+  transform: translateX(0);
+  box-shadow: 4px 0 24px rgba(0,0,0,.2);
+}
+#sidebar-peek-zone {
+  display: none;
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  width: 8px;
+  z-index: 9;
+}
+body.sidebar-hidden #sidebar-peek-zone { display: block; }
+#sidebar-menu.open { transform-origin: top right; }
+.ctx-sep { height: 1px; background: var(--border); margin: 4px 0; }
+
 .sidebar-top { padding: 14px 14px 0; }
 
 /* User header row */

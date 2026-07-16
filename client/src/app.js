@@ -176,9 +176,14 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('l-password').addEventListener('keydown', e => e.key==='Enter' && doLogin());
   document.getElementById('l-server').addEventListener('keydown', e => e.key==='Enter' && document.getElementById('l-username').focus());
   document.getElementById('l-username').addEventListener('keydown', e => e.key==='Enter' && document.getElementById('l-password').focus());
+  // Sidebar: restore hidden state, init peek
+  if (localStorage.getItem('sidebarHidden')) document.body.classList.add('sidebar-hidden');
+  initSidebarPeek();
+
   document.addEventListener('click', e => {
     hideCtxMenu();
     document.getElementById('ctx-chat-menu').style.display = 'none';
+    closeSidebarMenu();
     // Close emoji picker if click outside
     const picker = document.getElementById('emoji-picker');
     if (picker && !picker.contains(e.target) && !e.target.closest('.emoji-btn')) {
@@ -306,15 +311,62 @@ function applySettings() {
   document.documentElement.classList.add('font-'+S.settings.fontSize);
   document.querySelectorAll('#theme-seg button').forEach(b => b.classList.toggle('active', b.textContent.trim()===(S.settings.theme==='light'?'Светлая':'Тёмная')));
   document.querySelectorAll('#font-seg button').forEach(b => b.classList.toggle('active', b.textContent.trim()===S.settings.fontSize[0].toUpperCase()));
-  // Sidebar theme toggle icon
-  const sunIcon = document.getElementById('theme-icon-sun');
-  const moonIcon = document.getElementById('theme-icon-moon');
-  if (sunIcon) sunIcon.style.display = isDark ? '' : 'none';
-  if (moonIcon) moonIcon.style.display = isDark ? 'none' : '';
+  updateSidebarMenuTheme();
 }
 function setTheme(t) { S.settings.theme=t; applySettings(); saveSession(); }
 function toggleTheme() { setTheme(S.settings.theme === 'dark' ? 'light' : 'dark'); }
 function setFontSize(f) { S.settings.fontSize=f; applySettings(); saveSession(); }
+
+function updateSidebarMenuTheme() {
+  const isDark = S.settings.theme === 'dark';
+  const lbl = document.getElementById('sidebar-menu-theme-label');
+  if (lbl) lbl.textContent = isDark ? 'Светлая тема' : 'Тёмная тема';
+  const sun = document.getElementById('sidebar-menu-theme-sun');
+  const moon = document.getElementById('sidebar-menu-theme-moon');
+  if (sun) sun.style.display = isDark ? '' : 'none';
+  if (moon) moon.style.display = isDark ? 'none' : '';
+}
+function openSidebarMenu(event) {
+  event.stopPropagation();
+  const menu = document.getElementById('sidebar-menu');
+  const rect = event.currentTarget.getBoundingClientRect();
+  updateSidebarMenuTheme();
+  menu.classList.add('open');
+  const mw = 190;
+  let left = rect.right - mw;
+  if (left < 4) left = 4;
+  menu.style.left = left + 'px';
+  menu.style.top = (rect.bottom + 4) + 'px';
+}
+function closeSidebarMenu() {
+  document.getElementById('sidebar-menu')?.classList.remove('open');
+}
+let _sidebarPeekTimer = null;
+function toggleSidebar() {
+  closeSidebarMenu();
+  document.body.classList.add('sidebar-notransition');
+  const hidden = document.body.classList.toggle('sidebar-hidden');
+  document.body.classList.remove('sidebar-peeking');
+  requestAnimationFrame(() => document.body.classList.remove('sidebar-notransition'));
+  localStorage.setItem('sidebarHidden', hidden ? '1' : '');
+}
+function initSidebarPeek() {
+  const zone = document.getElementById('sidebar-peek-zone');
+  const sidebar = document.querySelector('.sidebar');
+  if (!zone || !sidebar) return;
+  zone.addEventListener('mouseenter', () => {
+    clearTimeout(_sidebarPeekTimer);
+    document.body.classList.add('sidebar-peeking');
+  });
+  sidebar.addEventListener('mouseleave', () => {
+    if (document.body.classList.contains('sidebar-hidden')) {
+      _sidebarPeekTimer = setTimeout(() => {
+        document.body.classList.remove('sidebar-peeking');
+      }, 120);
+    }
+  });
+  sidebar.addEventListener('mouseenter', () => clearTimeout(_sidebarPeekTimer));
+}
 async function openSettings() {
   document.getElementById('modal-settings').classList.add('open');
   const dn = document.getElementById('settings-display-name');
@@ -1625,7 +1677,13 @@ function scrollToMsg(msgId) {
   const el = document.querySelector(`[data-msg-id="${msgId}"]`);
   // Сообщения нет в DOM (глубоко в истории) — перезагружаем чат окном вокруг него
   if (!el) { if (S.activeChatId) openChat(S.activeChatId, msgId); return; }
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const msgs = document.getElementById('messages');
+  const rect = el.getBoundingClientRect();
+  const containerRect = msgs ? msgs.getBoundingClientRect() : null;
+  const isVisible = containerRect
+    ? rect.top >= containerRect.top && rect.bottom <= containerRect.bottom
+    : false;
+  if (!isVisible) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   el.classList.remove('msg-highlight');
   void el.offsetWidth;
   el.classList.add('msg-highlight');
