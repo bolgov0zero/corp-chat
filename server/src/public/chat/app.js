@@ -418,7 +418,6 @@ function logout() {
 function enterApp() {
   document.getElementById('screen-login').classList.remove('active');
   document.getElementById('screen-main').classList.add('active');
-  updateMeAvatar();
   loadChats().then(() => {
     if (S._pendingOpenChatId) {
       const c = S.chats.find(c => c.id === S._pendingOpenChatId);
@@ -438,22 +437,6 @@ function enterApp() {
   }
 }
 
-function updateMeAvatar() {
-  const el = document.getElementById('me-av');
-  const url = `${httpProto()}://${S.server}/api/users/${S.user.id}/avatar?t=${Date.now()}`;
-  const img = new Image();
-  img.onload = () => {
-    el.style.backgroundImage = `url('${url}')`;
-    el.style.backgroundSize = 'cover';
-    el.textContent = '';
-  };
-  img.onerror = () => {
-    el.style.backgroundImage = '';
-    el.textContent = initials(S.user.display_name);
-  };
-  img.src = url;
-  el.className = `av av-sm ${avatarColor(S.user.id)}`;
-}
 
 function updateSidebarThemeIcon() {
   const isDark = S.settings.theme === 'dark';
@@ -558,7 +541,6 @@ async function onAvatarFileChange(input) {
     const base64 = e.target.result.split(',')[1];
     const res = await api('POST', '/users/me/avatar', { data: base64 });
     if (res?.ok) {
-      updateMeAvatar();
       updateSettingsAvatar();
     }
   };
@@ -2280,7 +2262,6 @@ function connectWS() {
     if (data.type==='avatar_updated') {
       S.avatarTs = Date.now();
       _avatarCache.clear();
-      updateMeAvatar();
       renderChatList();
     }
 
