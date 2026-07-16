@@ -341,6 +341,10 @@ function openSidebarMenu(event) {
 }
 function closeSidebarMenu() {
   document.getElementById('sidebar-menu')?.classList.remove('open');
+  if (document.body.classList.contains('sidebar-hidden') &&
+      !document.querySelector('.sidebar:hover')) {
+    _scheduleHideSidebar();
+  }
 }
 let _sidebarPeekTimer = null;
 function toggleSidebar() {
@@ -351,22 +355,30 @@ function toggleSidebar() {
   requestAnimationFrame(() => document.body.classList.remove('sidebar-notransition'));
   localStorage.setItem('sidebarHidden', hidden ? '1' : '');
 }
+function _scheduleHideSidebar() {
+  if (!document.body.classList.contains('sidebar-hidden')) return;
+  _sidebarPeekTimer = setTimeout(() => {
+    document.body.classList.remove('sidebar-peeking');
+  }, 120);
+}
 function initSidebarPeek() {
   const zone = document.getElementById('sidebar-peek-zone');
   const sidebar = document.querySelector('.sidebar');
+  const menu = document.getElementById('sidebar-menu');
   if (!zone || !sidebar) return;
   zone.addEventListener('mouseenter', () => {
     clearTimeout(_sidebarPeekTimer);
     document.body.classList.add('sidebar-peeking');
   });
   sidebar.addEventListener('mouseleave', () => {
-    if (document.body.classList.contains('sidebar-hidden')) {
-      _sidebarPeekTimer = setTimeout(() => {
-        document.body.classList.remove('sidebar-peeking');
-      }, 120);
-    }
+    if (menu?.classList.contains('open')) return;
+    _scheduleHideSidebar();
   });
   sidebar.addEventListener('mouseenter', () => clearTimeout(_sidebarPeekTimer));
+  if (menu) {
+    menu.addEventListener('mouseenter', () => clearTimeout(_sidebarPeekTimer));
+    menu.addEventListener('mouseleave', _scheduleHideSidebar);
+  }
 }
 async function openSettings() {
   document.getElementById('modal-settings').classList.add('open');
