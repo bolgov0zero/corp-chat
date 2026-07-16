@@ -1521,6 +1521,31 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.12); }
 /* ══════════════════════════════════════════
    EMOJI PICKER
    ══════════════════════════════════════════ */
+/* ── MENTION POPUP ── */
+#mention-popup {
+  position: fixed;
+  display: none;
+  background: var(--menu-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.18);
+  z-index: 400;
+  overflow-y: auto;
+  max-height: 224px;
+  padding: 4px;
+  min-width: 200px;
+}
+.mention-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background .12s;
+}
+.mention-item:hover, .mention-item.mn-active { background: var(--hover-row); }
+.mention-item .mn-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.mention-item .mn-login { font-size: 11px; color: var(--muted); }
+
 .emoji-picker {
   position: fixed; z-index: 400;
   background: var(--menu-bg);

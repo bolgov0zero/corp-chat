@@ -329,6 +329,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.addEventListener('click', e => {
     hideCtxMenu();
     document.getElementById('ctx-chat-menu').style.display = 'none';
+    if (!e.target.closest('#mention-popup')) hideMentionPopup();
     const picker = document.getElementById('emoji-picker');
     if (picker && !picker.contains(e.target) && !e.target.closest('.emoji-btn')) {
       picker.style.display = 'none';
@@ -1452,13 +1453,95 @@ function ctxReact(reaction) {
 }
 
 // ── SEND / EDIT ──
-function handleKey(e) { if (e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendOrEdit(); } }
+// ── @MENTION AUTOCOMPLETE ──
+let _mentionIdx = -1;
+
+function _getMentionQuery(el) {
+  const m = el.value.slice(0, el.selectionStart).match(/@(\S*)$/);
+  return m ? m[1] : null;
+}
+function _mentionMembers() {
+  const chat = S.chats.find(c => c.id === S.activeChatId);
+  if (chat?.type !== 'group' && chat?.type !== 'room') return null;
+  return (chat.members || []).filter(m => m.id !== S.user.id);
+}
+function _updateMentionPopup(el) {
+  const query = _getMentionQuery(el);
+  const all = _mentionMembers();
+  if (query === null || !all) { hideMentionPopup(); return; }
+  const q = query.toLowerCase();
+  const filtered = q
+    ? all.filter(m => (m.display_name||'').toLowerCase().includes(q) || m.username.toLowerCase().includes(q))
+    : all;
+  if (!filtered.length) { hideMentionPopup(); return; }
+  const popup = document.getElementById('mention-popup');
+  _mentionIdx = -1;
+  popup.innerHTML = filtered.map(m =>
+    `<div class="mention-item" data-name="${esc(m.display_name||m.username)}" onclick="insertMention('${esc(m.display_name||m.username)}')">
+      <div class="av av-sm av-round ${avatarColor(m.id)}" data-av-user="${m.id}">${initials(m.display_name)}</div>
+      <div><div class="mn-name">${esc(m.display_name||m.username)}</div><div class="mn-login">@${esc(m.username)}</div></div>
+    </div>`
+  ).join('');
+  applyAvatars();
+  const pill = document.getElementById('composer-pill');
+  if (pill) {
+    const rect = pill.getBoundingClientRect();
+    popup.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
+    popup.style.left = rect.left + 'px';
+    popup.style.width = Math.min(rect.width, 280) + 'px';
+    popup.style.display = 'block';
+  }
+}
+function hideMentionPopup() {
+  const p = document.getElementById('mention-popup');
+  if (p) { p.style.display = 'none'; p.innerHTML = ''; }
+  _mentionIdx = -1;
+}
+function _mentionMove(dir) {
+  const popup = document.getElementById('mention-popup');
+  const items = popup?.querySelectorAll('.mention-item');
+  if (!items?.length) return;
+  items[_mentionIdx]?.classList.remove('mn-active');
+  _mentionIdx = (_mentionIdx + dir + items.length) % items.length;
+  items[_mentionIdx].classList.add('mn-active');
+  items[_mentionIdx].scrollIntoView({ block: 'nearest' });
+}
+function insertMention(name) {
+  const el = document.getElementById('msg-input');
+  if (!el) return;
+  const cursor = el.selectionStart;
+  const before = el.value.slice(0, cursor);
+  const m = before.match(/@(\S*)$/);
+  if (!m) return;
+  const newBefore = before.slice(0, before.length - m[0].length) + '@' + name + ' ';
+  el.value = newBefore + el.value.slice(cursor);
+  el.selectionStart = el.selectionEnd = newBefore.length;
+  el.focus();
+  autoResize(el);
+  hideMentionPopup();
+}
+
+function handleKey(e) {
+  const popup = document.getElementById('mention-popup');
+  if (popup?.style.display !== 'none' && popup?.innerHTML) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); _mentionMove(1); return; }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); _mentionMove(-1); return; }
+    if (e.key === 'Escape')    { hideMentionPopup(); return; }
+    if (e.key === 'Enter' && _mentionIdx >= 0) {
+      e.preventDefault();
+      popup.querySelectorAll('.mention-item')[_mentionIdx]?.click();
+      return;
+    }
+  }
+  if (e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendOrEdit(); }
+}
 
 const typingTimers = {};
 let typingSendTimer = null;
 
 function onMsgInput(el) {
   autoResize(el);
+  _updateMentionPopup(el);
   // Сохраняем черновик для текущего чата, чтобы он не терялся при переключении
   if (S.activeChatId) {
     if (el.value) S.drafts[S.activeChatId] = el.value;
