@@ -2394,6 +2394,18 @@ function peerStatusText(userId) {
   return formatLastSeen(S.lastSeen[userId]);
 }
 
+// Периодически обновляем "был(а) в сети N мин. назад" в шапке открытого личного чата,
+// иначе таймштамп замирает и остаётся "только что" сколько бы времени ни прошло.
+setInterval(() => {
+  if (!S.activeChatId) return;
+  const chat = S.chats.find(c => c.id === S.activeChatId);
+  if (!chat || chat.type !== 'direct') return;
+  const peerId = getPeerUserId(chat);
+  if (!peerId) return;
+  const subEl = document.querySelector('.ch-sub');
+  if (subEl) subEl.textContent = peerStatusText(peerId);
+}, 30000);
+
 function presenceDot(userId) {
   const online = (S.presence[userId] || 'offline') === 'online';
   if (!online) return '';
