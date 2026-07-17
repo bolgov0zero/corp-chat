@@ -476,6 +476,11 @@ ipcMain.handle('download-file', (_, { url, filename }) => {
 
 ipcMain.handle('file-exists', (_, filePath) => fs.existsSync(filePath));
 
+ipcMain.handle('restart-app', () => {
+  app.relaunch();
+  app.exit(0);
+});
+
 ipcMain.handle('open-file', (_, filePath) => {
   const { shell } = require('electron');
   return shell.openPath(filePath);

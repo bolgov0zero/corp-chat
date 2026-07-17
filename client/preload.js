@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('electron', {
   getAutostart: () => ipcRenderer.invoke('get-autostart'),
   setAutostart: (enabled) => ipcRenderer.invoke('set-autostart', enabled),
   downloadFile: (opts) => ipcRenderer.invoke('download-file', opts),
+  restartApp: () => ipcRenderer.invoke('restart-app'),
   fileExists: (filePath) => ipcRenderer.invoke('file-exists', filePath),
   openFile: (filePath) => ipcRenderer.invoke('open-file', filePath),
   // High Availability

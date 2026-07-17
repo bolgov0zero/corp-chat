@@ -338,6 +338,12 @@ router.post('/clients/:connId/force-logout', (req, res) => {
   res.json({ ok: true });
 });
 
+// Принудительный перезапуск клиента (только Electron: app.relaunch + exit)
+router.post('/clients/:connId/force-restart', (req, res) => {
+  sendToConn(Number(req.params.connId), { type: 'force_restart' });
+  res.json({ ok: true });
+});
+
 // Перезапуск службы systemd
 router.post('/system/restart', (req, res) => {
   const { exec } = require('child_process');

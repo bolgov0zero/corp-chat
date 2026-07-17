@@ -2182,6 +2182,11 @@ function connectWS() {
     if (data.type === 'force_logout') {
       logout();
     }
+
+    if (data.type === 'force_restart') {
+      // Только Electron: полный рестарт процесса. В веб-клиенте команда игнорируется.
+      window.electron?.restartApp?.();
+    }
   };
 
   ws.onclose = () => {
