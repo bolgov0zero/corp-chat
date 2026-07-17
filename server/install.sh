@@ -73,14 +73,28 @@ fi
 
 echo "→ Node.js: $(node --version) | npm: $(npm --version)"
 
+# ── Инструменты сборки (нужны, чтобы собирать better-sqlite3 из исходников,
+#     когда GitHub Releases недоступен и prebuild-install падает по таймауту) ──
+if [ "$PKG" = "apt" ]; then
+  apt-get install -y build-essential python3 >/dev/null 2>&1 || true
+elif [ "$PKG" = "yum" ]; then
+  (yum install -y gcc gcc-c++ make python3 >/dev/null 2>&1 || dnf install -y gcc gcc-c++ make python3 >/dev/null 2>&1) || true
+fi
+
 # ── Зависимости ──
 echo "→ Установка зависимостей..."
 cd "$APP_DIR"
-npm install --omit=dev
+# Устойчивые таймауты для медленных/нестабильных сетей
+npm config set fetch-timeout 300000
+npm config set fetch-retries 5
+# --build-from-source: не тянем прекомпилированный бинарник с GitHub Releases
+# (у части хостингов GitHub блокирован/медленный — prebuild-install падает по ETIMEDOUT).
+# Собираем better-sqlite3 локально через node-gyp.
+npm install --omit=dev --build-from-source
 
 # ── Пересборка нативных модулей под текущую архитектуру ──
 echo "→ Пересборка нативных модулей (better-sqlite3)..."
-npm rebuild better-sqlite3
+npm rebuild better-sqlite3 --build-from-source
 
 # ── Создание папки для БД ──
 mkdir -p "$DB_DIR"
