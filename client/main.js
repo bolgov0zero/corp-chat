@@ -223,6 +223,26 @@ function makeIconImage(buf) {
 
 const _ASSETS = path.join(__dirname, 'src', 'assets');
 
+// Windows: nativeTheme.shouldUseDarkColors соответствует AppsUseLightTheme, а таскбар
+// управляется отдельным ключом SystemUsesLightTheme. При «App light + System dark»
+// (частый сценарий) выбиралась чёрная иконка на чёрном таскбаре — не видно.
+// Читаем реальный цвет таскбара из реестра и кэшируем результат.
+let _winTaskbarDark = null;
+function isWindowsTaskbarDark() {
+  if (process.platform !== 'win32') return false;
+  if (_winTaskbarDark !== null) return _winTaskbarDark;
+  try {
+    const { execSync } = require('child_process');
+    const out = execSync(
+      'reg query "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize" /v SystemUsesLightTheme',
+      { encoding: 'utf8', timeout: 2000, windowsHide: true }
+    );
+    const m = out.match(/SystemUsesLightTheme\s+REG_DWORD\s+0x([0-9a-f]+)/i);
+    _winTaskbarDark = m ? parseInt(m[1], 16) === 0 : true;
+  } catch { _winTaskbarDark = true; }
+  return _winTaskbarDark;
+}
+
 function getNormalImage() {
   if (process.platform === 'darwin') {
     const img = nativeImage.createEmpty();
@@ -231,7 +251,8 @@ function getNormalImage() {
     img.setTemplateImage(true);
     return img;
   }
-  const name = nativeTheme.shouldUseDarkColors ? 'tray-white-24.png' : 'tray-dark-24.png';
+  const dark = process.platform === 'win32' ? isWindowsTaskbarDark() : nativeTheme.shouldUseDarkColors;
+  const name = dark ? 'tray-white-24.png' : 'tray-dark-24.png';
   return nativeImage.createFromPath(path.join(_ASSETS, name));
 }
 
@@ -314,6 +335,11 @@ function createTray() {
   updateTray();
   tray.on('click', () => { mainWindow?.show(); mainWindow?.focus(); });
   tray.on('double-click', () => { mainWindow?.show(); mainWindow?.focus(); });
+  // Смена системной темы → обновляем иконку под новый цвет таскбара
+  nativeTheme.on('updated', () => {
+    _winTaskbarDark = null;
+    try { tray?.setImage(blinkState ? getBlinkImage() : getNormalImage()); } catch {}
+  });
 }
 
 // IPC
