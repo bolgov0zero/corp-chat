@@ -1118,7 +1118,7 @@ function renderMsgIRC(m, isGroup) {
     } else {
       const attUrl = `${httpProto()}://${S.server}${att.url}`;
       if (att.mime?.startsWith('image/')) {
-        attachHtml = `<div class="bubble-image" onclick="openLightbox('${attUrl}')"><img src="${httpProto()}://${S.server}${att.thumb || att.url}" loading="lazy"></div>`;
+        attachHtml = `<div class="bubble-image" onclick="openLightbox('${attUrl}','${(att.name||'image').replace(/'/g,"\\'")}')"><img src="${httpProto()}://${S.server}${att.thumb || att.url}" loading="lazy"></div>`;
       } else {
         const sizeFmt = att.size ? (att.size > 1048576 ? (att.size/1048576).toFixed(1)+' МБ' : Math.round(att.size/1024)+' КБ') : '';
         const localPath = _downloadedFiles[attUrl];
@@ -1629,16 +1629,21 @@ function clearImagePreview() {
   }
 }
 
-function openLightbox(url) {
+function openLightbox(url, filename) {
   let lb = document.getElementById('lightbox');
   if (!lb) {
     lb = document.createElement('div');
     lb.id = 'lightbox';
     lb.onclick = () => closeLightbox();
-    lb.innerHTML = '<img id="lightbox-img">';
+    lb.innerHTML = `<img id="lightbox-img">
+      <button id="lightbox-download" title="Скачать" onclick="event.stopPropagation();downloadAttachment(document.getElementById('lightbox').dataset.url, document.getElementById('lightbox').dataset.filename)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>`;
     document.body.appendChild(lb);
   }
   document.getElementById('lightbox-img').src = url;
+  lb.dataset.url = url;
+  lb.dataset.filename = filename || 'image';
   lb.classList.remove('lb-closing');
   lb.classList.add('lb-open');
 }

@@ -616,6 +616,8 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
 @keyframes lbImgIn  { from { opacity: 0; transform: scale(.88); }          to { opacity: 1; transform: scale(1); } }
 @keyframes lbImgOut { from { opacity: 1; transform: scale(1); }            to { opacity: 0; transform: scale(.88); } }
 #lightbox img { max-width: 92vw; max-height: 92vh; border-radius: 8px; object-fit: contain; box-shadow: 0 8px 40px rgba(0,0,0,.6); }
+#lightbox-download { position: absolute; top: 24px; right: 24px; width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,.4); color: #fff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+#lightbox-download:hover { background: rgba(0,0,0,.7); }
 
 /* Legacy msg-meta hidden (kept for appendMsg compat) */
 .msg-meta { display: none; }
