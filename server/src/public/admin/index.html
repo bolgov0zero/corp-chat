@@ -988,7 +988,11 @@ async function refreshDashboardData() {
 
     // Active users
     const connectedCnt = users.filter(u => u.connected).length;
-    setH('dash-au-grid',   auCardsHtml(users));
+    // Не пересоздаём DOM, если содержимое не изменилось — иначе img элементы
+    // пересоздаются каждые 10с и картинки мигают. innerHTML сравнение дёшево.
+    const auEl = document.getElementById('dash-au-grid');
+    const newAuHtml = auCardsHtml(users);
+    if (auEl && auEl.innerHTML !== newAuHtml) auEl.innerHTML = newAuHtml;
     setH('dash-au-badges', connectedCnt ? `<span class="badge badge-green">${connectedCnt} подключено</span>` : '');
 
     // Sparkline
@@ -1746,6 +1750,21 @@ async function loadClients(force=false) {
     return `<span style="display:inline-block;margin-top:3px;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700;background:${bg};color:${color}">${isSystem?'system':'profile'}</span>`;
   }
 
+  // Ключ структуры — всё что влияет на строки, кроме постоянно меняющегося duration.
+  // Если ключ не изменился, обновляем только клетки Онлайн — иначе картинки перерисовываются.
+  const structKey = JSON.stringify({
+    latestVersion,
+    rows: clients.map(c => [c.connId, c.userId, c.clientVersion, c.osPlatform, c.osRelease, c.installScope, c.hostname, c.clientIp, c.displayName, c.username]),
+  });
+  if (window._clientsStructKey === structKey && wrap.querySelector('tbody')) {
+    clients.forEach(c => {
+      const el = wrap.querySelector(`[data-conn-online="${c.connId}"]`);
+      if (el) el.textContent = fmtDuration(Date.now() - c.connectedAt);
+    });
+    return;
+  }
+  window._clientsStructKey = structKey;
+
   wrap.innerHTML=`<table>
     <thead><tr>
       <th>Пользователь</th>
@@ -1786,7 +1805,7 @@ async function loadClients(force=false) {
         </td>
         <td>${statusBadgeHtml}</td>
         <td>${verBadge}</td>
-        <td style="color:var(--c-muted);font-size:11px;font-family:var(--f-mono)">${duration}</td>
+        <td data-conn-online="${c.connId}" style="color:var(--c-muted);font-size:11px;font-family:var(--f-mono)">${duration}</td>
         <td>
           <div class="td-actions">
             ${hasUpdate
