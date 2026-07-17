@@ -821,7 +821,7 @@ async function openChat(chatId, aroundId = null) {
     S.chatNewestId = data.messages[data.messages.length - 1]?.id ?? null;
     renderMessages(data.messages, !aroundId);
     if (aroundId) {
-      requestAnimationFrame(() => scrollToMsg(aroundId));
+      requestAnimationFrame(() => scrollToMsg(aroundId, true));
     } else {
       insertUnreadDivider(data.messages, _unreadAtOpen);
     }
@@ -1712,7 +1712,7 @@ async function downloadAttachment(url, filename) {
   }
 }
 
-function scrollToMsg(msgId) {
+function scrollToMsg(msgId, force = false) {
   const el = document.querySelector(`[data-msg-id="${msgId}"]`);
   // Сообщения нет в DOM (глубоко в истории) — перезагружаем чат окном вокруг него
   if (!el) { if (S.activeChatId) openChat(S.activeChatId, msgId); return; }
@@ -1722,7 +1722,7 @@ function scrollToMsg(msgId) {
   const isVisible = containerRect
     ? rect.top >= containerRect.top && rect.bottom <= containerRect.bottom
     : false;
-  if (!isVisible && msgs && containerRect) {
+  if ((force || !isVisible) && msgs && containerRect) {
     msgs.scrollBy({ top: rect.top - containerRect.top - msgs.clientHeight / 2 + el.offsetHeight / 2, behavior: 'smooth' });
   }
   el.classList.remove('msg-highlight');
