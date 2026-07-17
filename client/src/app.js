@@ -1723,7 +1723,11 @@ function scrollToMsg(msgId, force = false) {
     ? rect.top >= containerRect.top && rect.bottom <= containerRect.bottom
     : false;
   if ((force || !isVisible) && msgs && containerRect) {
-    msgs.scrollBy({ top: rect.top - containerRect.top - msgs.clientHeight / 2 + el.offsetHeight / 2, behavior: 'smooth' });
+    const offset = rect.top - containerRect.top - msgs.clientHeight / 2 + el.offsetHeight / 2;
+    // force: мгновенный скролл; smooth-прокрутка триггерит onMessagesScroll на промежуточных
+    // scrollTop<80 и вызывает loadMoreMessages, что уводит позицию.
+    if (force) msgs.scrollTop = msgs.scrollTop + offset;
+    else msgs.scrollBy({ top: offset, behavior: 'smooth' });
   }
   el.classList.remove('msg-highlight');
   void el.offsetWidth;
