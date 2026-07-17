@@ -316,7 +316,8 @@ function createWindow() {
     _saveWinBounds();
     if (!app.isQuiting) {
       e.preventDefault();
-      mainWindow.hide();
+      if (process.platform === 'win32') mainWindow.minimize();
+      else mainWindow.hide();
     }
   });
   mainWindow.on('focus', () => {
