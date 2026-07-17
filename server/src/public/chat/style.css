@@ -413,16 +413,6 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
 .chat-item:hover { background: var(--hover-row); }
 .chat-item.active { background: var(--active-row); }
 
-/* Active accent strip */
-.chat-item.active::before {
-  content: '';
-  position: absolute;
-  left: -8px; top: 50%; transform: translateY(-50%);
-  width: 3px; height: 24px;
-  background: var(--accent);
-  border-radius: 2px;
-}
-
 .chat-item .info { flex: 1; overflow: hidden; min-width: 0; }
 .chat-item .ci-name {
   color: var(--text);
