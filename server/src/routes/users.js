@@ -73,13 +73,13 @@ router.get('/:id/avatar', (req, res) => {
 
 // Admin: create user
 router.post('/', authMiddleware, adminMiddleware, (req, res) => {
-  const { username, password, display_name, is_admin } = req.body;
+  const { username, password, display_name, is_admin, tag } = req.body;
   if (!username?.trim() || !password || !display_name?.trim()) return res.status(400).json({ error: 'Missing fields' });
   try {
     const hash = bcrypt.hashSync(password, 10);
-    const result = db.prepare('INSERT INTO users (username, password_hash, display_name, is_admin) VALUES (?, ?, ?, ?)')
-      .run(username.trim(), hash, display_name.trim(), is_admin ? 1 : 0);
-    res.json({ id: result.lastInsertRowid, username, display_name, is_admin: !!is_admin });
+    const result = db.prepare('INSERT INTO users (username, password_hash, display_name, is_admin, tag) VALUES (?, ?, ?, ?, ?)')
+      .run(username.trim(), hash, display_name.trim(), is_admin ? 1 : 0, tag?.trim() || null);
+    res.json({ id: result.lastInsertRowid, username, display_name, is_admin: !!is_admin, tag: tag?.trim() || null });
   } catch { res.status(409).json({ error: 'Username already exists' }); }
 });
 

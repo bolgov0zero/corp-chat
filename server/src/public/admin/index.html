@@ -1511,7 +1511,8 @@ async function saveUser() {
     else document.getElementById('u-err').textContent=data.error||'Ошибка';
   } else {
     if (!username||!display_name||!password) { document.getElementById('u-err').textContent='Заполните все поля'; return; }
-    const data=await api('POST','/api/users',{username,display_name,password,is_admin});
+    const tag=document.getElementById('u-tag').value.trim()||null;
+    const data=await api('POST','/api/users',{username,display_name,password,is_admin,tag});
     if (data.id) { closeModal('modal-user'); toast('Пользователь создан','success'); renderUsers(); }
     else document.getElementById('u-err').textContent=data.error||'Ошибка';
   }
