@@ -205,6 +205,7 @@ router.post('/:id/avatar', authMiddleware, (req, res) => {
 // Serve group avatar
 router.get('/:id/avatar', (req, res) => {
   const file = path2.join(AVATAR_DIR, `chat_${req.params.id}.jpg`);
+  res.setHeader('Cache-Control', 'private, max-age=60');
   res.sendFile(file, err => { if (err) res.status(404).end(); });
 });
 

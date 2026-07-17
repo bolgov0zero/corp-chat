@@ -1875,12 +1875,8 @@ function openGroupMembers(chatId) {
           </svg>
         </button>` : (isOwner ? `<span style="margin-left:auto;font-size:11px;color:var(--muted);background:var(--card-bg);padding:2px 8px;border-radius:10px">создатель</span>` : '');
       return `
-        <div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border)">
-          <div class="av av-sm av-round ${avatarColor(m.id)}" data-av-user="${m.id}">${initials(m.display_name)}</div>
-          <div>
-            <div style="font-size:14px;font-weight:500">${esc(m.display_name)}</div>
-            <div style="font-size:12px;color:var(--muted)">@${esc(m.username)}</div>
-          </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--border)">
+          <div style="font-size:13px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.display_name)}</div>
           ${kickBtn}
         </div>`;
     }).join('') || '<div style="color:var(--muted);text-align:center;padding:20px">Нет участников</div>';
@@ -1924,16 +1920,11 @@ async function openAddMember(chatId) {
       <span style="font-size:13px;color:var(--muted)">Выберите пользователя</span>
     </div>
     ${available.map(u => `
-      <div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border);cursor:pointer"
+      <div style="display:flex;align-items:center;padding:6px 4px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px"
            onclick="addMember(${chatId},${u.id})"
            onmouseover="this.style.background='var(--hover-row)'" onmouseout="this.style.background=''">
-        <div class="av av-sm av-round ${avatarColor(u.id)}" data-av-user="${u.id}">${initials(u.display_name)}</div>
-        <div>
-          <div style="font-size:14px;font-weight:500">${esc(u.display_name)}</div>
-          <div style="font-size:12px;color:var(--muted)">@${esc(u.username)}</div>
-        </div>
+        ${esc(u.display_name)}
       </div>`).join('')}`;
-  applyAvatars();
 }
 
 async function addMember(chatId, userId) {
@@ -2342,11 +2333,9 @@ function renderModalUsers(containerId, multi, filter='') {
   if (!container) return;
   const list = S.allUsers.filter(u=>!filter||u.display_name.toLowerCase().includes(filter)||u.username.toLowerCase().includes(filter));
   container.innerHTML = list.map(u=>`
-    <div class="user-row" data-uid="${u.id}" onclick="${multi?`toggleModalUser(this,${u.id})`:`startDirect(${u.id})`}">
-      <div class="av av-sm av-round ${avatarColor(u.id)}" data-av-user="${u.id}">${initials(u.display_name)}</div>
-      <div><div class="uname">${esc(u.display_name)}</div><div class="ulogin">@${esc(u.username)}</div></div>
+    <div class="user-row user-row-compact" data-uid="${u.id}" onclick="${multi?`toggleModalUser(this,${u.id})`:`startDirect(${u.id})`}">
+      <span class="uname">${esc(u.display_name)}</span>
     </div>`).join('') || '<div style="padding:12px;color:var(--muted);font-size:13px">Нет пользователей</div>';
-  applyAvatars();
 }
 
 function filterModalUsers(q, containerId) {

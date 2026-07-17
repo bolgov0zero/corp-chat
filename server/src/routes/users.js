@@ -68,6 +68,9 @@ router.post('/me/avatar', authMiddleware, (req, res) => {
 // Serve user avatar
 router.get('/:id/avatar', (req, res) => {
   const file = path2.join(AVATAR_DIR, `${req.params.id}.jpg`);
+  // Короткий кэш: при частых опросах (напр., таблица клиентов в админке /5c) браузер
+  // не бомбит сервер и не мигает картинками. При смене аватарки клиент вешает ?t=...
+  res.setHeader('Cache-Control', 'private, max-age=60');
   res.sendFile(file, err => { if (err) res.status(404).end(); });
 });
 

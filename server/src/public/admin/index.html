@@ -310,6 +310,10 @@ tbody tr:hover td{background:var(--c-surface2)}
 .checkbox-row input[type=checkbox]{width:14px;height:14px;accent-color:var(--c-primary);cursor:pointer;flex-shrink:0}
 .checkbox-row .cname{font-size:12px;font-weight:600;color:var(--c-text)}
 .checkbox-row .cuname{font-size:10px;color:var(--c-muted)}
+.member-row-compact{padding:5px 10px;gap:8px}
+.member-row-compact .mname{font-size:12px;font-weight:500;color:var(--c-text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.checkbox-row-compact{padding:5px 10px;gap:8px}
+.checkbox-row-compact .cname{font-size:12px;font-weight:500;color:var(--c-text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ── TOAST ── */
 #toast-container{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:6px}
@@ -787,13 +791,13 @@ function avHtml(name, size=32, radius=8, userId=null, connected=false, _hasAvata
     ? `<div class="status-dot connected" style="width:${dotSz}px;height:${dotSz}px"></div>` : '';
   const src = userId ? `/api/users/${userId}/avatar` : (chatId ? `/api/chats/${chatId}/avatar` : null);
   if (src) {
-    // Avatar hidden until image resolves — no colored block flash
-    const inits = `<span style="display:none">${initials(name)}</span>`;
+    // Инициалы видны сразу (не мерцают), картинка накрывает их когда догрузится.
+    // При ошибке — прячем img, инициалы остаются на месте.
+    const inits = `<span>${initials(name)}</span>`;
     const img   = `<img src="${src}" loading="eager"
-      style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:${radius}px"
-      onload="this.parentElement.style.opacity='1'"
-      onerror="this.style.display='none';this.previousElementSibling.style.display='';this.parentElement.style.opacity='1'">`;
-    return `<div class="av-wrap"><div class="av" style="width:${size}px;height:${size}px;border-radius:${radius}px;font-size:${fs}px;background:${bg};opacity:0">${inits}${img}</div>${dotHtml}</div>`;
+      style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:${radius}px;background:${bg}"
+      onerror="this.style.display='none'">`;
+    return `<div class="av-wrap"><div class="av" style="width:${size}px;height:${size}px;border-radius:${radius}px;font-size:${fs}px;background:${bg}">${inits}${img}</div>${dotHtml}</div>`;
   }
   return `<div class="av-wrap"><div class="av" style="width:${size}px;height:${size}px;border-radius:${radius}px;font-size:${fs}px;background:${bg}">${initials(name)}</div>${dotHtml}</div>`;
 }
@@ -921,7 +925,9 @@ function enterApp(user) {
   startClock();
   startBgClientsPolling();
   startBgDashPolling();
-  nav('dashboard');
+  let savedPage = 'dashboard';
+  try { const p = localStorage.getItem('admin-page'); if (p && pageRenders[p]) savedPage = p; } catch {}
+  nav(savedPage);
 }
 
 function startBgClientsPolling() {
@@ -1060,6 +1066,7 @@ const pageRenders = {dashboard:renderDashboard,users:renderUsers,rooms:renderRoo
 
 function nav(page) {
   currentPage=page;
+  try { localStorage.setItem('admin-page', page); } catch {}
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.page===page));
   document.getElementById('page-title').textContent=pageTitles[page];
 
@@ -1324,10 +1331,9 @@ async function openCreateRoom() {
   // Загружаем пользователей если кеш пустой (например, вызов с дашборда)
   if (!allUsersCache.length) allUsersCache = await api('GET','/api/admin/users');
   document.getElementById('room-create-users').innerHTML = allUsersCache.map(u=>`
-    <div class="checkbox-row" id="cr-row-${u.id}" onclick="toggleRoomUser(${u.id})">
+    <div class="checkbox-row checkbox-row-compact" id="cr-row-${u.id}" onclick="toggleRoomUser(${u.id})">
       <input type="checkbox" id="cr-chk-${u.id}" onclick="event.stopPropagation();toggleRoomUser(${u.id})">
-      ${avHtml(u.display_name,26,7,u.id)}
-      <div><div class="cname">${esc(u.display_name)}</div><div class="cuname">@${esc(u.username)}</div></div>
+      <span class="cname">${esc(u.display_name)}</span>
     </div>`).join('') || '<p style="color:var(--c-muted);font-size:12px">Нет пользователей</p>';
 }
 
@@ -1383,16 +1389,14 @@ async function openRoomEdit(chatId, name) {
   const [members,allU]=await Promise.all([api('GET','/api/admin/chats/'+chatId+'/members'),api('GET','/api/admin/users')]);
   const memberIds=new Set(members.map(m=>m.id));
   document.getElementById('members-list').innerHTML=members.map(m=>`
-    <div class="member-row" id="mr-${m.id}">
-      ${avHtml(m.display_name,28,7,m.id)}
-      <div class="info"><div class="mname">${esc(m.display_name)}</div><div class="muname">@${esc(m.username)}</div></div>
+    <div class="member-row member-row-compact" id="mr-${m.id}">
+      <span class="mname">${esc(m.display_name)}</span>
       <button class="btn btn-danger btn-xs" onclick="removeMember(${chatId},${m.id},this)">Удалить</button>
     </div>`).join('')||'<p style="color:var(--c-muted);font-size:12px;padding:8px 0">Нет участников</p>';
   document.getElementById('add-members-list').innerHTML=allU.filter(u=>!memberIds.has(u.id)).map(u=>`
-    <div class="checkbox-row" id="am-row-${u.id}" onclick="toggleAddMember(${u.id})">
+    <div class="checkbox-row checkbox-row-compact" id="am-row-${u.id}" onclick="toggleAddMember(${u.id})">
       <input type="checkbox" id="am-chk-${u.id}" onclick="event.stopPropagation();toggleAddMember(${u.id})">
-      ${avHtml(u.display_name,26,7,u.id)}
-      <div><div class="cname">${esc(u.display_name)}</div><div class="cuname">@${esc(u.username)}</div></div>
+      <span class="cname">${esc(u.display_name)}</span>
     </div>`).join('')||'<p style="color:var(--c-muted);font-size:12px;padding:8px 0">Все пользователи уже в комнате</p>';
   openModal('modal-members');
 }
@@ -1617,9 +1621,8 @@ async function openMembersReadonly(chatId, chatName) {
   document.getElementById('members-footer').innerHTML=`<button class="btn btn-ghost" onclick="closeModal('modal-members')">Закрыть</button>`;
   const members=await api('GET','/api/admin/chats/'+chatId+'/members');
   document.getElementById('members-list').innerHTML=members.map(m=>`
-    <div class="member-row">
-      ${avHtml(m.display_name,28,7,m.id)}
-      <div class="info"><div class="mname">${esc(m.display_name)}</div><div class="muname">@${esc(m.username)}</div></div>
+    <div class="member-row member-row-compact">
+      <span class="mname">${esc(m.display_name)}</span>
     </div>`).join('')||`<div class="empty-state" style="padding:20px"><p>Нет участников</p></div>`;
   openModal('modal-members');
 }

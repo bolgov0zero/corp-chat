@@ -1136,6 +1136,8 @@ html:not(.dark) .modal { box-shadow: 0 24px 60px rgba(15,23,42,.12); }
 .user-row.selected { border-color: var(--accent); background: var(--accent-soft); }
 .user-row .uname { font-size: 13px; font-weight: 600; color: var(--text); }
 .user-row .ulogin { font-size: 11px; color: var(--muted); }
+.user-row-compact { padding: 6px 10px; font-size: 13px; }
+.user-row-compact.selected::before { content: '✓'; margin-right: 6px; color: var(--accent); font-weight: 700; }
 
 /* Buttons */
 .modal-create-btn {
