@@ -1722,7 +1722,9 @@ function scrollToMsg(msgId) {
   const isVisible = containerRect
     ? rect.top >= containerRect.top && rect.bottom <= containerRect.bottom
     : false;
-  if (!isVisible) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (!isVisible && msgs && containerRect) {
+    msgs.scrollBy({ top: rect.top - containerRect.top - msgs.clientHeight / 2 + el.offsetHeight / 2, behavior: 'smooth' });
+  }
   el.classList.remove('msg-highlight');
   void el.offsetWidth;
   el.classList.add('msg-highlight');

@@ -1864,7 +1864,15 @@ function scrollToMsg(msgId) {
   const el = document.querySelector(`[data-msg-id="${msgId}"]`);
   // Сообщения нет в DOM (глубоко в истории) — перезагружаем чат окном вокруг него
   if (!el) { if (S.activeChatId) openChat(S.activeChatId, msgId); return; }
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const msgs = document.getElementById('messages');
+  const rect = el.getBoundingClientRect();
+  const containerRect = msgs ? msgs.getBoundingClientRect() : null;
+  const isVisible = containerRect
+    ? rect.top >= containerRect.top && rect.bottom <= containerRect.bottom
+    : false;
+  if (!isVisible && msgs && containerRect) {
+    msgs.scrollBy({ top: rect.top - containerRect.top - msgs.clientHeight / 2 + el.offsetHeight / 2, behavior: 'smooth' });
+  }
   el.classList.add('msg-highlight');
   setTimeout(() => el.classList.remove('msg-highlight'), 1500);
 }
