@@ -296,24 +296,32 @@ tbody tr:hover td{background:var(--c-surface2)}
 .modal-body{padding:18px 20px;overflow-y:auto;flex:1}
 .modal-foot{padding:12px 20px;border-top:1px solid var(--c-border);display:flex;justify-content:flex-end;gap:7px;flex-shrink:0}
 
-/* ── MEMBERS ── */
-.members-section-title{font-size:10px;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
-.members-list{display:flex;flex-direction:column;gap:5px;max-height:240px;overflow-y:auto}
-.member-row{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:var(--radius-sm);border:1px solid var(--c-border);background:var(--c-surface2)}
-.member-row .info{flex:1;min-width:0}
-.member-row .mname{font-size:12px;font-weight:600;color:var(--c-text)}
-.member-row .muname{font-size:10px;color:var(--c-muted)}
-.add-members-section{margin-top:16px;padding-top:16px;border-top:1px solid var(--c-border)}
-.checkbox-row{display:flex;align-items:center;gap:9px;padding:7px 11px;border-radius:var(--radius-sm);cursor:pointer;border:1px solid transparent;transition:all .1s}
-.checkbox-row:hover{background:var(--c-surface2);border-color:var(--c-border)}
-.checkbox-row.selected{border-color:var(--c-primary);background:var(--c-primary-dim)}
-.checkbox-row input[type=checkbox]{width:14px;height:14px;accent-color:var(--c-primary);cursor:pointer;flex-shrink:0}
-.checkbox-row .cname{font-size:12px;font-weight:600;color:var(--c-text)}
-.checkbox-row .cuname{font-size:10px;color:var(--c-muted)}
-.member-row-compact{padding:5px 10px;gap:8px}
-.member-row-compact .mname{font-size:12px;font-weight:500;color:var(--c-text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.checkbox-row-compact{padding:5px 10px;gap:8px}
-.checkbox-row-compact .cname{font-size:12px;font-weight:500;color:var(--c-text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ── People picker (единый компонент выбора/просмотра участников) ── */
+.pp-search{position:relative;margin-bottom:10px}
+.pp-search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--c-muted);pointer-events:none}
+.pp-search input{width:100%;padding:8px 12px 8px 33px;border:1.5px solid var(--c-border);border-radius:9px;font-size:12.5px;font-family:var(--f-ui);outline:none;background:var(--c-surface);color:var(--c-text);transition:border-color .15s,box-shadow .15s}
+.pp-search input:focus{border-color:var(--c-primary);box-shadow:0 0 0 3px var(--c-primary-dim)}
+.pp-list{display:flex;flex-direction:column;max-height:264px;overflow-y:auto;border:1px solid var(--c-border);border-radius:10px;background:var(--c-surface)}
+.pp-list::-webkit-scrollbar{width:4px}
+.pp-list::-webkit-scrollbar-thumb{background:var(--c-border);border-radius:4px}
+.pp-row{display:flex;align-items:center;gap:9px;padding:6px 12px;cursor:pointer;transition:background .1s;border-bottom:1px solid var(--c-border)}
+.pp-row:last-child{border-bottom:none}
+.pp-row:hover{background:var(--c-surface2)}
+.pp-row.on{background:var(--c-primary-dim)}
+.pp-row.static{cursor:default}
+.pp-av{width:22px;height:22px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;position:relative;overflow:hidden}
+.pp-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.pp-name{font-size:12.5px;font-weight:500;color:var(--c-text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pp-tag{font-size:10px;color:var(--c-muted);background:var(--c-surface2);border:1px solid var(--c-border);border-radius:4px;padding:1px 6px;flex-shrink:0}
+.pp-check{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--c-border);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .12s;color:transparent}
+.pp-row.on .pp-check{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
+.pp-x{border:none;background:none;color:var(--c-muted);cursor:pointer;padding:3px;border-radius:5px;display:flex;opacity:0;transition:opacity .12s,color .12s;flex-shrink:0}
+.pp-row:hover .pp-x{opacity:1}
+.pp-x:hover{color:var(--c-red-text)}
+.pp-owner{font-size:10px;color:var(--c-green-text);background:var(--c-green-dim);border-radius:4px;padding:1px 6px;flex-shrink:0}
+.pp-empty{padding:16px;text-align:center;color:var(--c-muted);font-size:12px}
+.pp-sect{font-size:10px;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:.6px;padding:9px 12px 4px;background:var(--c-surface2);border-bottom:1px solid var(--c-border)}
+.pp-footcount{margin-right:auto;font-size:12px;color:var(--c-muted)}
 
 /* ── TOAST ── */
 #toast-container{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:6px}
@@ -589,11 +597,15 @@ tr:hover .td-actions{opacity:1}
       <button class="modal-close" onclick="closeModal('modal-create-room')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="fg" style="margin-bottom:14px"><label>Название комнаты</label><input id="room-name-input" placeholder="Например: Общий, Разработка…"></div>
-      <div class="members-section-title">Участники</div>
-      <div class="members-list" id="room-create-users"></div>
+      <div class="fg" style="margin-bottom:12px"><label>Название комнаты</label><input id="room-name-input" placeholder="Например: Общий, Разработка…"></div>
+      <div class="pp-search">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="cr-search" placeholder="Поиск сотрудников…" oninput="renderCreateRoomUsers(this.value)">
+      </div>
+      <div class="pp-list" id="room-create-users"></div>
     </div>
     <div class="modal-foot">
+      <span class="pp-footcount" id="cr-count"></span>
       <button class="btn btn-ghost" onclick="closeModal('modal-create-room')">Отмена</button>
       <button class="btn btn-primary" onclick="submitCreateRoom()">Создать</button>
     </div>
@@ -608,30 +620,23 @@ tr:hover .td-actions{opacity:1}
       <button class="modal-close" onclick="closeModal('modal-members')">✕</button>
     </div>
     <div class="modal-body">
-      <div id="room-edit-meta" style="display:none;margin-bottom:16px">
-        <div class="fg" style="display:flex;align-items:flex-end;gap:12px">
-          <div>
-            <label style="display:block;font-size:11px;font-weight:600;color:var(--c-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px">Фото</label>
-            <div style="position:relative;cursor:pointer;width:48px;height:48px" onclick="triggerRoomAvatarUpload()">
-              <div class="av" id="room-edit-av" style="border-radius:10px;width:48px;height:48px;font-size:18px;border:1.5px solid var(--c-border)"></div>
-              <div style="position:absolute;inset:0;background:rgba(0,0,0,.4);border-radius:10px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0">
-                <svg width="14" height="14" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-              </div>
+      <div id="room-edit-meta" style="display:none;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="position:relative;cursor:pointer;width:40px;height:40px;flex-shrink:0" onclick="triggerRoomAvatarUpload()" title="Сменить фото">
+            <div class="av" id="room-edit-av" style="border-radius:10px;width:40px;height:40px;font-size:15px"></div>
+            <div style="position:absolute;inset:0;background:rgba(0,0,0,.4);border-radius:10px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0">
+              <svg width="13" height="13" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
             </div>
           </div>
-          <div style="flex:1">
-            <label>Название</label>
-            <input id="room-edit-name" placeholder="Название комнаты">
-          </div>
+          <input id="room-edit-name" placeholder="Название комнаты" style="flex:1;padding:9px 12px;border:1.5px solid var(--c-border);border-radius:9px;font-size:13px;font-family:var(--f-ui);outline:none;background:var(--c-surface);color:var(--c-text)">
         </div>
         <input type="file" id="room-avatar-input" accept="image/*" style="display:none" onchange="onRoomAvatarChange(this)">
       </div>
-      <div class="members-section-title">Текущие участники</div>
-      <div class="members-list" id="members-list"></div>
-      <div class="add-members-section" id="add-members-section">
-        <div class="members-section-title">Добавить участников</div>
-        <div class="members-list" id="add-members-list"></div>
+      <div class="pp-search" id="members-search-wrap">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="members-search" placeholder="Поиск сотрудников…" oninput="renderMembersLists(this.value)">
       </div>
+      <div class="pp-list" id="members-pp-list" style="max-height:320px"></div>
     </div>
     <div class="modal-foot" id="members-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-members')">Закрыть</button>
@@ -1335,25 +1340,41 @@ function renderRoomsTable() {
     </div>`;
 }
 
+// Маленький аватар для people picker: инициалы + фото поверх (если есть)
+function ppAvHtml(u) {
+  const bg = avColor(u.display_name);
+  return `<div class="pp-av" style="background:${bg}"><span>${initials(u.display_name)}</span><img src="/api/users/${u.id}/avatar" loading="lazy" onerror="this.style.display='none'"></div>`;
+}
+const PP_CHECK = `<span class="pp-check"><svg width="9" height="9" fill="none" stroke="currentColor" stroke-width="3.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>`;
+
 async function openCreateRoom() {
   createRoomSelectedIds = new Set();
   document.getElementById('room-name-input').value = '';
+  document.getElementById('cr-search').value = '';
   openModal('modal-create-room');
   setTimeout(()=>document.getElementById('room-name-input').focus(),50);
   // Загружаем пользователей если кеш пустой (например, вызов с дашборда)
   if (!allUsersCache.length) allUsersCache = await api('GET','/api/admin/users');
-  document.getElementById('room-create-users').innerHTML = allUsersCache.map(u=>`
-    <div class="checkbox-row checkbox-row-compact" id="cr-row-${u.id}" onclick="toggleRoomUser(${u.id})">
-      <input type="checkbox" id="cr-chk-${u.id}" onclick="event.stopPropagation();toggleRoomUser(${u.id})">
-      <span class="cname">${esc(u.display_name)}</span>
-    </div>`).join('') || '<p style="color:var(--c-muted);font-size:12px">Нет пользователей</p>';
+  renderCreateRoomUsers('');
+}
+
+function renderCreateRoomUsers(filter='') {
+  const q = (filter||'').toLowerCase();
+  const list = allUsersCache.filter(u => !q || u.display_name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q));
+  document.getElementById('room-create-users').innerHTML = list.map(u=>`
+    <div class="pp-row${createRoomSelectedIds.has(u.id)?' on':''}" onclick="toggleRoomUser(${u.id})">
+      ${ppAvHtml(u)}
+      <span class="pp-name">${esc(u.display_name)}</span>
+      ${u.tag?`<span class="pp-tag">${esc(u.tag)}</span>`:''}
+      ${PP_CHECK}
+    </div>`).join('') || '<div class="pp-empty">Никого не найдено</div>';
+  document.getElementById('cr-count').textContent = createRoomSelectedIds.size ? `Выбрано: ${createRoomSelectedIds.size}` : '';
 }
 
 function toggleRoomUser(id) {
-  const row=document.getElementById('cr-row-'+id);
-  const chk=document.getElementById('cr-chk-'+id);
-  if (createRoomSelectedIds.has(id)) { createRoomSelectedIds.delete(id); row.classList.remove('selected'); chk.checked=false; }
-  else { createRoomSelectedIds.add(id); row.classList.add('selected'); chk.checked=true; }
+  if (createRoomSelectedIds.has(id)) createRoomSelectedIds.delete(id);
+  else createRoomSelectedIds.add(id);
+  renderCreateRoomUsers(document.getElementById('cr-search').value);
 }
 
 async function submitCreateRoom() {
@@ -1378,39 +1399,67 @@ function onRoomAvatarChange(input) {
   reader.readAsDataURL(file);
 }
 
+let _membersCur = [], _membersAvail = [], _membersReadonly = false;
+
 async function openRoomEdit(chatId, name) {
   membersForChatId=chatId; membersForChatType='room';
   selectedAddMembers=new Set();
   _roomEditAvatarBase64=null;
+  _membersReadonly=false;
   document.getElementById('members-title').textContent='Изменить комнату';
   document.getElementById('room-edit-meta').style.display='';
   document.getElementById('room-edit-name').value=name;
   document.getElementById('room-avatar-input').value='';
+  document.getElementById('members-search').value='';
   // Текущая аватарка
   const av=document.getElementById('room-edit-av');
   av.style.backgroundImage=''; av.style.backgroundSize='';
   av.textContent=name?name[0].toUpperCase():'R';
-  av.className='av'; av.style.background='';
+  av.className='av'; av.style.background=avColor(name||'R');
   const img=new Image();
   img.onload=()=>{ av.style.backgroundImage=`url('/api/chats/${chatId}/avatar?t=${Date.now()}')`; av.style.backgroundSize='cover'; av.textContent=''; };
   img.src=`/api/chats/${chatId}/avatar?t=${Date.now()}`;
-  document.getElementById('add-members-section').style.display='';
   document.getElementById('members-footer').innerHTML=`
+    <span class="pp-footcount" id="members-count"></span>
     <button class="btn btn-ghost" onclick="closeModal('modal-members')">Отмена</button>
     <button class="btn btn-primary" onclick="saveRoomEdit()">Сохранить</button>`;
   const [members,allU]=await Promise.all([api('GET','/api/admin/chats/'+chatId+'/members'),api('GET','/api/admin/users')]);
-  const memberIds=new Set(members.map(m=>m.id));
-  document.getElementById('members-list').innerHTML=members.map(m=>`
-    <div class="member-row member-row-compact" id="mr-${m.id}">
-      <span class="mname">${esc(m.display_name)}</span>
-      <button class="btn btn-danger btn-xs" onclick="removeMember(${chatId},${m.id},this)">Удалить</button>
-    </div>`).join('')||'<p style="color:var(--c-muted);font-size:12px;padding:8px 0">Нет участников</p>';
-  document.getElementById('add-members-list').innerHTML=allU.filter(u=>!memberIds.has(u.id)).map(u=>`
-    <div class="checkbox-row checkbox-row-compact" id="am-row-${u.id}" onclick="toggleAddMember(${u.id})">
-      <input type="checkbox" id="am-chk-${u.id}" onclick="event.stopPropagation();toggleAddMember(${u.id})">
-      <span class="cname">${esc(u.display_name)}</span>
-    </div>`).join('')||'<p style="color:var(--c-muted);font-size:12px;padding:8px 0">Все пользователи уже в комнате</p>';
+  _membersCur = members;
+  _membersAvail = allU.filter(u=>!members.some(m=>m.id===u.id));
+  renderMembersLists('');
   openModal('modal-members');
+}
+
+function renderMembersLists(filter='') {
+  const q=(filter||'').toLowerCase();
+  const f=u=>!q||u.display_name.toLowerCase().includes(q)||(u.username||'').toLowerCase().includes(q);
+  const cur=_membersCur.filter(f);
+  const avail=_membersReadonly?[]:_membersAvail.filter(f);
+  let html='';
+  if (cur.length) {
+    html+=`<div class="pp-sect">Участники · ${_membersCur.length}</div>`;
+    html+=cur.map(m=>`
+      <div class="pp-row static">
+        ${ppAvHtml(m)}
+        <span class="pp-name">${esc(m.display_name)}</span>
+        ${_membersReadonly?'':`<button class="pp-x" title="Удалить из комнаты" onclick="removeMember(${membersForChatId},${m.id},this)">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>`}
+      </div>`).join('');
+  }
+  if (avail.length) {
+    html+=`<div class="pp-sect">Добавить</div>`;
+    html+=avail.map(u=>`
+      <div class="pp-row${selectedAddMembers.has(u.id)?' on':''}" onclick="toggleAddMember(${u.id})">
+        ${ppAvHtml(u)}
+        <span class="pp-name">${esc(u.display_name)}</span>
+        ${u.tag?`<span class="pp-tag">${esc(u.tag)}</span>`:''}
+        ${PP_CHECK}
+      </div>`).join('');
+  }
+  document.getElementById('members-pp-list').innerHTML = html || '<div class="pp-empty">Никого не найдено</div>';
+  const cnt=document.getElementById('members-count');
+  if (cnt) cnt.textContent = selectedAddMembers.size ? `К добавлению: ${selectedAddMembers.size}` : '';
 }
 
 async function saveRoomEdit() {
@@ -1627,15 +1676,16 @@ function filterChats(q) {
 
 async function openMembersReadonly(chatId, chatName) {
   membersForChatId=chatId; membersForChatType=null;
+  _membersReadonly=true;
+  selectedAddMembers=new Set();
   document.getElementById('members-title').textContent=chatName;
   document.getElementById('room-edit-meta').style.display='none';
-  document.getElementById('add-members-section').style.display='none';
+  document.getElementById('members-search').value='';
   document.getElementById('members-footer').innerHTML=`<button class="btn btn-ghost" onclick="closeModal('modal-members')">Закрыть</button>`;
   const members=await api('GET','/api/admin/chats/'+chatId+'/members');
-  document.getElementById('members-list').innerHTML=members.map(m=>`
-    <div class="member-row member-row-compact">
-      <span class="mname">${esc(m.display_name)}</span>
-    </div>`).join('')||`<div class="empty-state" style="padding:20px"><p>Нет участников</p></div>`;
+  _membersCur = members;
+  _membersAvail = [];
+  renderMembersLists('');
   openModal('modal-members');
 }
 
@@ -1657,26 +1707,19 @@ function deleteChat(id) {
 
 /* ── MEMBER MANAGEMENT ── */
 function toggleAddMember(id) {
-  const row=document.getElementById('am-row-'+id);
-  const chk=document.getElementById('am-chk-'+id);
-  if (selectedAddMembers.has(id)) { selectedAddMembers.delete(id); row.classList.remove('selected'); chk.checked=false; }
-  else { selectedAddMembers.add(id); row.classList.add('selected'); chk.checked=true; }
+  if (selectedAddMembers.has(id)) selectedAddMembers.delete(id);
+  else selectedAddMembers.add(id);
+  renderMembersLists(document.getElementById('members-search').value);
 }
 
 async function removeMember(chatId, userId, btn) {
   btn.disabled=true;
   await api('DELETE',`/api/admin/chats/${chatId}/members/${userId}`);
-  const row=document.getElementById('mr-'+userId);
-  if (row) row.remove();
+  const removed=_membersCur.find(m=>m.id===userId);
+  _membersCur=_membersCur.filter(m=>m.id!==userId);
+  if (removed) _membersAvail.push(removed);
+  renderMembersLists(document.getElementById('members-search').value);
   toast('Участник удалён');
-}
-
-async function addSelectedMembers() {
-  if (!selectedAddMembers.size) { toast('Выберите пользователей'); return; }
-  await Promise.all([...selectedAddMembers].map(uid=>api('POST',`/api/admin/chats/${membersForChatId}/members`,{user_id:uid})));
-  toast('Участники добавлены','success');
-  closeModal('modal-members');
-  if (currentPage==='rooms') renderRooms();
 }
 
 /* ── CLIENTS ── */

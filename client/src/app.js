@@ -1865,21 +1865,16 @@ function openGroupMembers(chatId) {
     const c = S.chats.find(x=>x.id===chatId);
     document.getElementById('gm-list').innerHTML = (c?.members||[]).map(m => {
       const isOwner = c.created_by === m.id;
-      const kickBtn = canManage && !isOwner ? `
-        <button onclick="kickMember(${chatId},${m.id})" title="Исключить"
-          style="margin-left:auto;border:none;background:none;cursor:pointer;color:var(--muted);padding:4px;border-radius:6px;display:flex;align-items:center"
-          onmouseover="this.style.color='var(--danger,#e05)'" onmouseout="this.style.color='var(--muted)'">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-            <line x1="17" y1="11" x2="23" y2="11"/>
-          </svg>
-        </button>` : (isOwner ? `<span style="margin-left:auto;font-size:11px;color:var(--muted);background:var(--card-bg);padding:2px 8px;border-radius:10px">создатель</span>` : '');
       return `
-        <div style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--border)">
-          <div style="font-size:13px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.display_name)}</div>
-          ${kickBtn}
+        <div class="pp-row static">
+          ${ppAvHtml(m)}
+          <span class="pp-name">${esc(m.display_name)}</span>
+          ${isOwner ? '<span class="pp-owner">создатель</span>' : ''}
+          ${canManage && !isOwner ? `<button class="pp-x" title="Исключить" onclick="kickMember(${chatId},${m.id})">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>` : ''}
         </div>`;
-    }).join('') || '<div style="color:var(--muted);text-align:center;padding:20px">Нет участников</div>';
+    }).join('') || '<div class="pp-empty">Нет участников</div>';
 
     if (canManage) {
       document.getElementById('gm-list').insertAdjacentHTML('beforeend', `
@@ -1887,7 +1882,6 @@ function openGroupMembers(chatId) {
           <button onclick="openAddMember(${chatId})" class="modal-btn-primary" style="width:100%">+ Добавить участника</button>
         </div>`);
     }
-    applyAvatars();
   }
 
   document.getElementById('gm-title').textContent = chatName(chat);
@@ -1905,26 +1899,35 @@ async function kickMember(chatId, userId) {
   }
 }
 
+let _amAvailable = [];
 async function openAddMember(chatId) {
   const chat = S.chats.find(c=>c.id===chatId);
   const memberIds = new Set((chat?.members||[]).map(m=>m.id));
   const all = await api('GET', '/users');
-  const available = all.filter(u => !memberIds.has(u.id));
-  if (!available.length) { await showConfirm('Все пользователи уже в группе', 'OK'); return; }
+  _amAvailable = all.filter(u => !memberIds.has(u.id));
+  if (!_amAvailable.length) { await showConfirm('Все пользователи уже в группе', 'OK'); return; }
 
-  // Показываем список для добавления прямо в модальном окне
   const list = document.getElementById('gm-list');
   list.innerHTML = `
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 4px 12px;border-bottom:1px solid var(--border)">
-      <button onclick="openGroupMembers(${chatId})" class="modal-btn-primary" style="flex-shrink:0">← Назад</button>
-      <span style="font-size:13px;color:var(--muted)">Выберите пользователя</span>
+    <div style="display:flex;align-items:center;gap:8px;padding:0 0 10px">
+      <button onclick="openGroupMembers(${chatId})" class="modal-btn-ghost" style="flex-shrink:0" title="Назад">←</button>
+      <input id="am-search" placeholder="Поиск сотрудников…" oninput="renderAddMemberList(${chatId}, this.value)"
+        style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;outline:none;background:transparent;color:var(--text)">
     </div>
-    ${available.map(u => `
-      <div style="display:flex;align-items:center;padding:6px 4px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px"
-           onclick="addMember(${chatId},${u.id})"
-           onmouseover="this.style.background='var(--hover-row)'" onmouseout="this.style.background=''">
-        ${esc(u.display_name)}
-      </div>`).join('')}`;
+    <div id="am-list"></div>`;
+  renderAddMemberList(chatId, '');
+  setTimeout(()=>document.getElementById('am-search')?.focus(),50);
+}
+
+function renderAddMemberList(chatId, filter='') {
+  const q = (filter||'').toLowerCase();
+  const list = _amAvailable.filter(u => !q || u.display_name.toLowerCase().includes(q) || (u.username||'').toLowerCase().includes(q));
+  document.getElementById('am-list').innerHTML = list.map(u => `
+    <div class="pp-row" onclick="addMember(${chatId},${u.id})">
+      ${ppAvHtml(u)}
+      <span class="pp-name">${esc(u.display_name)}</span>
+      ${u.tag?`<span class="pp-tag">${esc(u.tag)}</span>`:''}
+    </div>`).join('') || '<div class="pp-empty">Никого не найдено</div>';
 }
 
 async function addMember(chatId, userId) {
@@ -2321,7 +2324,14 @@ async function onGroupAvatarChange(input) {
 }
 
 // ── NEW CHAT MODAL ──
+// Мини-аватар для списков выбора: инициалы + фото поверх если есть
+function ppAvHtml(u) {
+  return `<div class="pp-av ${avatarColor(u.id)}"><span>${initials(u.display_name)}</span><img src="${httpProto()}://${S.server}/api/users/${u.id}/avatar" loading="lazy" onerror="this.style.display='none'"></div>`;
+}
+const PP_CHECK = `<span class="pp-check"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="3.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>`;
+
 function openNewChat() {
+  S.ncSelected = new Set();
   switchTab('direct');
   renderModalUsers('tab-direct', false);
   renderModalUsers('tab-group', true);
@@ -2338,9 +2348,16 @@ function renderModalUsers(containerId, multi, filter='') {
   if (!container) return;
   const list = S.allUsers.filter(u=>!filter||u.display_name.toLowerCase().includes(filter)||u.username.toLowerCase().includes(filter));
   container.innerHTML = list.map(u=>`
-    <div class="user-row user-row-compact" data-uid="${u.id}" onclick="${multi?`toggleModalUser(this,${u.id})`:`startDirect(${u.id})`}">
-      <span class="uname">${esc(u.display_name)}</span>
-    </div>`).join('') || '<div style="padding:12px;color:var(--muted);font-size:13px">Нет пользователей</div>';
+    <div class="pp-row${multi&&S.ncSelected?.has(u.id)?' on':''}" data-uid="${u.id}" onclick="${multi?`toggleModalUser(${u.id})`:`startDirect(${u.id})`}">
+      ${ppAvHtml(u)}
+      <span class="pp-name">${esc(u.display_name)}</span>
+      ${u.tag?`<span class="pp-tag">${esc(u.tag)}</span>`:''}
+      ${multi?PP_CHECK:''}
+    </div>`).join('') || '<div class="pp-empty">Нет пользователей</div>';
+  if (multi) {
+    const cnt = document.getElementById('nc-selected-count');
+    if (cnt) cnt.textContent = S.ncSelected?.size ? `Выбрано: ${S.ncSelected.size}` : '';
+  }
 }
 
 function filterModalUsers(q, containerId) {
@@ -2351,8 +2368,12 @@ function filterModalUsers(q, containerId) {
   renderModalUsers(containerId, multi, q.toLowerCase());
 }
 
-function toggleModalUser(el, id) {
-  el.classList.toggle('selected');
+function toggleModalUser(id) {
+  if (!S.ncSelected) S.ncSelected = new Set();
+  if (S.ncSelected.has(id)) S.ncSelected.delete(id);
+  else S.ncSelected.add(id);
+  const q = (document.getElementById('nc-search-input')?.value || '').toLowerCase();
+  renderModalUsers('tab-group', true, q);
 }
 
 async function startDirect(userId) {
@@ -2364,7 +2385,7 @@ async function startDirect(userId) {
 async function createGroup() {
   const name = document.getElementById('group-name').value.trim();
   if (!name) { document.getElementById('group-name').focus(); return; }
-  const selected = [...document.querySelectorAll('#tab-group .user-row.selected')].map(el=>parseInt(el.dataset.uid));
+  const selected = [...(S.ncSelected || [])];
   const data = await api('POST','/chats/group',{name, member_ids:selected});
   if (data?.id) {
     if (S.newGroupAvatarBase64) {
