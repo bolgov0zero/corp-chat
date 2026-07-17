@@ -743,9 +743,9 @@ async function openChat(chatId, aroundId = null) {
         <div class="ch-sub">${sub}</div>
       </div>
       <div class="chat-header-actions">
-        <button class="icon-btn" title="Действия с чатом" onclick="showChatCtx(event, ${chatId})">
+        ${isRoom ? '' : `<button class="icon-btn" title="Действия с чатом" onclick="showChatCtx(event, ${chatId})">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
-        </button>
+        </button>`}
       </div>
     </div>
     <div class="messages" id="messages"></div>
@@ -2450,18 +2450,31 @@ async function saveGroupEdit() {
 function showChatCtx(e, chatId) {
   e.preventDefault();
   e.stopPropagation();
+  const chat = S.chats.find(c => c.id === chatId);
+  // Комнатами управляет только админ через админку — в клиенте меню нет
+  if (chat?.type === 'room') return;
   S.ctxChatId = chatId;
   const menu = document.getElementById('ctx-chat-menu');
-  const chat = S.chats.find(c => c.id === chatId);
   const pinLabel = document.getElementById('ctx-chat-pin-label');
   if (pinLabel) pinLabel.textContent = chat?.pinned ? 'Открепить' : 'Закрепить';
-  const pinBtn = document.getElementById('ctx-chat-pin');
-  if (pinBtn) pinBtn.style.display = chat?.type === 'room' ? 'none' : '';
+  // Группа: создатель/админ — удаляет, иначе — выходит
+  const isGroup = chat?.type === 'group';
+  const canDelete = !isGroup || chat.created_by === S.user.id || S.user.is_admin;
+  const delBtn = document.getElementById('ctx-chat-delete');
+  const leaveBtn = document.getElementById('ctx-chat-leave');
+  if (delBtn) delBtn.style.display = canDelete ? '' : 'none';
+  if (leaveBtn) leaveBtn.style.display = (isGroup && !canDelete) ? '' : 'none';
   menu.style.display = 'block';
   const x = Math.min(e.clientX, window.innerWidth - 160);
   const y = Math.min(e.clientY, window.innerHeight - 80);
   menu.style.left = x + 'px';
   menu.style.top = y + 'px';
+}
+
+async function ctxChatLeave() {
+  document.getElementById('ctx-chat-menu').style.display = 'none';
+  if (!S.ctxChatId) return;
+  await leaveGroup(S.ctxChatId);
 }
 
 async function ctxChatPin() {

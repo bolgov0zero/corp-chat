@@ -229,6 +229,8 @@ router.delete('/:id', authMiddleware, (req, res) => {
       sendTo(req.user.id, { type: 'chat_deleted', chat_id: id });
     }
   } else {
+    // Комнатами управляет только админ через админку (DELETE /api/chats/admin/:id)
+    if (chat.type === 'room') return res.status(403).json({ error: 'Rooms are managed by admins only' });
     if (!req.user.is_admin && chat.created_by !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
     const members = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ?').all(id);
     deleteChatFiles(id);
