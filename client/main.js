@@ -473,7 +473,9 @@ app.whenReady().then(() => {
   createWindow();
   createTray();
   if (shouldStartHidden()) {
-    mainWindow.hide();
+    // Windows: сворачиваем в taskbar (иконка остаётся), macOS/Linux: скрываем в трей
+    if (process.platform === 'win32') mainWindow.minimize();
+    else mainWindow.hide();
   }
 });
 
