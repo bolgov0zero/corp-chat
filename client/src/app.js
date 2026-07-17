@@ -1194,7 +1194,13 @@ function appendMsg(m) {
   // Умный скролл: прокручиваем только если пользователь у дна
   const dist = container.scrollHeight - container.scrollTop - container.clientHeight;
   if (dist < 120) {
-    container.scrollTo({ top: container.scrollHeight, behavior: m._optimistic ? 'instant' : 'smooth' });
+    const toBottom = () => container.scrollTo({ top: container.scrollHeight, behavior: m._optimistic ? 'instant' : 'smooth' });
+    toBottom();
+    // Картинки без явных размеров догружаются асинхронно — scrollHeight после их загрузки
+    // вырастет, повторяем прокрутку, чтобы сообщение не осталось за полем ввода.
+    newEl?.querySelectorAll('img').forEach(img => {
+      if (!img.complete) img.addEventListener('load', toBottom, { once: true });
+    });
   }
 }
 

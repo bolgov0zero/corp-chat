@@ -1410,8 +1410,12 @@ function appendMsg(m) {
   // Своё сообщение или пользователь был внизу — прокручиваем к низу
   if (m._optimistic || dist < 120) {
     _stickBottom = true;
-    requestAnimationFrame(() => {
-      container.scrollTo({ top: container.scrollHeight, behavior: m._optimistic ? 'instant' : 'smooth' });
+    const toBottom = () => container.scrollTo({ top: container.scrollHeight, behavior: m._optimistic ? 'instant' : 'smooth' });
+    requestAnimationFrame(toBottom);
+    // Картинки без явных размеров догружаются асинхронно — scrollHeight после их загрузки
+    // вырастет, повторяем прокрутку, чтобы сообщение не осталось за полем ввода.
+    newEl?.querySelectorAll('img').forEach(img => {
+      if (!img.complete) img.addEventListener('load', toBottom, { once: true });
     });
   }
 }
