@@ -153,7 +153,12 @@ router.post('/chats/:id/members', (req, res) => {
 
 // Remove member from any chat/room
 router.delete('/chats/:id/members/:userId', (req, res) => {
-  db.prepare('DELETE FROM chat_members WHERE chat_id = ? AND user_id = ?').run(req.params.id, req.params.userId);
+  const chatId = Number(req.params.id);
+  const kickedId = Number(req.params.userId);
+  const remaining = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ? AND user_id != ?').all(chatId, kickedId);
+  db.prepare('DELETE FROM chat_members WHERE chat_id = ? AND user_id = ?').run(chatId, kickedId);
+  remaining.forEach(({ user_id }) => sendTo(user_id, { type: 'reload_chats' }));
+  sendTo(kickedId, { type: 'chat_deleted', chat_id: chatId });
   res.json({ ok: true });
 });
 
