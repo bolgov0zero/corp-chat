@@ -26,13 +26,15 @@ function httpsGet(url) {
 
 let _activeUpdateReq = null;
 
-function downloadFile(url, dest, onProgress) {
+function downloadFileOnce(url, dest, onProgress) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(dest);
     const req = net.request({ url, redirect: 'follow' });
     _activeUpdateReq = req;
     req.setHeader('User-Agent', 'Electron');
+    let responded = false;
     req.on('response', res => {
+      responded = true;
       const total = parseInt(res.headers['content-length'] || '0');
       let received = 0;
       res.on('data', chunk => {
@@ -41,13 +43,33 @@ function downloadFile(url, dest, onProgress) {
         if (total) onProgress?.(Math.round(received / total * 100));
       });
       res.on('end', () => file.end());
-      res.on('error', reject);
+      res.on('error', err => { try { file.destroy(); } catch {} reject(err); });
       file.on('finish', resolve);
-      file.on('error', reject);
+      file.on('error', err => { try { file.destroy(); } catch {} reject(err); });
     });
-    req.on('error', reject);
+    req.on('error', err => { try { file.destroy(); } catch {} reject(err); });
     req.end();
   });
+}
+
+// Ретраи для transient-ошибок: GitHub CDN иногда сбрасывает соединение
+// (ERR_CONNECTION_RESET, ETIMEDOUT) — раньше это сразу падало в UI.
+async function downloadFile(url, dest, onProgress) {
+  const maxAttempts = 3;
+  let lastErr;
+  for (let i = 1; i <= maxAttempts; i++) {
+    try {
+      onProgress?.(0);
+      return await downloadFileOnce(url, dest, onProgress);
+    } catch (err) {
+      lastErr = err;
+      const msg = String(err?.message || err);
+      const isTransient = /ECONNRESET|CONNECTION_RESET|ETIMEDOUT|ENETUNREACH|ECONNREFUSED|EAI_AGAIN|socket hang up/i.test(msg);
+      if (!isTransient || i === maxAttempts) throw err;
+      await new Promise(r => setTimeout(r, 1500 * i));
+    }
+  }
+  throw lastErr;
 }
 
 function semverGt(a, b) {
