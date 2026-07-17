@@ -579,6 +579,8 @@ function renderChatList() {
     .sort((a,b) => {
       if (a.type==='room' && b.type!=='room') return -1;
       if (a.type!=='room' && b.type==='room') return 1;
+      // Комнаты — статичный порядок по имени, не двигаются от новых сообщений
+      if (a.type==='room' && b.type==='room') return chatName(a).localeCompare(chatName(b), 'ru');
       const ta = a.last_message?.sent_at||0, tb = b.last_message?.sent_at||0;
       return tb-ta;
     });
