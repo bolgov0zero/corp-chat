@@ -350,10 +350,23 @@ body.sidebar-hidden.sidebar-peeking .sidebar {
   display: none;
   position: fixed;
   left: 0; top: 0; bottom: 0;
-  width: 8px;
+  width: 16px;
   z-index: 9;
+  align-items: center;
+  justify-content: center;
 }
-body.sidebar-hidden #sidebar-peek-zone { display: block; }
+body.sidebar-hidden #sidebar-peek-zone { display: flex; }
+#sidebar-peek-zone::after {
+  content: '›';
+  font-size: 16px;
+  line-height: 1;
+  color: var(--c-text3, #9ca3af);
+  opacity: 0.5;
+  transition: opacity 0.15s;
+  user-select: none;
+  pointer-events: none;
+}
+#sidebar-peek-zone:hover::after { opacity: 1; }
 #sidebar-menu.open { transform-origin: top right; }
 .ctx-sep { height: 1px; background: var(--border); margin: 4px 0; }
 
