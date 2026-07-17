@@ -1174,6 +1174,22 @@ function renderStatus(status) {
   </span>`;
 }
 
+// Умный скролл к низу после появления сообщения: своё — всегда, чужое — если пользователь
+// у дна. Учитывает асинхронную догрузку картинок и вложений (scrollHeight после загрузки
+// вырастет), повторно вызывая прокрутку при `load`/`error` на каждом img.
+function stickToBottom(container, newEl, m) {
+  const dist = container.scrollHeight - container.scrollTop - container.clientHeight;
+  if (!(m._optimistic || dist < 120)) return;
+  const behavior = m._optimistic ? 'instant' : 'smooth';
+  const toBottom = () => container.scrollTo({ top: container.scrollHeight, behavior });
+  toBottom();
+  newEl?.querySelectorAll('img').forEach(img => {
+    if (img.complete) return;
+    img.addEventListener('load',  toBottom, { once: true });
+    img.addEventListener('error', toBottom, { once: true });
+  });
+}
+
 function appendMsg(m) {
   const container = document.getElementById('messages');
   if (!container) return;
@@ -1190,18 +1206,7 @@ function appendMsg(m) {
   container.insertAdjacentHTML('beforeend', renderMsg(m, isChatGroupAppend, false, grouped, true));
   const newEl = container.lastElementChild;
   if (newEl && !m._optimistic) newEl.classList.add('msg-new');
-
-  // Умный скролл: прокручиваем только если пользователь у дна
-  const dist = container.scrollHeight - container.scrollTop - container.clientHeight;
-  if (dist < 120) {
-    const toBottom = () => container.scrollTo({ top: container.scrollHeight, behavior: m._optimistic ? 'instant' : 'smooth' });
-    toBottom();
-    // Картинки без явных размеров догружаются асинхронно — scrollHeight после их загрузки
-    // вырастет, повторяем прокрутку, чтобы сообщение не осталось за полем ввода.
-    newEl?.querySelectorAll('img').forEach(img => {
-      if (!img.complete) img.addEventListener('load', toBottom, { once: true });
-    });
-  }
+  stickToBottom(container, newEl, m);
 }
 
 function updateMsgInDOM(m) {
