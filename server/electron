@@ -255,9 +255,10 @@ do_update() {
   fi
   stop_spin 0 "Изменения применены"
 
-  # Шаг 4: npm install
+  # Шаг 4: npm install (--build-from-source: часть хостингов блокируют GitHub Releases,
+  # где лежат прекомпилированные бинарники better-sqlite3 → SIGBUS/ETIMEDOUT)
   start_spin "Установка зависимостей"
-  if ! npm install --omit=dev >>/tmp/electron-update.log 2>&1; then
+  if ! npm install --omit=dev --build-from-source >>/tmp/electron-update.log 2>&1; then
     stop_spin 1 "npm install завершился с ошибкой"
     printf "\n  ${DIM}Лог: /tmp/electron-update.log${NC}\n"
     printf "\n  Нажми Enter..."; read -r
@@ -267,7 +268,7 @@ do_update() {
 
   # Шаг 5: rebuild
   start_spin "Пересборка модулей"
-  npm rebuild better-sqlite3 >>/tmp/electron-update.log 2>&1
+  npm rebuild better-sqlite3 --build-from-source >>/tmp/electron-update.log 2>&1
   stop_spin 0 "Модули пересобраны"
 
   # Шаг 6: restart
