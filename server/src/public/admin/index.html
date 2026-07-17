@@ -779,16 +779,17 @@ function fmtOS(platform, release, installScope) {
   return `<div style="display:flex;align-items:center;gap:5px">${icon}<span style="font-size:12px">${name}</span>${ver}</div>`;
 }
 
-function avHtml(name, size=32, radius=8, userId=null, connected=false, _hasAvatar=false) {
+function avHtml(name, size=32, radius=8, userId=null, connected=false, _hasAvatar=false, chatId=null) {
   const bg = avColor(name);
   const fs = Math.round(size * 0.38);
   const dotSz = Math.round(size * 0.28);
   const dotHtml = connected
     ? `<div class="status-dot connected" style="width:${dotSz}px;height:${dotSz}px"></div>` : '';
-  if (userId) {
+  const src = userId ? `/api/users/${userId}/avatar` : (chatId ? `/api/chats/${chatId}/avatar` : null);
+  if (src) {
     // Avatar hidden until image resolves — no colored block flash
     const inits = `<span style="display:none">${initials(name)}</span>`;
-    const img   = `<img src="/api/users/${userId}/avatar" loading="eager"
+    const img   = `<img src="${src}" loading="eager"
       style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:${radius}px"
       onload="this.parentElement.style.opacity='1'"
       onerror="this.style.display='none';this.previousElementSibling.style.display='';this.parentElement.style.opacity='1'">`;
@@ -1297,7 +1298,7 @@ function renderRoomsTable() {
   const rows = allRooms.map(r=>`
     <tr>
       <td class="td-id">#${r.id}</td>
-      <td><div class="user-cell">${avHtml(r.name,28,7)}<div><div class="uc-name">${esc(r.name||'—')}</div></div></div></td>
+      <td><div class="user-cell">${avHtml(r.name,28,7,null,false,false,r.id)}<div><div class="uc-name">${esc(r.name||'—')}</div></div></div></td>
       <td>${r.member_count}</td>
       <td style="font-family:var(--f-mono);font-size:11px">${r.message_count}</td>
       <td style="color:var(--c-muted);font-size:11px">${fmtDate(r.created_at)}</td>
@@ -1554,7 +1555,7 @@ function chatRow(c) {
   return `<tr>
     <td class="td-id">#${c.id}</td>
     <td>${chatTypeBadge(c)}</td>
-    <td><div class="user-cell">${avHtml(name,28,7)}<div class="uc-name">${esc(name)}</div></div></td>
+    <td><div class="user-cell">${avHtml(name,28,7,null,false,false,c.id)}<div class="uc-name">${esc(name)}</div></div></td>
     <td>${c.member_count}</td>
     <td style="font-family:var(--f-mono);font-size:11px">${c.message_count}</td>
     <td style="color:var(--c-muted);font-size:11px">${fmtDate(c.created_at)}</td>
