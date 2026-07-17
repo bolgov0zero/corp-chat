@@ -925,6 +925,9 @@ function enterApp(user) {
   startClock();
   startBgClientsPolling();
   startBgDashPolling();
+  // Бейджи сайдбара (пользователи/комнаты/чаты) обновляем сразу, независимо от того
+  // на какой вкладке восстановились — раньше их считал только renderDashboard.
+  updateNavBadges();
   let savedPage = 'dashboard';
   try { const p = localStorage.getItem('admin-page'); if (p && pageRenders[p]) savedPage = p; } catch {}
   nav(savedPage);
@@ -1002,7 +1005,11 @@ async function refreshDashboardData() {
 
 function startBgDashPolling() {
   if (window._bgDashInterval) clearInterval(window._bgDashInterval);
-  window._bgDashInterval = setInterval(refreshDashboardData, 10000);
+  window._bgDashInterval = setInterval(() => {
+    refreshDashboardData();
+    // Бейджи сайдбара — обновляем независимо от активной страницы
+    if (token) updateNavBadges();
+  }, 10000);
 }
 
 let _rememberMe = localStorage.getItem('admin_remember') === '1';
@@ -1118,6 +1125,7 @@ async function updateNavBadges() {
     setB('nb-users', s.users||0);
     setB('nb-rooms', s.rooms||0);
     setB('nb-chats', (s.chats||0)+(s.groups||0));
+    setB('nb-push',  s.pushSubscriptions||0);
   } catch {}
 }
 
