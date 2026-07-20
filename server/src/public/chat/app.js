@@ -1603,6 +1603,7 @@ function sendOrEdit() {
     chat_id: S.activeChatId,
     sender_id: S.user.id,
     sender_name: S.user.display_name,
+    sender_tag: S.user.tag || null,
     text: text || '',
     sent_at: Math.floor(Date.now() / 1000),
     edited_at: null,

@@ -131,7 +131,7 @@ function getEditTimeLimit() {
 function getMessageWithStatus(msgId, viewerId) {
   const msg = db.prepare(`
     SELECT m.id, m.chat_id, m.text, m.sent_at, m.edited_at, m.deleted, m.attachment, m.mentions,
-      u.id as sender_id, COALESCE(u.display_name, 'Удалённый аккаунт') as sender_name,
+      u.id as sender_id, COALESCE(u.display_name, 'Удалённый аккаунт') as sender_name, u.tag as sender_tag,
       m.reply_to_id,
       rm.text as reply_text, COALESCE(ru.display_name, 'Удалённый аккаунт') as reply_sender_name
     FROM messages m LEFT JOIN users u ON u.id = m.sender_id

@@ -58,7 +58,7 @@ router.post('/login', (req, res) => {
     return res.status(401).json({ error: 'Invalid credentials' });
 
   const token = signToken({ id: user.id, username: user.username, display_name: user.display_name, is_admin: !!user.is_admin });
-  res.json({ token, user: { id: user.id, username: user.username, display_name: user.display_name, is_admin: !!user.is_admin } });
+  res.json({ token, user: { id: user.id, username: user.username, display_name: user.display_name, is_admin: !!user.is_admin, tag: user.tag || null } });
 });
 
 router.get('/me', (req, res) => {
@@ -67,7 +67,7 @@ router.get('/me', (req, res) => {
   try {
     const { verifyToken } = require('../auth');
     const payload = verifyToken(auth);
-    const user = db.prepare('SELECT id, username, display_name, is_admin FROM users WHERE id = ?').get(payload.id);
+    const user = db.prepare('SELECT id, username, display_name, is_admin, tag FROM users WHERE id = ?').get(payload.id);
     if (!user) return res.status(401).json({ error: 'User not found' });
     res.json({ ...user, is_admin: !!user.is_admin });
   } catch { res.status(401).json({ error: 'Invalid token' }); }
