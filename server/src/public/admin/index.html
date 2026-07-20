@@ -1953,7 +1953,7 @@ async function forceLogout(connId,name,hostname) {
 
 async function forceRestart(connId,name,hostname) {
   confirm('Перезапуск клиента',
-    `Пользователь: ${name}\nКомпьютер: ${hostname}\n\nКлиент будет перезапущен (app.relaunch).`,
+    `Пользователь: ${name}\nКомпьютер: ${hostname}\n\nКлиент будет перезапущен.`,
     async()=>{
       await api('POST',`/api/admin/clients/${connId}/force-restart`);
       toast('Команда перезапуска отправлена','success');
