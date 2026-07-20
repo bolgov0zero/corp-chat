@@ -959,7 +959,7 @@ async function openChat(chatId, aroundId = null) {
   if (inputEl) {
     inputEl.value = S.drafts[chatId] || '';
     autoResize(inputEl);
-    onMsgInput(inputEl);
+    onMsgInput(inputEl, true);
   }
   inputEl?.focus();
 
@@ -1532,7 +1532,17 @@ function handleKey(e) {
 const typingTimers = {};
 let typingSendTimer = null;
 
-function onMsgInput(el) {
+function _updateSendBtn(el) {
+  const sendBtn = document.getElementById('send-btn');
+  if (!sendBtn) return;
+  const hasDraft = el.value.trim().length > 0;
+  sendBtn.style.background = hasDraft ? 'var(--accent)' : 'transparent';
+  sendBtn.style.color = hasDraft ? '#fff' : 'var(--muted)';
+  sendBtn.style.boxShadow = hasDraft ? '0 6px 16px var(--accent-shadow)' : 'none';
+}
+
+// silent=true — восстановление черновика при открытии чата: не шлём typing собеседнику
+function onMsgInput(el, silent = false) {
   autoResize(el);
   _updateMentionPopup(el);
   // Сохраняем черновик для текущего чата, чтобы он не терялся при переключении
@@ -1541,19 +1551,13 @@ function onMsgInput(el) {
     else delete S.drafts[S.activeChatId];
     saveDrafts();
   }
-  if (!S.activeChatId || S.ws?.readyState !== 1) return;
+  _updateSendBtn(el);
+  if (silent || !S.activeChatId || S.ws?.readyState !== 1) return;
   if (!typingSendTimer) {
     S.ws.send(JSON.stringify({ type: 'typing', chat_id: S.activeChatId }));
   }
   clearTimeout(typingSendTimer);
   typingSendTimer = setTimeout(() => { typingSendTimer = null; }, 1000);
-  const sendBtn = document.getElementById('send-btn');
-  if (sendBtn) {
-    const hasDraft = el.value.trim().length > 0;
-    sendBtn.style.background = hasDraft ? 'var(--accent)' : 'transparent';
-    sendBtn.style.color = hasDraft ? '#fff' : 'var(--muted)';
-    sendBtn.style.boxShadow = hasDraft ? '0 6px 16px var(--accent-shadow)' : 'none';
-  }
 }
 
 function showTyping(chatId, senderName) {
