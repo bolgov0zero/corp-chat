@@ -2410,9 +2410,10 @@ setInterval(() => {
 }, 30000);
 
 function presenceDot(userId) {
+  // Элемент рендерим всегда (скрытым если офлайн) — иначе WS-хендлеру presence
+  // нечего показывать, когда пользователь появляется в сети.
   const online = (S.presence[userId] || 'offline') === 'online';
-  if (!online) return '';
-  return `<span class="presence-dot" data-user-id="${userId}"></span>`;
+  return `<span class="presence-dot" data-user-id="${userId}"${online ? '' : ' style="display:none"'}></span>`;
 }
 
 function getPeerUserId(chat) {
