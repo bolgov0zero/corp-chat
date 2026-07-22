@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="light">
+<html lang="ru" data-theme="dark">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Electron — Admin</title>
@@ -17,25 +17,25 @@
   --f-mono:'JetBrains Mono','Courier New',monospace;
   --sidebar-w:168px;
 
-  --c-bg:#f0f0f5;
+  --c-bg:#f0f2f5;
   --c-surface:#ffffff;
-  --c-surface2:#f7f7fb;
-  --c-border:#e2e2ea;
-  --c-border2:#eeeef4;
+  --c-surface2:#f4f6f9;
+  --c-border:#e0e4ed;
+  --c-border2:#eaeef5;
 
-  --c-text:#111216;
+  --c-text:#111318;
   --c-text2:#52566e;
   --c-muted:#9094ac;
 
   --c-sb-bg:#ffffff;
-  --c-sb-border:#e6e6ee;
+  --c-sb-border:#e4e8f0;
   --c-sb-item:#6e7088;
-  --c-sb-act-bg:#eeeeff;
-  --c-sb-act:#4f46e5;
+  --c-sb-act-bg:rgba(0,184,156,.1);
+  --c-sb-act:#009f88;
 
-  --c-primary:#4f46e5;
-  --c-primary-h:#4338ca;
-  --c-primary-dim:#eeeeff;
+  --c-primary:#00b89c;
+  --c-primary-h:#00a88e;
+  --c-primary-dim:rgba(0,184,156,.12);
 
   --c-green:#10b981;
   --c-green-dim:rgba(16,185,129,.12);
@@ -60,44 +60,44 @@
   --shadow-md:0 4px 16px rgba(0,0,0,.09),0 1px 4px rgba(0,0,0,.05);
 }
 [data-theme="dark"]{
-  --c-bg:#0c0d14;
-  --c-surface:#13151f;
-  --c-surface2:#191b28;
-  --c-border:#232535;
-  --c-border2:#1c1e2e;
+  --c-bg:#16161a;
+  --c-surface:#1e1e24;
+  --c-surface2:#25252d;
+  --c-border:#2e2e38;
+  --c-border2:#272730;
 
-  --c-text:#e2e4f0;
-  --c-text2:#878ba8;
-  --c-muted:#484c68;
+  --c-text:#e2e2ec;
+  --c-text2:#888898;
+  --c-muted:#55556a;
 
-  --c-sb-bg:#0f1020;
-  --c-sb-border:#1a1c2e;
-  --c-sb-item:#565a78;
-  --c-sb-act-bg:rgba(99,102,241,.18);
-  --c-sb-act:#818cf8;
+  --c-sb-bg:#111118;
+  --c-sb-border:#1c1c24;
+  --c-sb-item:#66667c;
+  --c-sb-act-bg:rgba(0,184,156,.1);
+  --c-sb-act:#00b89c;
 
-  --c-primary:#6366f1;
-  --c-primary-h:#818cf8;
-  --c-primary-dim:rgba(99,102,241,.18);
+  --c-primary:#00b89c;
+  --c-primary-h:#00d4b4;
+  --c-primary-dim:rgba(0,184,156,.14);
 
   --c-green:#34d399;
-  --c-green-dim:rgba(52,211,153,.14);
+  --c-green-dim:rgba(52,211,153,.12);
   --c-green-text:#34d399;
   --c-red:#f87171;
-  --c-red-dim:rgba(248,113,113,.14);
+  --c-red-dim:rgba(248,113,113,.12);
   --c-red-text:#f87171;
   --c-orange:#fbbf24;
-  --c-orange-dim:rgba(251,191,36,.14);
+  --c-orange-dim:rgba(251,191,36,.12);
   --c-orange-text:#fbbf24;
   --c-blue:#60a5fa;
-  --c-blue-dim:rgba(96,165,250,.14);
+  --c-blue-dim:rgba(96,165,250,.12);
   --c-blue-text:#60a5fa;
   --c-purple:#a78bfa;
-  --c-purple-dim:rgba(167,139,250,.14);
+  --c-purple-dim:rgba(167,139,250,.12);
   --c-purple-text:#a78bfa;
 
-  --shadow:0 1px 3px rgba(0,0,0,.3),0 1px 2px rgba(0,0,0,.2);
-  --shadow-md:0 4px 16px rgba(0,0,0,.45),0 1px 4px rgba(0,0,0,.2);
+  --shadow:0 1px 3px rgba(0,0,0,.4),0 1px 2px rgba(0,0,0,.3);
+  --shadow-md:0 4px 20px rgba(0,0,0,.55),0 1px 4px rgba(0,0,0,.3);
 }
 
 /* ── BASE ── */
@@ -108,7 +108,7 @@ code,pre,.mono{font-family:var(--f-mono)}
 
 /* ── LOGIN ── */
 #login{display:flex;align-items:center;justify-content:center;width:100%;height:100vh;background:var(--c-bg)}
-.login-card{background:var(--c-surface);border:1px solid var(--c-border);border-radius:16px;padding:40px 36px;width:360px;box-shadow:var(--shadow-md)}
+.login-card{background:var(--c-surface);border:1px solid var(--c-border);border-radius:14px;padding:36px 32px;width:360px;box-shadow:var(--shadow-md)}
 .login-logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;justify-content:center}
 .login-logo-icon{width:40px;height:40px;border-radius:10px;overflow:hidden;flex-shrink:0}
 .login-logo-icon svg{color:#fff}
@@ -409,6 +409,21 @@ tr:hover .td-actions{opacity:1}
 /* ── ROOM NAME INPUT ── */
 #room-name-input{width:100%;padding:9px 12px;border:1.5px solid var(--c-border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--f-ui);outline:none;transition:border-color .15s;background:var(--c-surface);color:var(--c-text)}
 #room-name-input:focus{border-color:var(--c-primary);box-shadow:0 0 0 3px var(--c-primary-dim)}
+
+/* ── CUSTOM SELECT ── */
+select{-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2355556a' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px !important;cursor:pointer}
+
+/* ── TOGGLE (shared) ── */
+.toggle-track{width:34px;height:19px;border-radius:10px;background:var(--c-border);transition:background .2s;flex-shrink:0;position:relative;cursor:pointer}
+.toggle-track.on{background:var(--c-primary)}
+.toggle-thumb{width:15px;height:15px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.toggle-track.on .toggle-thumb{left:17px}
+
+/* ── SIDEBAR SEPARATOR ── */
+.nav-sep{height:1px;background:var(--c-sb-border);margin:6px 10px}
+
+/* ── INPUT FOCUS GLOW ── */
+.fg input:focus,.fg select:focus{border-color:var(--c-primary);box-shadow:0 0 0 3px var(--c-primary-dim)}
 </style>
 </head>
 <body>
@@ -429,8 +444,8 @@ tr:hover .td-actions{opacity:1}
     <div class="fg"><label>Пароль</label><input id="l-pass" type="password" autocomplete="current-password"></div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
       <div class="toggle-wrap" id="l-remember-wrap" onclick="toggleRemember()" style="cursor:pointer;display:flex;align-items:center;gap:8px">
-        <div id="l-remember-track" style="width:32px;height:18px;border-radius:9px;background:var(--c-border);transition:background .2s;flex-shrink:0;position:relative">
-          <div id="l-remember-thumb" style="width:14px;height:14px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>
+        <div id="l-remember-track" class="toggle-track">
+          <div id="l-remember-thumb" class="toggle-thumb"></div>
         </div>
         <span style="font-size:12px;color:var(--c-muted);user-select:none">Запомнить</span>
       </div>
@@ -703,7 +718,7 @@ function toggleTheme() {
   localStorage.setItem(THEME_KEY, t);
   applyTheme(t);
 }
-applyTheme(localStorage.getItem(THEME_KEY) || 'light');
+applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
 
 /* ── CLOCK ── */
 function startClock() {
@@ -1025,10 +1040,8 @@ function toggleRemember() {
 }
 function _applyRememberToggle() {
   const track = document.getElementById('l-remember-track');
-  const thumb = document.getElementById('l-remember-thumb');
   if (!track) return;
-  track.style.background = _rememberMe ? 'var(--c-primary)' : 'var(--c-border)';
-  thumb.style.left = _rememberMe ? '16px' : '2px';
+  track.classList.toggle('on', _rememberMe);
 }
 
 async function doLogin() {
