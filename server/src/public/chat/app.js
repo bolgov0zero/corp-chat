@@ -209,20 +209,66 @@ function maybeShowNotifBanner() {
 }
 
 // ── MOBILE NAVIGATION ──
-function mobileBack() {
-  const chatMain = document.getElementById('chat-main');
-  const sidebar = document.querySelector('.sidebar');
-  chatMain?.classList.remove('mobile-open');
-  sidebar?.classList.remove('mobile-hidden');
-  document.getElementById('chat-input-bar').style.display = 'none';
+const _CHAT_EASE = 'transform .32s cubic-bezier(.32,.72,0,1)';
+
+function mobileBack(animated) {
+  const cm = document.getElementById('chat-main');
+  const ib = document.getElementById('chat-input-bar');
+  const sb = document.querySelector('.sidebar');
   S.activeChatId = null;
+
+  if (animated === false) {
+    // Жест уже анимировал, просто убираем состояние
+    cm?.classList.remove('mobile-open');
+    if (cm) { cm.style.transform = ''; cm.style.transition = ''; }
+    if (ib) { ib.style.display = 'none'; ib.style.transform = ''; ib.style.transition = ''; }
+    return;
+  }
+
+  // Анимированное закрытие: сдвиг вправо
+  if (cm) { cm.style.transition = _CHAT_EASE; cm.style.transform = 'translateX(100%)'; }
+  if (ib) { ib.style.transition = _CHAT_EASE; ib.style.transform = 'translateX(100%)'; }
+  sb?.classList.remove('mobile-hidden');
+
+  const done = () => {
+    cm?.classList.remove('mobile-open');
+    if (cm) { cm.style.transform = ''; cm.style.transition = ''; }
+    if (ib) { ib.style.display = 'none'; ib.style.transform = ''; ib.style.transition = ''; }
+  };
+  if (cm) cm.addEventListener('transitionend', done, { once: true });
+  else done();
 }
 
+const _isMobile = () => window.matchMedia('(max-width: 767px), (pointer: coarse)').matches;
+
 function openMobileChat() {
-  const chatMain = document.getElementById('chat-main');
-  const sidebar = document.querySelector('.sidebar');
-  chatMain?.classList.add('mobile-open');
-  sidebar?.classList.add('mobile-hidden');
+  const cm = document.getElementById('chat-main');
+  const ib = document.getElementById('chat-input-bar');
+  const sb = document.querySelector('.sidebar');
+  if (!cm) return;
+
+  cm.classList.add('mobile-open');
+  sb?.classList.add('mobile-hidden');
+  if (!_isMobile()) return;
+
+  // Мгновенно ставим за правую границу
+  cm.style.transition = 'none';
+  cm.style.transform = 'translateX(100%)';
+  if (ib) { ib.style.transition = 'none'; ib.style.transform = 'translateX(100%)'; }
+
+  // Анимируем влево со следующего кадра
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      cm.style.transition = _CHAT_EASE;
+      if (ib) ib.style.transition = _CHAT_EASE;
+      cm.style.transform = '';   // CSS .mobile-open даёт translateX(0)
+      if (ib) ib.style.transform = '';
+      cm.addEventListener('transitionend', () => {
+        cm.style.transition = ''; cm.style.transform = '';
+        if (ib) { ib.style.transition = ''; ib.style.transform = ''; }
+      }, { once: true });
+    });
+  });
 }
 
 // ── VIEWPORT / KEYBOARD (нативное поведение на мобильных) ──
@@ -1064,7 +1110,10 @@ function addSwipeReply(container) {
       if (dx <= 0) return;
       e.preventDefault();
       const cm = chatMain();
-      if (cm) { cm.style.transform = `translateX(${Math.min(dx, window.innerWidth)}px)`; cm.style.transition = 'none'; }
+      const ib = document.getElementById('chat-input-bar');
+      const shift = `translateX(${Math.min(dx, window.innerWidth)}px)`;
+      if (cm) { cm.style.transform = shift; cm.style.transition = 'none'; }
+      if (ib) { ib.style.transform = shift; ib.style.transition = 'none'; }
       return;
     }
 
@@ -1089,15 +1138,24 @@ function addSwipeReply(container) {
 
     if (backMode) {
       const cm = chatMain();
-      if (cm) {
-        cm.style.transition = 'transform .25s ease';
-        if (dx > window.innerWidth * 0.35) {
-          // Достаточный свайп — уезжаем и возвращаемся к списку
-          cm.style.transform = `translateX(${window.innerWidth}px)`;
-          setTimeout(() => { mobileBack(); cm.style.transform = ''; cm.style.transition = ''; }, 200);
-        } else {
-          cm.style.transform = '';
-        }
+      const ib = document.getElementById('chat-input-bar');
+      const ease = _CHAT_EASE;
+      if (cm) cm.style.transition = ease;
+      if (ib) ib.style.transition = ease;
+      if (dx > window.innerWidth * 0.35) {
+        const off = `translateX(${window.innerWidth}px)`;
+        if (cm) cm.style.transform = off;
+        if (ib) ib.style.transform = off;
+        document.querySelector('.sidebar')?.classList.remove('mobile-hidden');
+        setTimeout(() => mobileBack(false), 320);
+      } else {
+        // Недостаточно — возвращаем на место
+        if (cm) cm.style.transform = '';
+        if (ib) ib.style.transform = '';
+        cm?.addEventListener('transitionend', () => {
+          if (cm) { cm.style.transform = ''; cm.style.transition = ''; }
+          if (ib) { ib.style.transform = ''; ib.style.transition = ''; }
+        }, { once: true });
       }
       backMode = false;
       return;
@@ -2080,6 +2138,8 @@ function removeChatLocally(chatId) {
     document.getElementById('chat-main').innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">Electron</div><div class="empty-sub">Выберите чат или создайте новый</div></div>`;
     document.getElementById('chat-main').classList.remove('mobile-open');
     document.querySelector('.sidebar')?.classList.remove('mobile-hidden');
+    const _ib = document.getElementById('chat-input-bar');
+    if (_ib) { _ib.style.display = 'none'; _ib.style.transform = ''; _ib.style.transition = ''; }
   }
   renderChatList();
 }
@@ -2092,6 +2152,8 @@ async function leaveGroup(chatId) {
   document.getElementById('chat-main').innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">Electron</div><div class="empty-sub">Выберите чат или создайте новый</div></div>`;
   document.getElementById('chat-main').classList.remove('mobile-open');
   document.querySelector('.sidebar')?.classList.remove('mobile-hidden');
+  const _ib2 = document.getElementById('chat-input-bar');
+  if (_ib2) { _ib2.style.display = 'none'; _ib2.style.transform = ''; _ib2.style.transition = ''; }
   loadChats();
 }
 

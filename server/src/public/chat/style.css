@@ -1885,7 +1885,8 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.18); }
   .sidebar {
     position: fixed; inset: 0;
     width: 100%; z-index: 30;
-    transition: transform .25s ease;
+    transition: transform .32s cubic-bezier(.32,.72,0,1);
+    will-change: transform;
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
     box-sizing: border-box;
@@ -1897,16 +1898,18 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.18); }
     pointer-events: none;
   }
 
-  /* Область чата — занимает всё свободное место, сжимается при клавиатуре */
+  /* Область чата — всегда в layout, скрыта сдвигом вправо до открытия */
   .chat-main {
     position: relative;
-    z-index: 1; /* выше декоративных .blob (z-index:0) */
+    z-index: 1;
     flex: 1 1 auto;
     min-height: 0;
-    display: none;
+    display: flex;
     flex-direction: column;
+    transform: translateX(100%);
+    will-change: transform;
   }
-  .chat-main.mobile-open { display: flex; }
+  .chat-main.mobile-open { transform: translateX(0); }
 
   /* Шапка — фиксированной высоты сверху, не двигается */
   .chat-main .chat-header {
