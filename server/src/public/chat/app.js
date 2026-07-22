@@ -1066,6 +1066,11 @@ async function openChat(chatId, aroundId = null) {
     }
   }
   if (S.activeChatId !== chatId) return;
+
+  // Показываем панель чата до autoResize: chat-main нужен display:flex,
+  // иначе scrollHeight=0 и textarea получает height:0px
+  openMobileChat();
+
   const inputEl = document.getElementById('msg-input');
   if (inputEl) {
     inputEl.value = S.drafts[chatId] || '';
@@ -1073,9 +1078,6 @@ async function openChat(chatId, aroundId = null) {
     onMsgInput(inputEl, true);
   }
   if (!_isMobile()) inputEl?.focus();
-
-  // Mobile: show chat panel
-  openMobileChat();
 }
 
 // ── SWIPE TO REPLY (touch) ──
@@ -1719,8 +1721,9 @@ function clearTyping(chatId) {
 function autoResize(el) {
   el.style.overflow = 'hidden';
   el.style.height = '20px';
-  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-  if (el.scrollHeight > 120) el.style.overflow = 'auto';
+  const sh = el.scrollHeight;
+  el.style.height = Math.max(20, Math.min(sh, 120)) + 'px';
+  if (sh > 120) el.style.overflow = 'auto';
 }
 
 function sendOrEdit() {
