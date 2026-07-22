@@ -312,6 +312,7 @@ function toggleSidebar() {
   document.body.classList.remove('sidebar-peeking');
   requestAnimationFrame(() => document.body.classList.remove('sidebar-notransition'));
   localStorage.setItem('sidebarHidden', hidden ? '1' : '');
+  window.electron?.resizeWindow(hidden ? -280 : 280);
 }
 function _scheduleHideSidebar() {
   if (!document.body.classList.contains('sidebar-hidden')) return;

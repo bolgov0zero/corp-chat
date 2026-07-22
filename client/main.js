@@ -486,6 +486,12 @@ ipcMain.handle('open-file', (_, filePath) => {
   return shell.openPath(filePath);
 });
 
+ipcMain.handle('resize-window', (_, delta) => {
+  if (!mainWindow || mainWindow.isMaximized()) return;
+  const [w, h] = mainWindow.getSize();
+  mainWindow.setSize(Math.max(w + delta, 400), h);
+});
+
 // Detect if launched at login (should start hidden in tray)
 function shouldStartHidden() {
   if (process.platform === 'darwin') {
