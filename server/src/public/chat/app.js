@@ -544,19 +544,6 @@ function showSettingsTab(tab) {
       </div>`;
     applySettings();
 
-  } else if (tab === 'update') {
-    content.innerHTML = `
-      <div style="display:flex;flex-direction:column;height:100%">
-        <div style="font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:14px">О приложении</div>
-        <div id="settings-update-notes" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap"></div>
-        <div style="margin-top:auto;padding-top:16px;text-align:center">
-          <div style="font-size:11px;color:var(--muted)">2026 © bolgov0zero</div>
-        </div>
-      </div>`;
-    fetch('/api/release-notes').then(r => r.ok ? r.text() : null).then(text => {
-      const el = document.getElementById('settings-update-notes');
-      if (el && text) el.textContent = text;
-    }).catch(() => {});
   }
 }
 function closeSettings() { closeModal('modal-settings'); }
