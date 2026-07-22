@@ -1884,7 +1884,7 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.18); }
      (где виден body) не контрастировала и не выглядела полосой. */
   .sidebar {
     position: fixed; inset: 0;
-    width: 100%; z-index: 30;
+    width: 100%; z-index: 200;
     transition: transform .32s cubic-bezier(.32,.72,0,1);
     will-change: transform;
     padding-top: env(safe-area-inset-top, 0px);
@@ -1932,8 +1932,9 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.18); }
   /* Поле ввода — в обычном потоке, естественно внизу над клавиатурой */
   #chat-input-bar {
     position: relative;
-    z-index: 2; /* выше декоративных .blob (z-index:0) */
+    z-index: 2;
     flex: 0 0 auto;
+    margin-left: 0; /* глобальный margin-left: sidebar-w здесь не нужен */
     padding-bottom: var(--input-safe-bottom, env(safe-area-inset-bottom, 0px));
     box-sizing: border-box;
   }
