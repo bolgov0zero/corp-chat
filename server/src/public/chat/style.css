@@ -597,7 +597,9 @@ body.sidebar-hidden.sidebar-peeking .sidebar {
   background: var(--app-bg);
   position: relative;
   z-index: 1; /* выше декоративных .blob (z-index:0) */
+  margin-left: var(--sidebar-w);
 }
+body.sidebar-hidden #chat-input-bar { margin-left: 0; }
 
 .empty-state {
   display: flex; flex-direction: column;
@@ -848,8 +850,6 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
 .chat-input-wrap {
   padding: 14px 20px;
   flex-shrink: 0;
-  width: 100%;
-  box-sizing: border-box;
 }
 .composer-inner { max-width: 760px; margin: 0 auto; }
 
