@@ -213,27 +213,21 @@ const _CHAT_EASE = 'transform .32s cubic-bezier(.32,.72,0,1)';
 
 function mobileBack(animated) {
   const cm = document.getElementById('chat-main');
-  const ib = document.getElementById('chat-input-bar');
   const sb = document.querySelector('.sidebar');
   S.activeChatId = null;
 
   if (animated === false) {
-    // Жест уже анимировал, просто убираем состояние
     cm?.classList.remove('mobile-open');
     if (cm) { cm.style.transform = ''; cm.style.transition = ''; }
-    if (ib) { ib.style.display = 'none'; ib.style.transform = ''; ib.style.transition = ''; }
     return;
   }
 
-  // Анимированное закрытие: сдвиг вправо
   if (cm) { cm.style.transition = _CHAT_EASE; cm.style.transform = 'translateX(100%)'; }
-  if (ib) { ib.style.transition = _CHAT_EASE; ib.style.transform = 'translateX(100%)'; }
   sb?.classList.remove('mobile-hidden');
 
   const done = () => {
     cm?.classList.remove('mobile-open');
     if (cm) { cm.style.transform = ''; cm.style.transition = ''; }
-    if (ib) { ib.style.display = 'none'; ib.style.transform = ''; ib.style.transition = ''; }
   };
   if (cm) cm.addEventListener('transitionend', done, { once: true });
   else done();
@@ -243,7 +237,6 @@ const _isMobile = () => window.matchMedia('(max-width: 767px), (pointer: coarse)
 
 function openMobileChat() {
   const cm = document.getElementById('chat-main');
-  const ib = document.getElementById('chat-input-bar');
   const sb = document.querySelector('.sidebar');
   if (!cm) return;
 
@@ -251,21 +244,15 @@ function openMobileChat() {
   sb?.classList.add('mobile-hidden');
   if (!_isMobile()) return;
 
-  // Мгновенно ставим за правую границу
   cm.style.transition = 'none';
   cm.style.transform = 'translateX(100%)';
-  if (ib) { ib.style.transition = 'none'; ib.style.transform = 'translateX(100%)'; }
 
-  // Анимируем влево со следующего кадра
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       cm.style.transition = _CHAT_EASE;
-      if (ib) ib.style.transition = _CHAT_EASE;
-      cm.style.transform = '';   // CSS .mobile-open даёт translateX(0)
-      if (ib) ib.style.transform = '';
+      cm.style.transform = '';
       cm.addEventListener('transitionend', () => {
         cm.style.transition = ''; cm.style.transform = '';
-        if (ib) { ib.style.transition = ''; ib.style.transform = ''; }
       }, { once: true });
     });
   });
@@ -940,6 +927,16 @@ function openSearchResult(chatId, msgId) {
   openChat(chatId, msgId);
 }
 
+// Заменяет содержимое chat-main, сохраняя #chat-input-bar (он внутри chat-main,
+// поэтому при innerHTML = ... будет уничтожен — сначала извлекаем, потом возвращаем).
+function setChatMainContent(html) {
+  const main = document.getElementById('chat-main');
+  const ib = document.getElementById('chat-input-bar');
+  if (ib && ib.parentNode === main) main.removeChild(ib);
+  main.innerHTML = html;
+  if (ib) { ib.style.display = 'none'; main.appendChild(ib); }
+}
+
 // ── OPEN CHAT ──
 async function openChat(chatId, aroundId = null) {
   S.activeChatId = chatId;
@@ -966,7 +963,7 @@ async function openChat(chatId, aroundId = null) {
   const nameClickable = (isGroup || isRoom) ? `style="cursor:pointer" onclick="openEditGroup(${chatId})"` : '';
 
   const main = document.getElementById('chat-main');
-  main.innerHTML = `
+  setChatMainContent(`
     <div class="chat-header">
       <button class="icon-btn mobile-back-btn" onclick="mobileBack()" title="Назад" style="flex-shrink:0">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
@@ -984,9 +981,8 @@ async function openChat(chatId, aroundId = null) {
     <div id="typing-indicator" class="typing-indicator" style="display:none">
       <span class="typing-dots"><span></span><span></span><span></span></span>
       <span class="typing-name"></span><span class="typing-label"> печатает…</span>
-    </div>`;
+    </div>`);
 
-  // Поле ввода — отдельный fixed-элемент вне chat-main (чтобы iOS не двигал весь экран при фокусе)
   const inputBar = document.getElementById('chat-input-bar');
   inputBar.style.display = '';
   inputBar.innerHTML = `
@@ -1110,10 +1106,8 @@ function addSwipeReply(container) {
       if (dx <= 0) return;
       e.preventDefault();
       const cm = chatMain();
-      const ib = document.getElementById('chat-input-bar');
       const shift = `translateX(${Math.min(dx, window.innerWidth)}px)`;
       if (cm) { cm.style.transform = shift; cm.style.transition = 'none'; }
-      if (ib) { ib.style.transform = shift; ib.style.transition = 'none'; }
       return;
     }
 
@@ -1138,23 +1132,15 @@ function addSwipeReply(container) {
 
     if (backMode) {
       const cm = chatMain();
-      const ib = document.getElementById('chat-input-bar');
-      const ease = _CHAT_EASE;
-      if (cm) cm.style.transition = ease;
-      if (ib) ib.style.transition = ease;
+      if (cm) cm.style.transition = _CHAT_EASE;
       if (dx > window.innerWidth * 0.35) {
-        const off = `translateX(${window.innerWidth}px)`;
-        if (cm) cm.style.transform = off;
-        if (ib) ib.style.transform = off;
+        if (cm) cm.style.transform = `translateX(${window.innerWidth}px)`;
         document.querySelector('.sidebar')?.classList.remove('mobile-hidden');
         setTimeout(() => mobileBack(false), 320);
       } else {
-        // Недостаточно — возвращаем на место
         if (cm) cm.style.transform = '';
-        if (ib) ib.style.transform = '';
         cm?.addEventListener('transitionend', () => {
           if (cm) { cm.style.transform = ''; cm.style.transition = ''; }
-          if (ib) { ib.style.transform = ''; ib.style.transition = ''; }
         }, { once: true });
       }
       backMode = false;
@@ -2135,11 +2121,9 @@ function removeChatLocally(chatId) {
   S.chats = S.chats.filter(c=>c.id!==chatId);
   if (S.activeChatId === chatId) {
     S.activeChatId = null;
-    document.getElementById('chat-main').innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">Electron</div><div class="empty-sub">Выберите чат или создайте новый</div></div>`;
+    setChatMainContent(`<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">Electron</div><div class="empty-sub">Выберите чат или создайте новый</div></div>`);
     document.getElementById('chat-main').classList.remove('mobile-open');
     document.querySelector('.sidebar')?.classList.remove('mobile-hidden');
-    const _ib = document.getElementById('chat-input-bar');
-    if (_ib) { _ib.style.display = 'none'; _ib.style.transform = ''; _ib.style.transition = ''; }
   }
   renderChatList();
 }
@@ -2149,11 +2133,9 @@ async function leaveGroup(chatId) {
   if (!ok) return;
   await api('POST', `/chats/${chatId}/leave`);
   S.activeChatId = null;
-  document.getElementById('chat-main').innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">Electron</div><div class="empty-sub">Выберите чат или создайте новый</div></div>`;
+  setChatMainContent(`<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">Electron</div><div class="empty-sub">Выберите чат или создайте новый</div></div>`);
   document.getElementById('chat-main').classList.remove('mobile-open');
   document.querySelector('.sidebar')?.classList.remove('mobile-hidden');
-  const _ib2 = document.getElementById('chat-input-bar');
-  if (_ib2) { _ib2.style.display = 'none'; _ib2.style.transform = ''; _ib2.style.transition = ''; }
   loadChats();
 }
 

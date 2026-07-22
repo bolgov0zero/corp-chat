@@ -601,9 +601,7 @@ body.sidebar-hidden.sidebar-peeking .sidebar {
   background: var(--app-bg);
   position: relative;
   z-index: 1;
-  margin-left: var(--sidebar-w);
 }
-body.sidebar-hidden #chat-input-bar { margin-left: 0; }
 
 .empty-state {
   display: flex; flex-direction: column;
@@ -1934,7 +1932,6 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.18); }
     position: relative;
     z-index: 2;
     flex: 0 0 auto;
-    margin-left: 0; /* глобальный margin-left: sidebar-w здесь не нужен */
     padding-bottom: var(--input-safe-bottom, env(safe-area-inset-bottom, 0px));
     box-sizing: border-box;
   }
