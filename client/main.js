@@ -93,7 +93,7 @@ ipcMain.handle('check-update', async () => {
     const current = app.getVersion();
     if (!semverGt(latest, current)) return { upToDate: true, version: current };
     const asset = data.assets?.find(a => getAssetPattern().test(a.name));
-    return { upToDate: false, version: latest, notes: data.body || '', downloadUrl: asset?.browser_download_url || null };
+    return { upToDate: false, version: latest, notes: data.body || '', publishedAt: data.published_at || null, downloadUrl: asset?.browser_download_url || null };
   } catch(e) { return { error: e.message }; }
 });
 

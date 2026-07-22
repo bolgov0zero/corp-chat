@@ -420,7 +420,7 @@ function showSettingsTab(tab) {
           <span style="font-size:13px;color:var(--text2)" id="update-status-text">Версия актуальна</span>
           <button class="seg-single-btn" id="update-check-btn" onclick="checkUpdate()">Проверить</button>
         </div>
-        <div id="settings-update-notes" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;${_updateNotes ? '' : 'display:none'}">${_updateNotes ? esc(_updateNotes) : ''}</div>
+        <div id="settings-update-notes"${_updateNotes ? '' : ' style="display:none"'}>${_updateNotes ? buildUpdateNotesHtml(_updateVersion, _updatePublishedAt, _updateNotes) : ''}</div>
         <div style="margin-top:auto;padding-top:16px;text-align:center">
           <div style="font-size:11px;color:var(--muted)" id="app-version"></div>
           <div style="margin-top:4px;font-size:11px;color:var(--muted)">2026 © bolgov0zero</div>
@@ -2751,6 +2751,14 @@ async function disableHA() {
 let _updateDownloadUrl = null;
 let _updateNotes = null;
 let _updateVersion = null;
+let _updatePublishedAt = null;
+
+function buildUpdateNotesHtml(version, publishedAt, notes) {
+  const dateStr = publishedAt ? new Date(publishedAt).toLocaleString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+  return `<div style="border-top:1px solid var(--border);margin:14px 0 12px"></div>` +
+    `<div style="font-size:11px;color:var(--muted);margin-bottom:8px">v${esc(version)}${dateStr ? ' · ' + dateStr : ''}</div>` +
+    `<div style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap">${esc(notes)}</div>`;
+}
 
 function setUpdateBadge(visible) {
   const badge = document.getElementById('update-badge');
@@ -2800,10 +2808,11 @@ async function checkUpdate(silent = false) {
   _updateDownloadUrl = result.downloadUrl;
   _updateNotes = result.notes || null;
   _updateVersion = result.version || null;
+  _updatePublishedAt = result.publishedAt || null;
   setUpdateBadge(true);
   if (!silent) status.textContent = `Доступна v${result.version}`;
   const settingsNotes = document.getElementById('settings-update-notes');
-  if (settingsNotes && _updateNotes) settingsNotes.textContent = _updateNotes;
+  if (settingsNotes && _updateNotes) { settingsNotes.innerHTML = buildUpdateNotesHtml(_updateVersion, _updatePublishedAt, _updateNotes); settingsNotes.style.display = ''; }
 
   try {
     document.getElementById('update-new-version').textContent = `v${result.version}`;

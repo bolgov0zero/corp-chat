@@ -604,6 +604,7 @@ body.sidebar-hidden #sidebar-peek-zone { display: flex; }
    CHAT MAIN AREA
    ══════════════════════════════════════════ */
 .chat-main {
+  flex: 1; min-width: 0;
   display: flex; flex-direction: column;
   background: var(--app-bg);
   overflow: hidden;
@@ -613,7 +614,7 @@ body.sidebar-hidden #sidebar-peek-zone { display: flex; }
 .empty-state {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  height: 100%; gap: 12px; z-index: 1;
+  flex: 1; gap: 12px; z-index: 1;
 }
 .empty-icon { font-size: 56px; opacity: .25; }
 .empty-title { font-size: 20px; font-weight: 700; color: var(--text); opacity: .4; }
