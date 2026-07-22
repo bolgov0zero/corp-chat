@@ -1262,6 +1262,8 @@ html:not(.dark) .modal { box-shadow: 0 24px 60px rgba(15,23,42,.12); }
   font-size: 16px; font-weight: 700; color: var(--text);
   flex-shrink: 0;
 }
+.modal-hdr .icon-btn { background: var(--search-bg); color: var(--text); }
+.modal-hdr .icon-btn:hover { background: var(--hover-row); }
 
 /* ── SETTINGS MODAL ── */
 .settings-modal { width: 700px; height: 520px; max-width: 96vw; max-height: 96vh; display: flex; flex-direction: column; border-radius: 16px; }
@@ -1347,6 +1349,7 @@ html:not(.dark) .modal { box-shadow: 0 24px 60px rgba(15,23,42,.12); }
   padding: 14px 16px; border-top: 1px solid var(--border);
   display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0;
 }
+#nc-footer .modal-btn-ghost, #nc-footer .modal-btn-primary { flex: 1; text-align: center; }
 .modal-btn-primary {
   padding: 8px 18px; border: none; border-radius: 10px;
   background: var(--accent); color: #fff;
