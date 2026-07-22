@@ -323,7 +323,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: bounds?.width ?? 1100, height: bounds?.height ?? 720,
     x: bounds?.x, y: bounds?.y,
-    minWidth: 820, minHeight: 540,
+    minWidth: 500, minHeight: 540,
     title: 'Electron',
     icon: path.join(_ASSETS, 'icon-512.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false },
