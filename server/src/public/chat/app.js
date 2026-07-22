@@ -2544,6 +2544,7 @@ async function openEditGroup(chatId) {
   S.egAvatarBase64 = null;
   const chat = S.chats.find(c=>c.id===chatId);
   document.getElementById('eg-name').value = chat.name||'';
+  document.getElementById('eg-name-label').textContent = chat.name||'';
   document.getElementById('eg-avatar-input').value = '';
   const av = document.getElementById('eg-av');
   av.style.backgroundImage = ''; av.style.backgroundSize = ''; av.className = 'av ' + avatarColor(chat.id || chatId); av.textContent = initials(chat.name||'G');
