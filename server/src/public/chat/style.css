@@ -1896,7 +1896,7 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.18); }
     pointer-events: none;
   }
 
-  /* Область чата — скрыта по умолчанию, показывается через JS-анимацию */
+  /* overflow:visible снимает глобальный overflow:hidden: iOS обрезает тап-зону у нижнего края flex с overflow:hidden */
   .chat-main {
     position: relative;
     z-index: 1;
@@ -1904,6 +1904,7 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.18); }
     min-height: 0;
     display: none;
     flex-direction: column;
+    overflow: visible;
   }
   .chat-main.mobile-open { display: flex; }
 
