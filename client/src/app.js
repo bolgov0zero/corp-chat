@@ -416,10 +416,11 @@ function showSettingsTab(tab) {
     content.innerHTML = `
       <div style="display:flex;flex-direction:column;height:100%">
         <div style="font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:10px">Обновление</div>
-        <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
           <span style="font-size:13px;color:var(--text2)" id="update-status-text">Версия актуальна</span>
           <button class="seg-single-btn" id="update-check-btn" onclick="checkUpdate()">Проверить</button>
         </div>
+        <div id="settings-update-notes" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;${_updateNotes ? '' : 'display:none'}">${_updateNotes ? esc(_updateNotes) : ''}</div>
         <div style="margin-top:auto;padding-top:16px;text-align:center">
           <div style="font-size:11px;color:var(--muted)" id="app-version"></div>
           <div style="margin-top:4px;font-size:11px;color:var(--muted)">2026 © bolgov0zero</div>
@@ -2748,6 +2749,8 @@ async function disableHA() {
 
 // ── AUTO UPDATE ──
 let _updateDownloadUrl = null;
+let _updateNotes = null;
+let _updateVersion = null;
 
 function setUpdateBadge(visible) {
   const badge = document.getElementById('update-badge');
@@ -2795,8 +2798,12 @@ async function checkUpdate(silent = false) {
   if (silent && skipped === result.version) return;
 
   _updateDownloadUrl = result.downloadUrl;
+  _updateNotes = result.notes || null;
+  _updateVersion = result.version || null;
   setUpdateBadge(true);
   if (!silent) status.textContent = `Доступна v${result.version}`;
+  const settingsNotes = document.getElementById('settings-update-notes');
+  if (settingsNotes && _updateNotes) settingsNotes.textContent = _updateNotes;
 
   try {
     document.getElementById('update-new-version').textContent = `v${result.version}`;

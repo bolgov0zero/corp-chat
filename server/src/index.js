@@ -48,6 +48,12 @@ uploadRouter.startCleanupJob();
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/push',  require('./routes/push'));
 
+app.get('/api/release-notes', (req, res) => {
+  const notesPath = path.join(__dirname, '../../RELEASE_NOTES.md');
+  try { res.type('text/plain').send(require('fs').readFileSync(notesPath, 'utf8')); }
+  catch { res.status(404).end(); }
+});
+
 require('./ws').setup(server);
 
 const PORT = process.env.PORT || 3000;
