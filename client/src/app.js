@@ -1993,12 +1993,6 @@ function openGroupMembers(chatId) {
         </div>`;
     }).join('') || '<div class="pp-empty">Нет участников</div>';
 
-    if (canManage) {
-      document.getElementById('gm-list').insertAdjacentHTML('beforeend', `
-        <div style="padding:10px 4px 4px">
-          <button onclick="openAddMember(${chatId})" class="modal-btn-primary" style="width:100%">+ Добавить участника</button>
-        </div>`);
-    }
   }
 
   document.getElementById('gm-title').textContent = chatName(chat);
