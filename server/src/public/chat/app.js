@@ -484,10 +484,14 @@ function enterApp() {
 
 function updateSidebarThemeIcon() {
   const isDark = S.settings.theme === 'dark';
-  const sun = document.getElementById('sidebar-theme-sun');
-  const moon = document.getElementById('sidebar-theme-moon');
-  if (sun) sun.style.display = isDark ? '' : 'none';
-  if (moon) moon.style.display = isDark ? 'none' : '';
+  ['sidebar-theme-sun', 'sb-theme-sun'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isDark ? '' : 'none';
+  });
+  ['sidebar-theme-moon', 'sb-theme-moon'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isDark ? 'none' : '';
+  });
 }
 
 
@@ -2063,31 +2067,68 @@ async function ctxInfo() {
   if (!msgId) return;
   const data = await api('GET', `/messages/${msgId}/info`);
   if (!data || data.error) return;
+
   function fmtDt(ts) {
-    if (!ts) return '—';
+    if (!ts) return null;
     const d = new Date(ts * 1000);
-    return d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'});
+    return d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
   }
-  let body = `<div class="msg-info-row"><span class="msg-info-label">Отправлено</span><span class="msg-info-val">${fmtDt(data.sent_at)}</span></div>`;
+
+  let body;
+
   if (data.chat_type === 'direct') {
     const s = data.statuses[0];
-    body += `<div class="msg-info-row"><span class="msg-info-label">Доставлено</span><span class="msg-info-val">${fmtDt(s?.delivered_at)}</span></div>`;
-    body += `<div class="msg-info-row"><span class="msg-info-label">Прочитано</span><span class="msg-info-val">${fmtDt(s?.read_at)}</span></div>`;
+    const sentDone  = !!data.sent_at;
+    const delivDone = !!s?.delivered_at;
+    const readDone  = !!s?.read_at;
+
+    const icoSingleTeal = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#29d6b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+    const icoDblTeal    = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#29d6b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 5 7 16 2 11"/><polyline points="22 5 13 16 8 11"/></svg>`;
+    const icoDblGray    = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5b6169" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 5 7 16 2 11"/><polyline points="22 5 13 16 8 11"/></svg>`;
+
+    function tlStep(label, sub, done, ico, showConn) {
+      const dc = done ? 'mi-done' : 'mi-pending';
+      const pc = done ? '' : ' mi-pending';
+      const conn = showConn ? `<div class="mi-connector ${dc}"></div>` : '';
+      return `<div class="mi-step">
+        <div class="mi-step-left"><div class="mi-icon ${dc}">${ico}</div>${conn}</div>
+        <div class="mi-step-right">
+          <div class="mi-step-name${pc}">${label}</div>
+          <div class="mi-step-sub${pc}">${sub}</div>
+        </div>
+      </div>`;
+    }
+
+    body = `<div class="mi-timeline">
+      ${tlStep('Отправлено', fmtDt(data.sent_at) || '—', sentDone, icoSingleTeal, true)}
+      ${tlStep('Доставлено', fmtDt(s?.delivered_at) || '—', delivDone, delivDone ? icoDblTeal : icoDblGray, true)}
+      ${tlStep('Прочитано', readDone ? fmtDt(s?.read_at) : 'пока не прочитано', readDone, readDone ? icoDblTeal : icoDblGray, false)}
+    </div>`;
+
   } else {
-    const readUsers = data.statuses.filter(s => s.read_at);
+    const readUsers   = data.statuses.filter(s => s.read_at);
     const unreadUsers = data.statuses.filter(s => !s.read_at);
+    body = '';
     if (readUsers.length) {
-      body += `<div class="msg-info-section">Прочитали · ${readUsers.length}</div>`;
-      body += readUsers.map(s => `<div class="msg-info-user-row"><div class="av av-xs av-round ${avatarColor(s.user_id)}" data-av-user="${s.user_id}">${initials(s.display_name)}</div><div style="font-size:13px;font-weight:500;flex:1">${esc(s.display_name)}</div><div class="msg-info-user-time">${fmtDt(s.read_at)}</div></div>`).join('');
+      body += `<div class="mi-group-section">Прочитали · ${readUsers.length}</div>`;
+      body += readUsers.map(s => `<div class="mi-user-row">
+        <div class="av av-xs av-round ${avatarColor(s.user_id)}" data-av-user="${s.user_id}">${initials(s.display_name)}</div>
+        <div class="mi-user-name">${esc(s.display_name)}</div>
+        <div class="mi-user-time">${fmtDt(s.read_at) || ''}</div>
+      </div>`).join('');
     }
     if (unreadUsers.length) {
-      body += `<div class="msg-info-section">Не прочитали · ${unreadUsers.length}</div>`;
-      body += unreadUsers.map(s => `<div class="msg-info-user-row"><div class="av av-xs av-round ${avatarColor(s.user_id)}" style="opacity:.5" data-av-user="${s.user_id}">${initials(s.display_name)}</div><div style="font-size:13px;color:var(--muted);flex:1">${esc(s.display_name)}</div></div>`).join('');
+      body += `<div class="mi-group-section">Не прочитали · ${unreadUsers.length}</div>`;
+      body += unreadUsers.map(s => `<div class="mi-user-row">
+        <div class="av av-xs av-round ${avatarColor(s.user_id)}" style="opacity:.45" data-av-user="${s.user_id}">${initials(s.display_name)}</div>
+        <div class="mi-user-name" style="color:#5b6169">${esc(s.display_name)}</div>
+      </div>`).join('');
     }
     if (!data.statuses.length) {
-      body += `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Никто ещё не прочитал</div>`;
+      body = `<div style="text-align:center;padding:20px 0;color:#5b6169;font-size:13px">Никто ещё не прочитал</div>`;
     }
   }
+
   document.getElementById('msg-info-body').innerHTML = body;
   if (data.chat_type !== 'direct') applyAvatars();
   openModal('modal-msg-info');
