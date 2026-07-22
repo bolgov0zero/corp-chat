@@ -414,13 +414,17 @@ function showSettingsTab(tab) {
 
   } else if (tab === 'update') {
     content.innerHTML = `
-      <div style="font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:10px">Обновление</div>
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <span style="font-size:13px;color:var(--text2)" id="update-status-text">Версия актуальна</span>
-        <button class="seg-single-btn" id="update-check-btn" onclick="checkUpdate()">Проверить</button>
-      </div>
-      <div style="margin-top:12px;font-size:11px;color:var(--muted);text-align:center" id="app-version"></div>
-      <div style="margin-top:8px;font-size:11px;color:var(--muted);text-align:center">2026 © bolgov0zero</div>`;
+      <div style="display:flex;flex-direction:column;height:100%">
+        <div style="font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:10px">Обновление</div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:13px;color:var(--text2)" id="update-status-text">Версия актуальна</span>
+          <button class="seg-single-btn" id="update-check-btn" onclick="checkUpdate()">Проверить</button>
+        </div>
+        <div style="margin-top:auto;padding-top:16px;text-align:center">
+          <div style="font-size:11px;color:var(--muted)" id="app-version"></div>
+          <div style="margin-top:4px;font-size:11px;color:var(--muted)">2026 © bolgov0zero</div>
+        </div>
+      </div>`;
     const vEl = document.getElementById('app-version');
     if (vEl && S.clientVersion) vEl.textContent = S.clientVersion;
     if (window.electron?.getVersion) {

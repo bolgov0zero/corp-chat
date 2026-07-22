@@ -546,8 +546,12 @@ function showSettingsTab(tab) {
 
   } else if (tab === 'update') {
     content.innerHTML = `
-      <div style="font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:10px">О приложении</div>
-      <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:12px">2026 © bolgov0zero</div>`;
+      <div style="display:flex;flex-direction:column;height:100%">
+        <div style="font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:10px">О приложении</div>
+        <div style="margin-top:auto;padding-top:16px;text-align:center">
+          <div style="font-size:11px;color:var(--muted)">2026 © bolgov0zero</div>
+        </div>
+      </div>`;
   }
 }
 function closeSettings() { closeModal('modal-settings'); }
