@@ -390,8 +390,12 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
   background: var(--side-bg);
   border-right: 1px solid var(--border);
   display: flex; flex-direction: column;
-  position: relative; z-index: 2;
+  position: sticky;
+  top: 0;
+  height: calc(100dvh - var(--topbar-h));
+  z-index: 2;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 /* Sidebar hidden */
@@ -596,7 +600,9 @@ body.sidebar-hidden.sidebar-peeking .sidebar {
   background: var(--app-bg);
   position: relative;
   z-index: 1;
+  margin-left: var(--sidebar-w);
 }
+body.sidebar-hidden #chat-input-bar { margin-left: 0; }
 
 .empty-state {
   display: flex; flex-direction: column;
