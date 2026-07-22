@@ -585,6 +585,7 @@ body.sidebar-hidden.sidebar-peeking .sidebar {
    CHAT MAIN AREA
    ══════════════════════════════════════════ */
 .chat-main {
+  flex: 1; min-width: 0;
   display: flex; flex-direction: column;
   background: var(--app-bg);
   overflow: hidden;
