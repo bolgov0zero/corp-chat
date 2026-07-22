@@ -1959,6 +1959,46 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.18); }
     max-width: 480px;
   }
   .login-wrap { width: calc(100vw - 32px); padding: 28px 20px 24px; }
+
+  /* Топбар скрыт — навигация через хедер чата и сайдбар */
+  .topbar { display: none; }
+
+  /* Поле ввода не уезжает за экран (--sidebar-w: 100vw на мобильном) */
+  #chat-input-bar { margin-left: 0; }
+
+  /* Настройки — полноэкранное окно */
+  #modal-settings .modal,
+  .settings-modal {
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: 100vw !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box;
+  }
+
+  /* Иконки-разделы: узкая колонка слева */
+  .settings-nav {
+    width: 60px;
+    min-width: 60px;
+    max-width: 60px;
+    padding: 8px 6px;
+    align-items: center;
+    gap: 6px;
+    border-right: 1px solid var(--border);
+  }
+  .settings-nav-item {
+    width: 44px; height: 44px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 12px;
+    gap: 0;
+  }
+  .settings-nav-item span { display: none; }
+
+  .settings-content { padding: 20px 16px; }
 }
 
 /* Desktop: hide mobile-only elements */
