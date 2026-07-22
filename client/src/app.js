@@ -745,7 +745,7 @@ function renderChatRow(c) {
   const pinIcon = c.pinned ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--muted);opacity:.7"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>` : '';
   return `<div class="chat-item${c.id===S.activeChatId?' active':''}" data-chat-id="${c.id}" onclick="openChat(${c.id})" oncontextmenu="showChatCtx(event,${c.id})">
     <div class="av-wrap">
-      <div class="av av-md ${chatAvatarClass(c)}${c.type==='direct'?' av-round':''}" data-av-chat="${c.id}">${chatIcon(c)}</div>
+      <div class="av av-md ${chatAvatarClass(c)}${c.type==='direct'?' av-round':' av-sq'}" data-av-chat="${c.id}">${chatIcon(c)}</div>
       ${dot}
     </div>
     <div class="info">
@@ -836,7 +836,7 @@ async function openChat(chatId, aroundId = null) {
   main.innerHTML = `
     <div class="chat-header">
       <div class="av-wrap">
-        <div class="av av-md ${chatAvatarClass(chat)}${chat.type==='direct'?' av-round':''}" data-av-chat="${chat.id}">${chatIcon(chat)}</div>
+        <div class="av av-md ${chatAvatarClass(chat)}${chat.type==='direct'?' av-round':' av-sq'}" data-av-chat="${chat.id}">${chatIcon(chat)}</div>
         ${peerDot}
       </div>
       <div class="chat-header-info" ${nameClickable}>
