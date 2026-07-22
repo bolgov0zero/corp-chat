@@ -348,7 +348,7 @@ function showSettingsTab(tab) {
     content.innerHTML = `
       <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:24px">
         <div style="position:relative">
-          <div class="av" id="settings-av" style="width:72px;height:72px;border-radius:16px;font-size:22px;font-weight:700;cursor:pointer" onclick="triggerAvatarUpload()"></div>
+          <div class="av" id="settings-av" style="width:72px;height:72px;font-size:22px;font-weight:700;cursor:pointer" onclick="triggerAvatarUpload()"></div>
           <div style="position:absolute;bottom:-4px;right:-4px;width:24px;height:24px;border-radius:7px;background:var(--role-indigo);border:2px solid var(--modal-bg);display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="triggerAvatarUpload()">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
           </div>
