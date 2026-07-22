@@ -270,6 +270,17 @@ function enterApp() {
   loadUploadSettings();
   connectWS();
   loadPresence();
+  // Sidebar account bar
+  const acAv = document.getElementById('sb-account-av');
+  const acName = document.getElementById('sb-account-name');
+  if (acAv) {
+    acAv.className = `av sa-av ${avatarColor(S.user.id)}`;
+    acAv.style.backgroundImage = '';
+    acAv.textContent = initials(S.user.display_name);
+    const acUrl = `${httpProto()}://${S.server}/api/users/${S.user.id}/avatar?t=${Date.now()}`;
+    tryLoadAvatar(acAv, acUrl, initials(S.user.display_name));
+  }
+  if (acName) acName.textContent = S.user.display_name;
 }
 
 
@@ -320,24 +331,107 @@ function initSidebarPeek() {
   sidebar.addEventListener('mouseenter', () => clearTimeout(_sidebarPeekTimer));
 }
 async function openSettings() {
-  document.getElementById('modal-settings').classList.add('open');
-  const dn = document.getElementById('settings-display-name');
-  if (dn) { dn.value = S.user.display_name; dn.readOnly = true; dn.classList.remove('editing'); }
-  const un = document.getElementById('settings-username');
-  if (un) un.textContent = '@' + S.user.username;
-  const btn = document.getElementById('settings-edit-btn');
-  if (btn) btn.textContent = 'Изменить';
-  updateSettingsAvatar();
-  if (window.electron?.getAutostart) {
-    const row = document.getElementById('autostart-row');
-    if (row) row.style.display = '';
-    const enabled = await window.electron.getAutostart();
-    const chk = document.getElementById('autostart-chk');
-    if (chk) chk.checked = !!enabled;
+  openModal('modal-settings');
+  showSettingsTab('profile');
+}
+
+function showSettingsTab(tab) {
+  document.querySelectorAll('.settings-nav-item').forEach(el => {
+    el.classList.toggle('active', el.id === 'snav-' + tab);
+  });
+  const content = document.getElementById('settings-content');
+  if (!content) return;
+
+  if (tab === 'profile') {
+    const u = S.user;
+    const avColor = avatarColor(u.id);
+    content.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:24px">
+        <div style="position:relative">
+          <div class="av" id="settings-av" style="width:72px;height:72px;border-radius:16px;font-size:22px;font-weight:700;cursor:pointer" onclick="triggerAvatarUpload()"></div>
+          <div style="position:absolute;bottom:-4px;right:-4px;width:24px;height:24px;border-radius:7px;background:var(--role-indigo);border:2px solid var(--modal-bg);display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="triggerAvatarUpload()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </div>
+        </div>
+        <div style="font-size:13px;color:var(--text2)">@${esc(u.username)}</div>
+      </div>
+      <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="onAvatarFileChange(this)">
+      <div style="margin-bottom:24px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Имя пользователя</div>
+        <div style="display:flex;gap:8px">
+          <input id="settings-display-name" class="settings-name-input" value="${esc(u.display_name)}" style="flex:1;background:var(--search-bg);border:1px solid var(--border);border-radius:9px;padding:9px 12px;font-size:13px;font-weight:600;color:var(--text);font-family:inherit;outline:none;pointer-events:auto;border-color:transparent" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='transparent'">
+          <button onclick="saveDisplayName()" style="height:36px;padding:0 16px;border-radius:9px;background:var(--accent);color:#0c0e10;font-weight:700;font-size:12.5px;border:none;cursor:pointer;font-family:inherit">Сохранить</button>
+        </div>
+      </div>
+      <button class="setting-logout" onclick="logout()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Выйти из аккаунта
+      </button>`;
+    const avEl = document.getElementById('settings-av');
+    if (avEl) {
+      avEl.className = `av ${avColor}`;
+      avEl.textContent = initials(u.display_name);
+      updateSettingsAvatar();
+    }
+
+  } else if (tab === 'general') {
+    content.innerHTML = `
+      <div style="font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:10px">Система</div>
+      <div class="setting-row" style="border:none">
+        <span>Звук сообщений</span>
+        <label class="toggle"><input type="checkbox" id="sound-chk" onchange="S.settings.soundEnabled=this.checked;saveSession()" ${S.settings.soundEnabled!==false?'checked':''}><span class="toggle-slider"></span></label>
+      </div>
+      <div class="setting-row" id="autostart-row" style="${typeof window.electron!=='undefined'?'':'display:none'}">
+        <span>Автозапуск при старте</span>
+        <label class="toggle"><input type="checkbox" id="autostart-chk" onchange="setAutostart(this.checked)"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="setting-row" style="margin-bottom:24px">
+        <span>Скрыть сайдбар</span>
+        <label class="toggle"><input type="checkbox" id="hide-sidebar-chk" ${document.body.classList.contains('sidebar-hidden')?'checked':''} onchange="toggleSidebarPref(this.checked)"><span class="toggle-slider"></span></label>
+      </div>
+      <div style="font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:10px">Внешний вид</div>
+      <div class="setting-row" style="border:none">
+        <span>Тема</span>
+        <div class="seg" id="theme-seg">
+          <button onclick="setTheme('light')">Светлая</button>
+          <button onclick="setTheme('dark')">Тёмная</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <span>Размер текста</span>
+        <div class="seg" id="font-seg">
+          <button onclick="setFontSize('small')">S</button>
+          <button onclick="setFontSize('medium')">M</button>
+          <button onclick="setFontSize('large')">L</button>
+        </div>
+      </div>`;
+    applySettings();
+    if (typeof window.electron !== 'undefined') {
+      const ar = document.getElementById('autostart-row');
+      if (ar) ar.style.removeProperty('display');
+      window.electron?.getAutostart?.().then(v => { const c = document.getElementById('autostart-chk'); if(c) c.checked=!!v; });
+    }
+
+  } else if (tab === 'update') {
+    content.innerHTML = `
+      <div style="font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:10px">Обновление</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:13px;color:var(--text2)" id="update-status-text">Версия актуальна</span>
+        <button class="seg-single-btn" id="update-check-btn" onclick="checkUpdate()">Проверить</button>
+      </div>
+      <div style="margin-top:12px;font-size:11px;color:var(--muted);text-align:center" id="app-version"></div>
+      <div style="margin-top:8px;font-size:11px;color:var(--muted);text-align:center">2026 © bolgov0zero</div>`;
+    const vEl = document.getElementById('app-version');
+    if (vEl && S.clientVersion) vEl.textContent = S.clientVersion;
+    if (window.electron?.getVersion) {
+      window.electron.getVersion().then(v => { if(v && vEl) vEl.textContent = `v${v}`; });
+    }
   }
-  const soundChk = document.getElementById('sound-chk');
-  if (soundChk) soundChk.checked = S.settings.soundEnabled !== false;
-  applySettings();
+}
+
+function toggleSidebarPref(checked) {
+  const isHidden = document.body.classList.contains('sidebar-hidden');
+  if (checked !== isHidden) toggleSidebar();
 }
 function closeSettings() { closeModal('modal-settings'); }
 function openNameEdit() {
@@ -1059,6 +1153,23 @@ function renderMsg(m, isChatGroup, hideTime = false, grouped = false, isLast = t
   return renderMsgIRC(m, grouped);
 }
 
+function rolePillHtml(tag) {
+  if (!tag) return '';
+  const tagLow = tag.toLowerCase();
+  let cls = 'default';
+  if (tagLow === 'developer') cls = 'teal';
+  else if (tagLow === 'tester') cls = 'indigo';
+  return `<span class="role-pill ${cls}">${esc(tag)}</span>`;
+}
+
+function senderNameClass(tag) {
+  if (!tag) return 'default';
+  const t = (tag||'').toLowerCase();
+  if (t === 'developer') return 'teal';
+  if (t === 'tester') return 'indigo';
+  return 'default';
+}
+
 function renderMsgIRC(m, isGroup) {
   if (m.status && m.id > 0) S.msgStatus[m.id] = { ...m.status };
   const mine = m.sender_id===S.user.id;
@@ -1094,14 +1205,15 @@ function renderMsgIRC(m, isGroup) {
     ? `<div style="width:28px;flex-shrink:0"></div>`
     : `<div class="irc-av av av-round ${avColor}" style="position:relative;flex-shrink:0">${avLetter}${avImg}</div>`;
 
-  const ircTagHtml = (!isGroup && m.sender_tag) ? `<span class="bubble-tag bubble-tag-${avColor.replace('av-','')}" style="margin-left:6px">${esc(m.sender_tag)}</span>` : '';
+  const ircTagHtml = m.sender_tag ? rolePillHtml(m.sender_tag) : '';
+  const senderCls = senderNameClass(m.sender_tag);
   const header = isGroup
     ? `<div class="irc-header irc-header-grouped">
         <div class="irc-meta"><span class="status-wrap">${statusIcon}</span><span class="irc-time">${time}</span></div>
        </div>`
     : `<div class="irc-header">
-        <div style="display:flex;align-items:center;flex:1;min-width:0">
-          <span class="irc-name ${avColor}-text${mine?' mine':''}">${senderName}</span>${ircTagHtml}
+        <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0">
+          <span class="irc-name msg-sender-name ${senderCls}${mine?' mine':''}">${senderName}</span>${ircTagHtml}
         </div>
         <div class="irc-meta"><span class="status-wrap">${statusIcon}</span><span class="irc-time">${time}</span></div>
        </div>`;
@@ -1891,6 +2003,12 @@ function openGroupMembers(chatId) {
 
   document.getElementById('gm-title').textContent = chatName(chat);
   renderGmList();
+  const gmFooter = document.getElementById('gm-footer');
+  if (gmFooter) {
+    gmFooter.style.display = canManage ? '' : 'none';
+    // Store chatId for footer button
+    gmFooter.dataset.chatId = chatId;
+  }
   openModal('modal-group-members');
 }
 
@@ -1905,6 +2023,12 @@ async function kickMember(chatId, userId) {
 }
 
 let _amAvailable = [];
+function openAddMembersToGroup() {
+  const footer = document.getElementById('gm-footer');
+  const chatId = footer ? parseInt(footer.dataset.chatId) : S.activeChatId;
+  if (chatId) openAddMember(chatId);
+}
+
 async function openAddMember(chatId) {
   const chat = S.chats.find(c=>c.id===chatId);
   const memberIds = new Set((chat?.members||[]).map(m=>m.id));
@@ -2403,8 +2527,8 @@ async function createGroup() {
 }
 
 function switchTab(tab) {
-  document.querySelectorAll('.nc-type-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(`nc-btn-${tab}`).classList.add('active');
+  document.querySelectorAll('.nc-type-btn,.nc-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById(`nc-btn-${tab}`)?.classList.add('active');
   document.getElementById('tab-direct').style.display = tab==='direct' ? 'flex' : 'none';
   document.getElementById('tab-group').style.display = tab==='group' ? 'flex' : 'none';
   document.getElementById('nc-group-settings').style.display = tab==='group' ? '' : 'none';
