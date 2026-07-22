@@ -1320,7 +1320,7 @@ html:not(.dark) .modal { box-shadow: 0 24px 60px rgba(15,23,42,.12); }
 .pp-av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .pp-name { font-size: 13.5px; font-weight: 500; color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pp-tag { font-size: 10px; color: var(--muted); background: var(--card-bg); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; flex-shrink: 0; }
-.pp-check { width: 17px; height: 17px; border-radius: 50%; border: 1.5px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all .12s; color: transparent; }
+.pp-check { width: 17px; height: 17px; border-radius: 5px; border: 1.5px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all .12s; color: transparent; }
 .pp-row.on .pp-check { background: var(--accent); border-color: var(--accent); color: #fff; }
 .pp-owner { font-size: 10px; color: var(--accent); background: var(--accent-soft); border-radius: 4px; padding: 1px 6px; flex-shrink: 0; }
 .pp-x { border: none; background: none; color: var(--muted); cursor: pointer; padding: 3px; border-radius: 5px; display: flex; opacity: 0; transition: opacity .12s, color .12s; flex-shrink: 0; }
