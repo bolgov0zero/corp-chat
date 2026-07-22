@@ -1072,7 +1072,7 @@ async function openChat(chatId, aroundId = null) {
     autoResize(inputEl);
     onMsgInput(inputEl, true);
   }
-  inputEl?.focus();
+  if (!_isMobile()) inputEl?.focus();
 
   // Mobile: show chat panel
   openMobileChat();
