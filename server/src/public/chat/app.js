@@ -2030,18 +2030,19 @@ async function ctxInfo() {
     const readUsers = data.statuses.filter(s => s.read_at);
     const unreadUsers = data.statuses.filter(s => !s.read_at);
     if (readUsers.length) {
-      body += `<div class="msg-info-label" style="padding:0 2px">Прочитали</div>`;
-      body += readUsers.map(s => `<div class="msg-info-user-row"><div style="font-size:13px;font-weight:500">${esc(s.display_name)}</div><div style="font-size:12px;color:var(--muted)">${fmtDt(s.read_at)}</div></div>`).join('');
+      body += `<div class="msg-info-section">Прочитали · ${readUsers.length}</div>`;
+      body += readUsers.map(s => `<div class="msg-info-user-row"><div class="av av-xs av-round ${avatarColor(s.user_id)}" data-av-user="${s.user_id}">${initials(s.display_name)}</div><div style="font-size:13px;font-weight:500;flex:1">${esc(s.display_name)}</div><div class="msg-info-user-time">${fmtDt(s.read_at)}</div></div>`).join('');
     }
     if (unreadUsers.length) {
-      body += `<div class="msg-info-label" style="padding:${readUsers.length?'8px':'0'} 2px 0">Не прочитали</div>`;
-      body += unreadUsers.map(s => `<div class="msg-info-user-row"><div style="font-size:13px;color:var(--muted)">${esc(s.display_name)}</div></div>`).join('');
+      body += `<div class="msg-info-section">Не прочитали · ${unreadUsers.length}</div>`;
+      body += unreadUsers.map(s => `<div class="msg-info-user-row"><div class="av av-xs av-round ${avatarColor(s.user_id)}" style="opacity:.5" data-av-user="${s.user_id}">${initials(s.display_name)}</div><div style="font-size:13px;color:var(--muted);flex:1">${esc(s.display_name)}</div></div>`).join('');
     }
     if (!data.statuses.length) {
-      body += `<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">Никто ещё не прочитал</div>`;
+      body += `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Никто ещё не прочитал</div>`;
     }
   }
   document.getElementById('msg-info-body').innerHTML = body;
+  if (data.chat_type !== 'direct') applyAvatars();
   openModal('modal-msg-info');
 }
 
@@ -2631,13 +2632,13 @@ async function openEditGroup(chatId) {
   document.getElementById('eg-name').value = chat.name||'';
   document.getElementById('eg-avatar-input').value = '';
   const av = document.getElementById('eg-av');
-  av.style.backgroundImage = ''; av.style.backgroundSize = ''; av.textContent = initials(chat.name||'G');
+  av.style.backgroundImage = ''; av.style.backgroundSize = ''; av.className = 'av ' + avatarColor(chat.id || chatId); av.textContent = initials(chat.name||'G');
   const avatarUrl = `${httpProto()}://${S.server}/api/chats/${chatId}/avatar?t=${Date.now()}`;
   const img = new Image();
   img.onload = () => { av.style.backgroundImage = `url('${avatarUrl}')`; av.style.backgroundSize = 'cover'; av.textContent = ''; };
   img.src = avatarUrl;
   renderEgMembers(chat.members||[]);
-  renderEgAdd(chat.members||[]);
+  document.getElementById('eg-add-wrap').style.display = 'none';
   openModal('modal-edit-group');
 }
 
@@ -2662,6 +2663,16 @@ function renderEgAdd(existingMembers) {
       <div><div class="uname">${esc(u.display_name)}</div><div class="ulogin">@${esc(u.username)}</div></div>
     </div>`).join('') || '<div style="font-size:13px;color:var(--muted)">Нет доступных</div>';
   applyAvatars();
+}
+
+function toggleEgAdd() {
+  const wrap = document.getElementById('eg-add-wrap');
+  const showing = wrap.style.display !== 'none';
+  if (!showing) {
+    const chat = S.chats.find(c => c.id === S.egChatId);
+    renderEgAdd(chat?.members || []);
+  }
+  wrap.style.display = showing ? 'none' : '';
 }
 
 function egRemoveMember(id) {

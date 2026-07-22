@@ -130,7 +130,7 @@ router.get('/:messageId/info', authMiddleware, (req, res) => {
     return res.status(403).json({ error: 'Forbidden' });
 
   const statuses = db.prepare(`
-    SELECT u.display_name, ms.delivered_at, ms.read_at
+    SELECT u.id as user_id, u.display_name, ms.delivered_at, ms.read_at
     FROM message_status ms JOIN users u ON u.id = ms.user_id
     WHERE ms.message_id = ? ORDER BY ms.read_at ASC, ms.delivered_at ASC
   `).all(messageId);

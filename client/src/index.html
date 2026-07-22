@@ -314,24 +314,31 @@
   <div class="modal">
     <div class="modal-hdr"><span>Редактировать группу</span><button class="icon-btn" onclick="closeModal('modal-edit-group')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="modal-body-pad">
-      <div class="nc-group-top" style="margin-bottom:14px">
-        <div class="profile-av-wrap" onclick="triggerEgAvatarUpload()" title="Фото группы" style="cursor:pointer">
-          <div class="av av-md av-green av-round" id="eg-av"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;padding:4px 0 16px">
+        <div class="profile-av-wrap" onclick="triggerEgAvatarUpload()" title="Фото группы">
+          <div class="av av-green" id="eg-av" style="width:72px;height:72px;border-radius:16px;font-size:22px;font-weight:700;cursor:pointer"></div>
           <div class="profile-av-overlay">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           </div>
         </div>
-        <input id="eg-name" class="nc-name-input" placeholder="Название группы">
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:20px">
+        <input id="eg-name" class="profile-name-input" placeholder="Название группы" style="flex:1">
+        <button onclick="saveGroupEdit()" style="height:36px;padding:0 16px;border-radius:9px;background:var(--accent);color:#0c0e10;font-weight:700;font-size:12.5px;border:none;cursor:pointer;font-family:inherit;flex-shrink:0">Сохранить</button>
       </div>
       <input type="file" id="eg-avatar-input" accept="image/*" style="display:none" onchange="onEgAvatarChange(this)">
-      <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Участники</div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Участники</div>
       <div id="eg-members" class="users-list"></div>
-      <div style="margin-top:12px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Добавить</div>
-      <div id="eg-add" class="users-list"></div>
+      <div id="eg-add-wrap" style="display:none">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">Добавить</div>
+        <div id="eg-add" class="users-list"></div>
+      </div>
     </div>
-    <div class="modal-footer">
-      <button class="modal-btn-ghost" onclick="closeModal('modal-edit-group')">Отмена</button>
-      <button class="modal-btn-primary" onclick="saveGroupEdit()">Сохранить</button>
+    <div class="modal-footer" style="padding:10px 16px">
+      <button onclick="toggleEgAdd()" class="modal-btn-ghost" style="width:100%;justify-content:center;display:flex;align-items:center;gap:6px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Добавить участника
+      </button>
     </div>
   </div>
 </div>

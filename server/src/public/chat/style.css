@@ -1055,21 +1055,29 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
 }
 
 /* Toggle */
-.toggle { position: relative; display: inline-block; width: 34px; height: 20px; flex-shrink: 0; }
-.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle { position: relative; display: inline-block; width: 18px; height: 18px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
 .toggle-slider {
   position: absolute; inset: 0;
-  background: var(--border); border-radius: 20px;
-  cursor: pointer; transition: background .2s;
+  background: transparent;
+  border: 2px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+  display: flex; align-items: center; justify-content: center;
 }
 .toggle-slider:before {
-  content: ''; position: absolute;
-  width: 14px; height: 14px; left: 3px; top: 3px;
-  background: #fff; border-radius: 50%;
-  transition: transform .2s;
+  content: '';
+  display: block;
+  width: 9px; height: 5px;
+  border-left: 2px solid #0c0e10;
+  border-bottom: 2px solid #0c0e10;
+  transform: rotate(-45deg) translate(1px, 1px);
+  opacity: 0;
+  transition: opacity .12s;
 }
-.toggle input:checked + .toggle-slider { background: var(--accent); }
-.toggle input:checked + .toggle-slider:before { transform: translateX(14px); }
+.toggle input:checked + .toggle-slider { background: var(--accent); border-color: var(--accent); }
+.toggle input:checked + .toggle-slider:before { opacity: 1; }
 
 /* Segmented control */
 .seg {
@@ -1369,25 +1377,18 @@ html:not(.dark) .modal { box-shadow: 0 24px 60px rgba(15,23,42,.12); }
 .nc-list { max-height: 320px; padding: 6px 10px; }
 
 /* ── MESSAGE INFO MODAL ── */
-.msg-info-body { padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 10px; }
+.msg-info-body { padding: 0 0 4px; display: flex; flex-direction: column; }
 .msg-info-row {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 14px;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border);
 }
-.msg-info-label {
-  font-size: 11px; font-weight: 600;
-  color: var(--muted);
-  text-transform: uppercase; letter-spacing: .06em;
-}
+.msg-info-label { font-size: 13px; color: var(--muted); }
 .msg-info-val { font-size: 13px; color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; }
-.msg-info-user-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 7px 10px; border-radius: 8px;
-}
+.msg-info-section { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: 10px 18px 4px; }
+.msg-info-user-row { display: flex; align-items: center; gap: 10px; padding: 8px 18px; }
 .msg-info-user-row:hover { background: var(--hover-row); }
+.msg-info-user-time { font-size: 11px; color: var(--muted); margin-left: auto; font-variant-numeric: tabular-nums; }
 
 /* ── LINK CONFIRM MODAL ── */
 .link-modal {
