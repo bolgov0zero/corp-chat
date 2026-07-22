@@ -430,8 +430,15 @@ tr:hover .td-actions{opacity:1}
 .upd-fill{height:100%;border-radius:2px;transition:width .5s ease,background .3s}
 .upd-pct{font-size:11px;color:var(--c-muted);font-variant-numeric:tabular-nums;min-width:30px;text-align:right}
 
-/* ── SETTINGS ── */
-.settings-wrap{max-width:540px;display:flex;flex-direction:column;gap:16px}
+/* ── SETTINGS MODAL ── */
+.modal-settings{width:760px;max-width:96vw}
+.settings-modal-layout{display:flex;flex:1;overflow:hidden}
+.settings-modal-nav{width:176px;flex-shrink:0;border-right:1px solid var(--c-border);padding:8px;display:flex;flex-direction:column;gap:2px}
+.sm-nav-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--radius-xs);border:none;background:none;color:var(--c-text2);font-size:13px;font-weight:500;cursor:pointer;text-align:left;width:100%;transition:background var(--t-fast),color var(--t-fast);font-family:var(--f-ui)}
+.sm-nav-item svg{width:15px;height:15px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2}
+.sm-nav-item:hover{background:var(--bg-hover);color:var(--c-text)}
+.sm-nav-item.active{background:var(--c-primary-dim);color:var(--c-primary)}
+.settings-modal-content{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px}
 
 /* ── ROOM NAME INPUT ── */
 #room-name-input{width:100%;padding:9px 12px;border:1.5px solid var(--c-border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--f-ui);outline:none;transition:border-color .15s;background:var(--c-surface);color:var(--c-text)}
@@ -500,7 +507,7 @@ select{-webkit-appearance:none;appearance:none;background-image:url("data:image/
             </button>
           </div>
           <div class="dots-divider"></div>
-          <button class="dots-item" onclick="nav('settings');closeDotsMenu()">
+          <button class="dots-item" onclick="openSettingsModal();closeDotsMenu()">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             Настройки
           </button>
@@ -557,11 +564,6 @@ select{-webkit-appearance:none;appearance:none;background-image:url("data:image/
           Уведомления
           <span class="nav-badge" id="nb-push">—</span>
         </div>
-        <div class="nav-section">Система</div>
-        <div class="nav-item" onclick="nav('settings')" data-page="settings">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          Настройки
-        </div>
       </nav>
       <div class="sb-ver-wrap">
         <span class="sb-brand-ver" id="sb-ver">admin</span>
@@ -573,6 +575,37 @@ select{-webkit-appearance:none;appearance:none;background-image:url("data:image/
 </div>
 
 <!-- ─── MODALS ─── -->
+
+<!-- Settings modal -->
+<div class="modal-bg" id="modal-settings">
+  <div class="modal modal-settings">
+    <div class="modal-head">
+      <h3>Настройки</h3>
+      <button class="modal-close" onclick="closeModal('modal-settings')">✕</button>
+    </div>
+    <div class="settings-modal-layout">
+      <nav class="settings-modal-nav">
+        <button class="sm-nav-item active" data-section="messages" onclick="showSettingsSection('messages')">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Сообщения
+        </button>
+        <button class="sm-nav-item" data-section="github" onclick="showSettingsSection('github')">
+          <svg viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          GitHub
+        </button>
+        <button class="sm-nav-item" data-section="attachments" onclick="showSettingsSection('attachments')">
+          <svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          Вложения
+        </button>
+        <button class="sm-nav-item" data-section="update" onclick="showSettingsSection('update')">
+          <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Обновление
+        </button>
+      </nav>
+      <div class="settings-modal-content" id="settings-modal-content"></div>
+    </div>
+  </div>
+</div>
 
 <!-- User modal -->
 <div class="modal-bg" id="modal-user">
@@ -1109,8 +1142,8 @@ function logout() {
 })();
 
 /* ── NAV ── */
-const pageTitles = {dashboard:'Главная',users:'Пользователи',rooms:'Комнаты',chats:'Чаты и группы',clients:'Клиенты',push:'Уведомления',settings:'Настройки'};
-const pageRenders = {dashboard:renderDashboard,users:renderUsers,rooms:renderRooms,chats:renderChats,clients:renderClients,push:renderPush,settings:renderSettings};
+const pageTitles = {dashboard:'Главная',users:'Пользователи',rooms:'Комнаты',chats:'Чаты и группы',clients:'Клиенты',push:'Уведомления'};
+const pageRenders = {dashboard:renderDashboard,users:renderUsers,rooms:renderRooms,chats:renderChats,clients:renderClients,push:renderPush};
 
 function nav(page) {
   currentPage=page;
@@ -2116,143 +2149,158 @@ async function testPushSub(userId, name, btn) {
   btn.innerHTML = '<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Тест';
 }
 
-/* ── SETTINGS ── */
-async function renderSettings() {
+/* ── SETTINGS MODAL ── */
+let _settingsData = null;
+let _activeSettingsSection = 'messages';
+
+async function openSettingsModal() {
   const [settings, verData] = await Promise.all([api('GET','/api/admin/settings'), api('GET','/api/admin/server/version')]);
-  const LOCAL_VERSION_DISPLAY = verData?.current || '—';
+  _settingsData = { ...settings, _version: verData?.current || '—' };
+  _activeSettingsSection = 'messages';
+  showSettingsSection('messages');
+  openModal('modal-settings');
+}
 
-  document.getElementById('page-body').innerHTML=`
-    <div class="settings-wrap">
+function showSettingsSection(section) {
+  _activeSettingsSection = section;
+  document.querySelectorAll('#modal-settings .sm-nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.section === section);
+  });
+  const el = document.getElementById('settings-modal-content');
+  if (!el || !_settingsData) return;
+  el.innerHTML = _buildSettingsSectionHtml(section);
+  if (section === 'github') {
+    const inp = document.getElementById('github-token-input');
+    if (inp) inp.addEventListener('keydown', e => e.key === 'Enter' && saveGithubToken());
+  }
+}
 
-      <!-- Обновление сервера -->
-      <div class="card">
-        <div class="card-head">
-          <div>
-            <h3>Обновление сервера</h3>
-            <div class="card-sub">Текущая версия: <span style="font-family:var(--f-mono);font-weight:600">${LOCAL_VERSION_DISPLAY}</span></div>
+function _buildSettingsSectionHtml(section) {
+  const s = _settingsData;
+  if (section === 'messages') return `
+    <div class="card">
+      <div class="card-head"><h3>Сообщения</h3></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
+        <p style="font-size:12px;color:var(--c-text2);line-height:1.7">
+          Время, в течение которого пользователь может редактировать своё сообщение.<br>
+          Для сравнения: WhatsApp — 15 минут, Telegram — 48 часов.
+        </p>
+        <div class="fg" style="margin:0">
+          <label>Лимит редактирования (секунды)</label>
+          <div style="display:flex;gap:8px">
+            <input id="edit-limit-input" type="number" min="10" step="10"
+              value="${s.edit_time_limit || 120}"
+              style="flex:1;font-family:var(--f-mono);font-size:13px">
+            <button class="btn btn-primary" onclick="saveEditLimit()">Сохранить</button>
           </div>
-        </div>
-        <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
-          <div style="display:flex;align-items:center;gap:10px">
-            <button class="btn btn-ghost" id="su-check-btn" onclick="checkServerUpdateSettings()">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-              Проверить
-            </button>
-            <span id="su-status"></span>
-          </div>
-          <div id="su-progress" style="display:none">
-            <div style="height:4px;border-radius:2px;background:var(--c-border);overflow:hidden;margin-bottom:6px">
-              <div class="su-bar" style="height:100%;width:0%;background:var(--c-primary);border-radius:2px;transition:width 1.8s ease"></div>
-            </div>
-            <div class="su-progress-label" style="font-size:11px;color:var(--c-muted)"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-head"><h3>Сообщения</h3></div>
-        <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
-          <p style="font-size:12px;color:var(--c-text2);line-height:1.7">
-            Время, в течение которого пользователь может редактировать своё сообщение.<br>
-            Для сравнения: WhatsApp — 15 минут, Telegram — 48 часов.
-          </p>
-          <div class="fg" style="margin:0">
-            <label>Лимит редактирования (секунды)</label>
-            <div style="display:flex;gap:8px">
-              <input id="edit-limit-input" type="number" min="10" step="10"
-                value="${settings.edit_time_limit || 120}"
-                style="flex:1;font-family:var(--f-mono);font-size:13px">
-              <button class="btn btn-primary" onclick="saveEditLimit()">Сохранить</button>
-            </div>
-            <div style="margin-top:7px;font-size:11px;color:var(--c-muted)">По умолчанию 120 сек (2 минуты). Применяется сразу, клиенты подхватывают при переподключении.</div>
-          </div>
+          <div style="margin-top:7px;font-size:11px;color:var(--c-muted)">По умолчанию 120 сек (2 минуты). Применяется сразу, клиенты подхватывают при переподключении.</div>
         </div>
       </div>
-
-      <div class="card">
-        <div class="card-head"><h3>GitHub API</h3></div>
-        <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
-          <p style="font-size:12px;color:var(--c-text2);line-height:1.7">
-            GitHub Personal Access Token используется для авторизованных запросов к API.<br>
-            Без токена лимит — <b>60 запросов/час</b>, с токеном — <b>5000 запросов/час</b>.<br>
-            Версия клиентов кэшируется на 15 минут.
-          </p>
-          <div class="fg" style="margin:0">
-            <label>Personal Access Token</label>
-            <div style="display:flex;gap:8px">
-              <input id="github-token-input" type="password"
-                placeholder="${settings.github_token_set?'••••••••••••••••••••':'ghp_xxxxxxxxxxxxxxxxxxxx'}"
-                style="flex:1;font-family:var(--f-mono);font-size:13px">
-              <button class="btn btn-primary" onclick="saveGithubToken()">Сохранить</button>
-              ${settings.github_token_set?`<button class="btn btn-ghost" onclick="clearGithubToken()">Удалить</button>`:''}
-            </div>
-            ${settings.github_token_set
-              ?`<div style="margin-top:7px;font-size:12px;color:var(--c-green-text);display:flex;align-items:center;gap:5px">
-                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                  Токен установлен
-                </div>`
-              :`<div style="margin-top:7px;font-size:12px;color:var(--c-orange-text);display:flex;align-items:center;gap:5px">
-                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                  Токен не установлен — используется анонимный доступ
-                </div>`}
-          </div>
-          <p style="font-size:11px;color:var(--c-muted)">
-            Создать токен: <a href="https://github.com/settings/tokens/new?scopes=public_repo&description=Electron+Admin" target="_blank">github.com/settings/tokens</a> — достаточно scope <code style="background:var(--c-surface2);padding:1px 5px;border-radius:4px;font-size:11px">public_repo</code>
-          </p>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-head"><h3>Вложения</h3></div>
-        <div class="card-body" style="display:flex;flex-direction:column;gap:20px">
-          <div>
-            <div style="font-size:11px;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Изображения</div>
-            <div style="display:flex;flex-direction:column;gap:10px">
-              <div class="fg" style="margin:0">
-                <label>Макс. размер (МБ)</label>
-                <input id="img-max-size" type="number" min="1" max="500" value="${settings.upload_image_max_size || 10}" style="font-family:var(--f-mono);font-size:13px">
-              </div>
-              <div class="fg" style="margin:0">
-                <label>Разрешённые расширения</label>
-                <input id="img-extensions" type="text" value="${settings.upload_image_extensions || 'jpeg,jpg,png,gif,webp'}" placeholder="jpeg,jpg,png,gif,webp" style="font-family:var(--f-mono);font-size:13px">
-                <div style="margin-top:5px;font-size:11px;color:var(--c-muted)">Через запятую без пробелов и точек</div>
-              </div>
-            </div>
-          </div>
-          <div style="border-top:1px solid var(--c-border);padding-top:16px">
-            <div style="font-size:11px;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Файлы</div>
-            <div style="display:flex;flex-direction:column;gap:10px">
-              <div class="fg" style="margin:0">
-                <label>Макс. размер (МБ)</label>
-                <input id="file-max-size" type="number" min="1" max="500" value="${settings.upload_file_max_size || 50}" style="font-family:var(--f-mono);font-size:13px">
-              </div>
-              <div class="fg" style="margin:0">
-                <label>Разрешённые расширения</label>
-                <input id="file-extensions" type="text" value="${settings.upload_file_extensions || ''}" placeholder="pdf,docx,xlsx,zip (пусто = любые)" style="font-family:var(--f-mono);font-size:13px">
-                <div style="margin-top:5px;font-size:11px;color:var(--c-muted)">Пусто = любые расширения разрешены</div>
-              </div>
-            </div>
-          </div>
-          <div style="border-top:1px solid var(--c-border);padding-top:16px">
-            <div style="font-size:11px;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Хранение</div>
-            <div class="fg" style="margin:0">
-              <label>Время жизни файлов (дни, 0 = навсегда)</label>
-              <input id="file-lifetime" type="number" min="0" max="3650" value="${settings.upload_file_lifetime || 0}" style="font-family:var(--f-mono);font-size:13px">
-              <div style="margin-top:5px;font-size:11px;color:var(--c-muted)">Файлы старше указанного числа дней удаляются автоматически. Проверка раз в 6 часов.</div>
-            </div>
-          </div>
-          <button class="btn btn-primary" onclick="saveUploadSettings()" style="align-self:flex-start">Сохранить</button>
-        </div>
-      </div>
-
     </div>`;
 
-  // Bind Enter key for token input
-  document.getElementById('github-token-input').addEventListener('keydown',e=>e.key==='Enter'&&saveGithubToken());
-  // Apply fg input styles dynamically
-  const inp = document.getElementById('github-token-input');
-  inp.addEventListener('focus',()=>inp.style.borderColor='var(--c-primary)');
-  inp.addEventListener('blur',()=>inp.style.borderColor='var(--c-border)');
+  if (section === 'github') return `
+    <div class="card">
+      <div class="card-head"><h3>GitHub API</h3></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
+        <p style="font-size:12px;color:var(--c-text2);line-height:1.7">
+          GitHub Personal Access Token используется для авторизованных запросов к API.<br>
+          Без токена лимит — <b>60 запросов/час</b>, с токеном — <b>5000 запросов/час</b>.<br>
+          Версия клиентов кэшируется на 15 минут.
+        </p>
+        <div class="fg" style="margin:0">
+          <label>Personal Access Token</label>
+          <div style="display:flex;gap:8px">
+            <input id="github-token-input" type="password"
+              placeholder="${s.github_token_set?'••••••••••••••••••••':'ghp_xxxxxxxxxxxxxxxxxxxx'}"
+              style="flex:1;font-family:var(--f-mono);font-size:13px">
+            <button class="btn btn-primary" onclick="saveGithubToken()">Сохранить</button>
+            ${s.github_token_set?`<button class="btn btn-ghost" onclick="clearGithubToken()">Удалить</button>`:''}
+          </div>
+          ${s.github_token_set
+            ?`<div style="margin-top:7px;font-size:12px;color:var(--c-green-text);display:flex;align-items:center;gap:5px">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                Токен установлен
+              </div>`
+            :`<div style="margin-top:7px;font-size:12px;color:var(--c-orange-text);display:flex;align-items:center;gap:5px">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                Токен не установлен — используется анонимный доступ
+              </div>`}
+        </div>
+        <p style="font-size:11px;color:var(--c-muted)">
+          Создать токен: <a href="https://github.com/settings/tokens/new?scopes=public_repo&description=Electron+Admin" target="_blank">github.com/settings/tokens</a> — достаточно scope <code style="background:var(--c-surface2);padding:1px 5px;border-radius:4px;font-size:11px">public_repo</code>
+        </p>
+      </div>
+    </div>`;
+
+  if (section === 'attachments') return `
+    <div class="card">
+      <div class="card-head"><h3>Вложения</h3></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:20px">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Изображения</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div class="fg" style="margin:0">
+              <label>Макс. размер (МБ)</label>
+              <input id="img-max-size" type="number" min="1" max="500" value="${s.upload_image_max_size || 10}" style="font-family:var(--f-mono);font-size:13px">
+            </div>
+            <div class="fg" style="margin:0">
+              <label>Разрешённые расширения</label>
+              <input id="img-extensions" type="text" value="${s.upload_image_extensions || 'jpeg,jpg,png,gif,webp'}" placeholder="jpeg,jpg,png,gif,webp" style="font-family:var(--f-mono);font-size:13px">
+              <div style="margin-top:5px;font-size:11px;color:var(--c-muted)">Через запятую без пробелов и точек</div>
+            </div>
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--c-border);padding-top:16px">
+          <div style="font-size:11px;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Файлы</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div class="fg" style="margin:0">
+              <label>Макс. размер (МБ)</label>
+              <input id="file-max-size" type="number" min="1" max="500" value="${s.upload_file_max_size || 50}" style="font-family:var(--f-mono);font-size:13px">
+            </div>
+            <div class="fg" style="margin:0">
+              <label>Разрешённые расширения</label>
+              <input id="file-extensions" type="text" value="${s.upload_file_extensions || ''}" placeholder="pdf,docx,xlsx,zip (пусто = любые)" style="font-family:var(--f-mono);font-size:13px">
+              <div style="margin-top:5px;font-size:11px;color:var(--c-muted)">Пусто = любые расширения разрешены</div>
+            </div>
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--c-border);padding-top:16px">
+          <div style="font-size:11px;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Хранение</div>
+          <div class="fg" style="margin:0">
+            <label>Время жизни файлов (дни, 0 = навсегда)</label>
+            <input id="file-lifetime" type="number" min="0" max="3650" value="${s.upload_file_lifetime || 0}" style="font-family:var(--f-mono);font-size:13px">
+            <div style="margin-top:5px;font-size:11px;color:var(--c-muted)">Файлы старше указанного числа дней удаляются автоматически. Проверка раз в 6 часов.</div>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveUploadSettings()" style="align-self:flex-start">Сохранить</button>
+      </div>
+    </div>`;
+
+  if (section === 'update') return `
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h3>Обновление сервера</h3>
+          <div class="card-sub">Текущая версия: <span style="font-family:var(--f-mono);font-weight:600">${s._version}</span></div>
+        </div>
+      </div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button class="btn btn-ghost" id="su-check-btn" onclick="checkServerUpdateSettings()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Проверить
+          </button>
+          <span id="su-status"></span>
+        </div>
+        <div id="su-progress" style="display:none">
+          <div style="height:4px;border-radius:2px;background:var(--c-border);overflow:hidden;margin-bottom:6px">
+            <div class="su-bar" style="height:100%;width:0%;background:var(--c-primary);border-radius:2px;transition:width 1.8s ease"></div>
+          </div>
+          <div class="su-progress-label" style="font-size:11px;color:var(--c-muted)"></div>
+        </div>
+      </div>
+    </div>`;
+  return '';
 }
 
 function restartService() {
@@ -2298,13 +2346,15 @@ async function saveGithubToken() {
   if (!val) { toast('Введите токен','error'); return; }
   await api('PUT','/api/admin/settings',{github_token:val});
   toast('Токен сохранён','success');
-  renderSettings();
+  _settingsData = await api('GET','/api/admin/settings');
+  showSettingsSection('github');
 }
 
 async function clearGithubToken() {
   await api('PUT','/api/admin/settings',{github_token:''});
   toast('Токен удалён','success');
-  renderSettings();
+  _settingsData = await api('GET','/api/admin/settings');
+  showSettingsSection('github');
 }
 
 async function saveUploadSettings() {
@@ -2461,8 +2511,14 @@ async function doServerUpdateSettings() {
           // Сбрасываем все кеши — данные могли измениться после обновления
           allUsers = []; allRooms = []; allChats = []; allUsersCache = [];
           updateNavBadges();
-          // Перерисовываем настройки только если пользователь всё ещё на этой странице
-          setTimeout(() => { if (currentPage === 'settings') renderSettings(); }, 800);
+          // Перерисовываем раздел обновления если модалка настроек открыта
+          setTimeout(async () => {
+            if (document.getElementById('modal-settings')?.classList.contains('open')) {
+              const verData2 = await api('GET','/api/admin/server/version');
+              if (_settingsData) _settingsData._version = verData2?.current || '—';
+              if (_activeSettingsSection === 'update') showSettingsSection('update');
+            }
+          }, 800);
         }
         // иначе сервер ещё на старой версии (идёт сборка/рестарт) — продолжаем ждать
       }
