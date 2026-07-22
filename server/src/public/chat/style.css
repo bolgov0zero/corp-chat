@@ -848,6 +848,8 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
 .chat-input-wrap {
   padding: 14px 20px;
   flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 .composer-inner { max-width: 760px; margin: 0 auto; }
 
