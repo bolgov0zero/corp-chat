@@ -592,25 +592,11 @@ body.sidebar-hidden.sidebar-peeking .sidebar {
   position: relative;
 }
 
-/* Отдельный fixed-элемент для поля ввода (десктоп — внутри grid, поэтому не fixed) */
 #chat-input-bar {
   background: var(--app-bg);
   position: relative;
-  z-index: 1; /* выше декоративных .blob (z-index:0) */
-  margin-left: var(--sidebar-w);
+  z-index: 1;
 }
-/* Продолжает фон сайдбара вниз под область ввода */
-#chat-input-bar::before {
-  content: '';
-  position: absolute;
-  left: calc(-1 * var(--sidebar-w));
-  top: 0; bottom: 0;
-  width: var(--sidebar-w);
-  background: var(--side-bg);
-  border-right: 1px solid var(--border);
-}
-body.sidebar-hidden #chat-input-bar { margin-left: 0; }
-body.sidebar-hidden #chat-input-bar::before { display: none; }
 
 .empty-state {
   display: flex; flex-direction: column;
@@ -1974,8 +1960,6 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.18); }
   /* Топбар скрыт — навигация через хедер чата и сайдбар */
   .topbar { display: none; }
 
-  /* Поле ввода не уезжает за экран (--sidebar-w: 100vw на мобильном) */
-  #chat-input-bar { margin-left: 0; }
 
   /* Настройки — полноэкранное окно */
   #modal-settings .modal,
