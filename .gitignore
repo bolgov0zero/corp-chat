@@ -2,3 +2,4 @@ node_modules/
 client/dist/
 server/data/
 *.log
+design_handoff_chat_redesign/
