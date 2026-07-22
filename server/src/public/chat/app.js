@@ -2101,7 +2101,7 @@ async function ctxInfo() {
 
     body = `<div class="mi-timeline">
       ${tlStep('Отправлено', fmtDt(data.sent_at) || '—', sentDone, icoSingleTeal, true)}
-      ${tlStep('Доставлено', fmtDt(s?.delivered_at) || '—', delivDone, delivDone ? icoDblTeal : icoDblGray, true)}
+      ${tlStep('Доставлено', delivDone ? fmtDt(s?.delivered_at) : 'пока не доставлено', delivDone, delivDone ? icoDblTeal : icoDblGray, true)}
       ${tlStep('Прочитано', readDone ? fmtDt(s?.read_at) : 'пока не прочитано', readDone, readDone ? icoDblTeal : icoDblGray, false)}
     </div>`;
 

@@ -1425,7 +1425,7 @@ html:not(.dark) .modal { box-shadow: 0 24px 60px rgba(15,23,42,.12); }
 .mi-connector.mi-pending { background: rgba(255,255,255,0.08); }
 .mi-step-right { flex: 1; padding-bottom: 16px; }
 .mi-step:last-child .mi-step-right { padding-bottom: 0; }
-.mi-step-name { font-size: 13px; font-weight: 600; color: #e7eaed; line-height: 26px; }
+.mi-step-name { font-size: 13px; font-weight: 600; color: #e7eaed; }
 .mi-step-name.mi-pending { color: #5b6169; }
 .mi-step-sub { font-size: 12px; color: #8890a0; margin-top: 2px; }
 .mi-step-sub.mi-pending { color: #5b6169; }
