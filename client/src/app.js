@@ -827,7 +827,7 @@ async function openChat(chatId, aroundId = null) {
   const peerId = getPeerUserId(chat);
   const peerDot = peerId ? presenceDot(peerId) : '';
   const sub = isRoom ? `🏠 Комната · ${memberCount} участников` : isGroup ? `${memberCount} участников` : (peerId ? peerStatusText(peerId) : 'Личный чат');
-  const nameClickable = (isGroup || isRoom) ? `style="cursor:pointer" onclick="openGroupMembers(${chatId})"` : '';
+  const nameClickable = (isGroup || isRoom) ? `style="cursor:pointer" onclick="openEditGroup(${chatId})"` : '';
 
   // Delete button: visible for direct chats and for group creator / admins
   const canDelete = chat.type === 'direct' || S.user.is_admin || isCreator;
@@ -1969,94 +1969,6 @@ function removeChatLocally(chatId) {
     document.getElementById('chat-main').innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">Electron</div><div class="empty-sub">Выберите чат или создайте новый</div></div>`;
   }
   renderChatList();
-}
-
-function openGroupMembers(chatId) {
-  const chat = S.chats.find(c=>c.id===chatId);
-  if (!chat) return;
-  const isCreator = chat.created_by === S.user.id;
-  const isAdmin = S.user.is_admin;
-  const canManage = isCreator || isAdmin;
-
-  function renderGmList() {
-    const c = S.chats.find(x=>x.id===chatId);
-    document.getElementById('gm-list').innerHTML = (c?.members||[]).map(m => {
-      const isOwner = c.created_by === m.id;
-      return `
-        <div class="pp-row static">
-          ${ppAvHtml(m)}
-          <span class="pp-name">${esc(m.display_name)}</span>
-          ${isOwner ? '<span class="pp-owner">создатель</span>' : ''}
-          ${canManage && !isOwner ? `<button class="pp-x" title="Исключить" onclick="kickMember(${chatId},${m.id})">
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>` : ''}
-        </div>`;
-    }).join('') || '<div class="pp-empty">Нет участников</div>';
-
-  }
-
-  document.getElementById('gm-title').textContent = chatName(chat);
-  renderGmList();
-  const gmFooter = document.getElementById('gm-footer');
-  if (gmFooter) {
-    gmFooter.style.display = canManage ? '' : 'none';
-    // Store chatId for footer button
-    gmFooter.dataset.chatId = chatId;
-  }
-  openModal('modal-group-members');
-}
-
-async function kickMember(chatId, userId) {
-  const ok = await showConfirm('Исключить участника из группы?', 'Исключить');
-  if (!ok) return;
-  const res = await api('DELETE', `/chats/${chatId}/members/${userId}`);
-  if (res.ok) {
-    await loadChats();
-    openGroupMembers(chatId);
-  }
-}
-
-let _amAvailable = [];
-function openAddMembersToGroup() {
-  const footer = document.getElementById('gm-footer');
-  const chatId = footer ? parseInt(footer.dataset.chatId) : S.activeChatId;
-  if (chatId) openAddMember(chatId);
-}
-
-async function openAddMember(chatId) {
-  const chat = S.chats.find(c=>c.id===chatId);
-  const memberIds = new Set((chat?.members||[]).map(m=>m.id));
-  const all = await api('GET', '/users');
-  _amAvailable = all.filter(u => !memberIds.has(u.id));
-  if (!_amAvailable.length) { await showConfirm('Все пользователи уже в группе', 'OK'); return; }
-
-  const list = document.getElementById('gm-list');
-  list.innerHTML = `
-    <div style="display:flex;align-items:center;gap:8px;padding:0 0 10px">
-      <button onclick="openGroupMembers(${chatId})" class="modal-btn-ghost" style="flex-shrink:0" title="Назад">←</button>
-      <input id="am-search" placeholder="Поиск сотрудников…" oninput="renderAddMemberList(${chatId}, this.value)"
-        style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;outline:none;background:transparent;color:var(--text)">
-    </div>
-    <div id="am-list"></div>`;
-  renderAddMemberList(chatId, '');
-  setTimeout(()=>document.getElementById('am-search')?.focus(),50);
-}
-
-function renderAddMemberList(chatId, filter='') {
-  const q = (filter||'').toLowerCase();
-  const list = _amAvailable.filter(u => !q || u.display_name.toLowerCase().includes(q) || (u.username||'').toLowerCase().includes(q));
-  document.getElementById('am-list').innerHTML = list.map(u => `
-    <div class="pp-row" onclick="addMember(${chatId},${u.id})">
-      ${ppAvHtml(u)}
-      <span class="pp-name">${esc(u.display_name)}</span>
-      ${u.tag?`<span class="pp-tag">${esc(u.tag)}</span>`:''}
-    </div>`).join('') || '<div class="pp-empty">Никого не найдено</div>';
-}
-
-async function addMember(chatId, userId) {
-  await api('POST', `/chats/${chatId}/members`, { user_id: userId });
-  await loadChats();
-  openGroupMembers(chatId);
 }
 
 async function leaveGroup(chatId) {
