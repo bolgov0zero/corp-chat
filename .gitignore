@@ -3,3 +3,5 @@ client/dist/
 server/data/
 *.log
 design_handoff_chat_redesign/
+chat_db/
+.claude/
