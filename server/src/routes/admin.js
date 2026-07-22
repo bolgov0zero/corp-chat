@@ -390,8 +390,8 @@ router.post('/server/update', (req, res) => {
       git fetch origin main && \
       git reset --hard origin/main && \
       cd server && \
-      npm install --omit=dev --build-from-source && \
-      npm rebuild better-sqlite3 --build-from-source && \
+      npm install --omit=dev && \
+      npm rebuild better-sqlite3 && \
       systemctl restart electron
     `;
     res.json({ ok: true });
