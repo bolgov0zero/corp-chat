@@ -1896,18 +1896,16 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.18); }
     pointer-events: none;
   }
 
-  /* Область чата — всегда в layout, скрыта сдвигом вправо до открытия */
+  /* Область чата — скрыта по умолчанию, показывается через JS-анимацию */
   .chat-main {
     position: relative;
     z-index: 1;
     flex: 1 1 auto;
     min-height: 0;
-    display: flex;
+    display: none;
     flex-direction: column;
-    transform: translateX(100%);
-    will-change: transform;
   }
-  .chat-main.mobile-open { transform: translateX(0); }
+  .chat-main.mobile-open { display: flex; }
 
   /* Шапка — фиксированной высоты сверху, не двигается */
   .chat-main .chat-header {
