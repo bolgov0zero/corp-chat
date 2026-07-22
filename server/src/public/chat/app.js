@@ -1628,8 +1628,8 @@ function _updateSendBtn(el) {
   if (!sendBtn) return;
   const hasDraft = el.value.trim().length > 0;
   sendBtn.style.background = hasDraft ? 'var(--accent)' : 'transparent';
-  sendBtn.style.color = hasDraft ? '#fff' : 'var(--muted)';
-  sendBtn.style.boxShadow = hasDraft ? '0 6px 16px var(--accent-shadow)' : 'none';
+  sendBtn.style.color = hasDraft ? '#0c0e10' : 'var(--muted)';
+  sendBtn.style.boxShadow = 'none';
 }
 
 // silent=true — восстановление черновика при открытии чата: не шлём typing собеседнику
@@ -2711,9 +2711,15 @@ function showChatCtx(e, chatId) {
   const leaveBtn = document.getElementById('ctx-chat-leave');
   if (delBtn) delBtn.style.display = canDelete ? '' : 'none';
   if (leaveBtn) leaveBtn.style.display = (isGroup && !canDelete) ? '' : 'none';
+  menu.style.top = '-9999px'; menu.style.left = '-9999px';
   menu.style.display = 'block';
-  const x = Math.min(e.clientX, window.innerWidth - 160);
-  const y = Math.min(e.clientY, window.innerHeight - 80);
+  const mw = menu.offsetWidth, mh = menu.offsetHeight;
+  const margin = 6;
+  let x = e.clientX, y = e.clientY;
+  if (x + mw + margin > window.innerWidth) x = window.innerWidth - mw - margin;
+  if (y + mh + margin > window.innerHeight) y = e.clientY - mh;
+  if (y < margin) y = margin;
+  if (x < margin) x = margin;
   menu.style.left = x + 'px';
   menu.style.top = y + 'px';
 }
