@@ -1431,14 +1431,12 @@ html:not(.dark) .modal { box-shadow: 0 24px 60px rgba(15,23,42,.12); }
 .mi-step-sub.mi-pending { color: #5b6169; }
 
 /* Group view */
-.mi-group-section {
-  font-size: 10px; font-weight: 700; color: #5b6169;
-  text-transform: uppercase; letter-spacing: .07em; padding: 10px 0 4px;
-}
-.mi-group-section:first-child { padding-top: 0; }
+.mi-group-count { font-size: 11px; color: #5b6169; margin-bottom: 12px; }
 .mi-user-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
-.mi-user-name { font-size: 13px; font-weight: 500; flex: 1; color: #e7eaed; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mi-user-time { font-size: 11px; color: #8890a0; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.mi-av { width: 34px; height: 34px; font-size: 13px; border-radius: 10px !important; }
+.mi-user-name { font-size: 13px; font-weight: 600; flex: 1; color: #e7eaed; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mi-user-time { font-size: 12px; font-weight: 600; color: #29d6b8; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.mi-empty { text-align: center; padding: 20px 0; color: #5b6169; font-size: 13px; }
 
 /* ── LINK CONFIRM MODAL ── */
 .link-modal {
@@ -2063,6 +2061,7 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.18); }
 @media (min-width: 768px) and (pointer: fine) {
   .mobile-back-btn { display: none !important; }
   .sa-newchat { display: none !important; }
+  .sa-theme { display: none !important; }
 }
 
 /* ── Action sheet (bottom sheet, мобильный) ── */

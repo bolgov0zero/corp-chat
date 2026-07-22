@@ -2074,6 +2074,8 @@ async function ctxInfo() {
     return d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
   }
 
+  document.querySelector('#modal-msg-info .mi-title').textContent = data.chat_type === 'direct' ? 'Информация' : 'Прочитано';
+
   let body;
 
   if (data.chat_type === 'direct') {
@@ -2106,26 +2108,17 @@ async function ctxInfo() {
     </div>`;
 
   } else {
-    const readUsers   = data.statuses.filter(s => s.read_at);
-    const unreadUsers = data.statuses.filter(s => !s.read_at);
-    body = '';
-    if (readUsers.length) {
-      body += `<div class="mi-group-section">Прочитали · ${readUsers.length}</div>`;
+    const total = data.statuses.length;
+    const readUsers = data.statuses.filter(s => s.read_at);
+    if (readUsers.length === 0) {
+      body = `<div class="mi-group-count">0 из ${total} участников</div><div class="mi-empty">Пока никто не прочитал</div>`;
+    } else {
+      body = `<div class="mi-group-count">${readUsers.length} из ${total} участников</div>`;
       body += readUsers.map(s => `<div class="mi-user-row">
-        <div class="av av-xs av-round ${avatarColor(s.user_id)}" data-av-user="${s.user_id}">${initials(s.display_name)}</div>
+        <div class="av mi-av ${avatarColor(s.user_id)}" data-av-user="${s.user_id}">${initials(s.display_name)}</div>
         <div class="mi-user-name">${esc(s.display_name)}</div>
-        <div class="mi-user-time">${fmtDt(s.read_at) || ''}</div>
+        <div class="mi-user-time">${fmtDt(s.read_at)}</div>
       </div>`).join('');
-    }
-    if (unreadUsers.length) {
-      body += `<div class="mi-group-section">Не прочитали · ${unreadUsers.length}</div>`;
-      body += unreadUsers.map(s => `<div class="mi-user-row">
-        <div class="av av-xs av-round ${avatarColor(s.user_id)}" style="opacity:.45" data-av-user="${s.user_id}">${initials(s.display_name)}</div>
-        <div class="mi-user-name" style="color:#5b6169">${esc(s.display_name)}</div>
-      </div>`).join('');
-    }
-    if (!data.statuses.length) {
-      body = `<div style="text-align:center;padding:20px 0;color:#5b6169;font-size:13px">Никто ещё не прочитал</div>`;
     }
   }
 

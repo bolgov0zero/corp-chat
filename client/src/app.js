@@ -1926,6 +1926,8 @@ async function ctxInfo() {
     </div>`;
   }
 
+  document.querySelector('#modal-msg-info .mi-title').textContent = data.chat_type === 'direct' ? 'Информация' : 'Прочитано';
+
   let body;
   if (data.chat_type === 'direct') {
     const s = data.statuses[0];
@@ -1938,19 +1940,17 @@ async function ctxInfo() {
       ${tlStep('Прочитано', readDone ? fmtDt(s?.read_at) : 'пока не прочитано', readDone, readDone ? icoDblTeal : icoDblGray, false)}
     </div>`;
   } else {
-    const readUsers   = data.statuses.filter(s => s.read_at);
-    const unreadUsers = data.statuses.filter(s => !s.read_at);
-    body = '';
-    if (readUsers.length) {
-      body += `<div class="msg-info-section">Прочитали · ${readUsers.length}</div>`;
-      body += readUsers.map(s => `<div class="msg-info-user-row"><div class="av av-xs av-round ${avatarColor(s.user_id)}" data-av-user="${s.user_id}">${initials(s.display_name)}</div><div style="font-size:13px;font-weight:500;flex:1">${esc(s.display_name)}</div><div class="msg-info-user-time">${fmtDt(s.read_at)}</div></div>`).join('');
-    }
-    if (unreadUsers.length) {
-      body += `<div class="msg-info-section">Не прочитали · ${unreadUsers.length}</div>`;
-      body += unreadUsers.map(s => `<div class="msg-info-user-row"><div class="av av-xs av-round ${avatarColor(s.user_id)}" style="opacity:.5" data-av-user="${s.user_id}">${initials(s.display_name)}</div><div style="font-size:13px;color:var(--muted);flex:1">${esc(s.display_name)}</div></div>`).join('');
-    }
-    if (!data.statuses.length) {
-      body += `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Никто ещё не прочитал</div>`;
+    const total = data.statuses.length;
+    const readUsers = data.statuses.filter(s => s.read_at);
+    if (readUsers.length === 0) {
+      body = `<div class="mi-group-count">0 из ${total} участников</div><div class="mi-empty">Пока никто не прочитал</div>`;
+    } else {
+      body = `<div class="mi-group-count">${readUsers.length} из ${total} участников</div>`;
+      body += readUsers.map(s => `<div class="mi-user-row">
+        <div class="av mi-av ${avatarColor(s.user_id)}" data-av-user="${s.user_id}">${initials(s.display_name)}</div>
+        <div class="mi-user-name">${esc(s.display_name)}</div>
+        <div class="mi-user-time">${fmtDt(s.read_at)}</div>
+      </div>`).join('');
     }
   }
   document.getElementById('msg-info-body').innerHTML = body;
