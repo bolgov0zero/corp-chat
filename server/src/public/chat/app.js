@@ -2485,10 +2485,6 @@ function renderModalUsers(containerId, multi, filter='') {
       ${u.tag?`<span class="pp-tag">${esc(u.tag)}</span>`:''}
       ${multi?PP_CHECK:''}
     </div>`).join('') || '<div class="pp-empty">Нет пользователей</div>';
-  if (multi) {
-    const cnt = document.getElementById('nc-selected-count');
-    if (cnt) cnt.textContent = S.ncSelected?.size ? `Выбрано: ${S.ncSelected.size}` : '';
-  }
 }
 
 function filterModalUsers(q, containerId) {
