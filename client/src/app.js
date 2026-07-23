@@ -2011,6 +2011,7 @@ function connectWS() {
   S.ws = ws;
 
   ws.onmessage = async e => {
+    if (ws !== S.ws) return;
     let data; try { data=JSON.parse(e.data); } catch { return; }
 
     if (data.type==='connected') { S.editLimit = data.edit_time_limit || 120; return; }
