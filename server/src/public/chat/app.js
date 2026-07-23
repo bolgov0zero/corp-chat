@@ -507,8 +507,10 @@ function applySettings() {
   document.documentElement.classList.add('font-'+S.settings.fontSize);
   document.querySelectorAll('#theme-seg button').forEach(b => b.classList.toggle('active', b.textContent.trim()===(S.settings.theme==='light'?'Светлая':'Тёмная')));
   document.querySelectorAll('#font-seg button').forEach(b => b.classList.toggle('active', b.textContent.trim()===S.settings.fontSize[0].toUpperCase()));
-  document.documentElement.style.zoom = (S.settings.uiScale || 100) + '%';
-  document.querySelectorAll('#scale-seg button').forEach(b => b.classList.toggle('active', parseInt(b.textContent) === (S.settings.uiScale || 100)));
+  const _scale = S.settings.uiScale || 100;
+  document.documentElement.style.zoom = _scale + '%';
+  document.documentElement.style.minHeight = (_scale === 100 ? '' : (100 / (_scale / 100)).toFixed(2) + 'vh');
+  document.querySelectorAll('#scale-seg button').forEach(b => b.classList.toggle('active', parseInt(b.textContent) === _scale));
   updateSidebarThemeIcon();
   // Цвет системного UI (статус-бар, клавиатура) следует теме
   document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
