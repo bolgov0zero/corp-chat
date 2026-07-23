@@ -1963,11 +1963,10 @@ select:focus-visible, .user-row:focus-visible, .chat-item:focus-visible {
   cursor: pointer; font-family: inherit; font-weight: 600;
 }
 .gi-btn:hover { background: var(--hover-row); }
-.gi-btn-add {
-  background: var(--accent); color: #fff; border-color: transparent;
-  box-shadow: 0 4px 14px var(--accent-shadow);
-}
-.gi-btn-add:hover { opacity: .88; background: var(--accent); }
+.gi-btn-add { background: var(--accent-soft); border-color: var(--accent-border); color: var(--accent); }
+.gi-btn-add:hover { background: var(--role-teal-bg); }
+.gi-btn-leave { background: var(--role-indigo-bg); border-color: var(--role-indigo-border); color: var(--role-indigo); }
+.gi-btn-leave:hover { background: rgba(80,80,200,0.16); }
 .gi-btn-delete { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger); }
 .gi-btn-delete:hover { background: rgba(239,68,68,.14); }
 .gi-section-title {
