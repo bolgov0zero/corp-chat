@@ -2185,8 +2185,9 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.18); }
 .gi-footer {
   flex-shrink: 0; padding: 10px 16px;
   border-top: 1px solid var(--border);
-  display: flex; justify-content: flex-end; gap: 8px;
+  display: flex; gap: 8px;
 }
+.gi-footer .modal-btn-ghost, .gi-footer .modal-btn-primary { flex: 1; text-align: center; }
 .gi-back-btn {
   background: none; border: none; color: var(--text); font-size: 13px;
   cursor: pointer; display: flex; align-items: center; gap: 6px;
