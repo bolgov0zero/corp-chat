@@ -1914,9 +1914,14 @@ select:focus-visible, .user-row:focus-visible, .chat-item:focus-visible {
 }
 
 /* ── GROUP INFO PANEL ── */
+@keyframes gi-slide-in {
+  from { opacity: 0; transform: translateX(14px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
 .gi-panel {
   display: flex; flex-direction: column; flex: 1; overflow: hidden;
   background: var(--bg);
+  animation: gi-slide-in 0.18s ease;
 }
 .gi-top-bar {
   display: flex; align-items: center; gap: 10px;
@@ -1947,11 +1952,16 @@ select:focus-visible, .user-row:focus-visible, .chat-item:focus-visible {
 .gi-name-input:focus { border-bottom-color: var(--accent); }
 .gi-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .gi-btn {
-  background: none; border: 1.5px solid var(--border); color: var(--text);
-  font-size: 12.5px; padding: 5px 13px; border-radius: 20px;
-  cursor: pointer; font-family: inherit; font-weight: 500;
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  font-size: 13px; padding: 6px 14px; border-radius: 10px;
+  cursor: pointer; font-family: inherit; font-weight: 600;
 }
 .gi-btn:hover { background: var(--hover-row); }
+.gi-btn-add {
+  background: var(--accent); color: #fff; border-color: transparent;
+  box-shadow: 0 4px 14px var(--accent-shadow);
+}
+.gi-btn-add:hover { opacity: .88; background: var(--accent); }
 .gi-btn-delete { border-color: var(--danger); color: var(--danger); }
 .gi-btn-delete:hover { background: var(--danger-bg); }
 .gi-section-title {
@@ -1959,7 +1969,11 @@ select:focus-visible, .user-row:focus-visible, .chat-item:focus-visible {
   text-transform: uppercase; letter-spacing: .5px;
 }
 .gi-members-list { display: flex; flex-direction: column; gap: 4px; }
-.gi-save-row { display: flex; justify-content: center; padding-top: 4px; }
+.gi-footer {
+  flex-shrink: 0; padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: flex-end; gap: 8px;
+}
 .gi-back-btn {
   background: none; border: none; color: var(--text); font-size: 13px;
   cursor: pointer; display: flex; align-items: center; gap: 6px;

@@ -2471,10 +2471,9 @@ async function openGroupInfo(chatId) {
   const chat = S.chats.find(c => c.id === chatId);
   const isRoom = chat?.type === 'room';
   const canDelete = !isRoom && (chat.created_by === S.user.id || S.user.is_admin);
-  const deleteBtn = canDelete
-    ? `<button class="gi-btn gi-btn-delete" onclick="giDelete()">Удалить</button>`
-    : '';
-  setChatMainContent(`
+  const leaveBtn = !isRoom ? `<button class="gi-btn gi-btn-leave" onclick="giLeave()">Выйти</button>` : '';
+  const deleteBtn = canDelete ? `<button class="gi-btn gi-btn-delete" onclick="giDelete()">Удалить</button>` : '';
+  document.getElementById('chat-main').innerHTML = `
     <div class="gi-panel">
       <div class="gi-top-bar">
         <button class="icon-btn" onclick="closeGroupInfo()" title="Закрыть">
@@ -2495,16 +2494,17 @@ async function openGroupInfo(chatId) {
         </div>
         <div class="gi-actions">
           <button class="gi-btn gi-btn-add" onclick="giShowAdd()">Добавить участника</button>
-          <button class="gi-btn gi-btn-leave" onclick="giLeave()">Выйти</button>
+          ${leaveBtn}
           ${deleteBtn}
         </div>
         <div class="gi-section-title">Участники</div>
         <div class="gi-members-list" id="gi-members"></div>
-        <div class="gi-save-row">
-          <button class="modal-btn-primary" onclick="saveGroupEdit()">Сохранить</button>
-        </div>
       </div>
-    </div>`);
+      <div class="gi-footer">
+        <button class="modal-btn-ghost" onclick="closeGroupInfo()">Отмена</button>
+        <button class="modal-btn-primary" onclick="saveGroupEdit()">Сохранить</button>
+      </div>
+    </div>`;
   const av = document.getElementById('gi-av');
   const avatarUrl = `${httpProto()}://${S.server}/api/chats/${chatId}/avatar?t=${Date.now()}`;
   const img = new Image();
@@ -2540,7 +2540,7 @@ async function giDelete() { await deleteChat(S.giChatId); }
 async function giShowAdd() {
   const chatId = S.giChatId;
   const chat = S.chats.find(c => c.id === chatId);
-  setChatMainContent(`
+  document.getElementById('chat-main').innerHTML = `
     <div class="gi-panel">
       <div class="gi-top-bar">
         <button class="icon-btn" onclick="openGroupInfo(${chatId})" title="Назад">
@@ -2550,9 +2550,11 @@ async function giShowAdd() {
       </div>
       <div class="gi-body">
         <div class="gi-add-list" id="gi-add-list"></div>
-        <div class="gi-save-row">
-          <button class="modal-btn-primary" onclick="giConfirmAdd()">Добавить</button>
-        </div>
+      </div>
+      <div class="gi-footer">
+        <button class="modal-btn-ghost" onclick="openGroupInfo(${chatId})">Отмена</button>
+        <button class="modal-btn-primary" onclick="giConfirmAdd()">Добавить</button>
+      </div>
       </div>
     </div>`);
   giRenderAddList(chat?.members || []);
