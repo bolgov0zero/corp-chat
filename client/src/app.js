@@ -2555,8 +2555,7 @@ async function giShowAdd() {
         <button class="modal-btn-ghost" onclick="openGroupInfo(${chatId})">Отмена</button>
         <button class="modal-btn-primary" onclick="giConfirmAdd()">Добавить</button>
       </div>
-      </div>
-    </div>`);
+    </div>`;
   giRenderAddList(chat?.members || []);
 }
 
