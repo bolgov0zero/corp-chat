@@ -2511,8 +2511,10 @@ async function openGroupInfo(chatId) {
   const chat = S.chats.find(c => c.id === chatId);
   const isRoom = chat?.type === 'room';
   const canDelete = !isRoom && (chat.created_by === S.user.id || S.user.is_admin);
+  const canAdd = isRoom ? S.user.is_admin : (chat.created_by === S.user.id || S.user.is_admin);
   const leaveBtn = !isRoom ? `<button class="gi-btn gi-btn-leave" onclick="giLeave()">Выйти</button>` : '';
   const deleteBtn = canDelete ? `<button class="gi-btn gi-btn-delete" onclick="giDelete()">Удалить</button>` : '';
+  const addBtn = canAdd ? `<button class="gi-btn gi-btn-add" onclick="giShowAdd()">Добавить участника</button>` : '';
   document.getElementById('chat-main').innerHTML = `
     <div class="gi-panel">
       <div class="gi-top-bar">
@@ -2533,7 +2535,7 @@ async function openGroupInfo(chatId) {
           <input id="gi-name" class="gi-name-input" value="${esc(chat?.name||'')}" placeholder="Название">
         </div>
         <div class="gi-actions">
-          <button class="gi-btn gi-btn-add" onclick="giShowAdd()">Добавить участника</button>
+          ${addBtn}
           ${leaveBtn}
           ${deleteBtn}
         </div>
