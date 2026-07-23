@@ -216,15 +216,13 @@ body {
 /* Login card */
 .login-wrap {
   position: relative; z-index: 1;
-  background: var(--modal-bg);
+  background: var(--app-bg);
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 40px 36px 32px;
   width: 380px;
   display: flex; flex-direction: column; gap: 16px;
-  box-shadow: 0 24px 64px rgba(0,0,0,.18);
 }
-html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
 
 .login-icon { text-align: center; line-height: 0; margin-bottom: -4px; }
 
@@ -237,12 +235,13 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
   color: #fff;
 }
 
-.login-wrap h1 {
-  text-align: center;
-  font-size: 22px; font-weight: 800;
-  color: var(--text);
+.login-wordmark {
+  display: flex; justify-content: center; align-items: baseline; gap: 7px;
+  font-size: 22px; font-weight: 800; letter-spacing: 0.5px;
   margin-top: -4px;
 }
+.login-wordmark span:first-child { color: var(--text); }
+.login-wordmark span:last-child { color: var(--accent); font-weight: 700; }
 .login-sub { text-align: center; font-size: 13px; color: var(--muted); margin-top: -10px; }
 
 /* Fields */
@@ -269,16 +268,15 @@ html.dark .login-wrap { box-shadow: 0 24px 64px rgba(0,0,0,.45); }
 
 .btn-login {
   padding: 12px;
-  border: none; border-radius: 12px;
-  background: var(--accent);
-  color: #fff;
-  font-size: 15px; font-weight: 700;
+  border: 1px solid var(--accent-border); border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 15px; font-weight: 700; font-family: inherit;
   cursor: pointer;
-  transition: opacity .15s;
-  box-shadow: 0 6px 16px var(--accent-shadow);
+  transition: filter .15s;
   margin-top: 2px;
 }
-.btn-login:hover { opacity: .88; }
+.btn-login:hover { filter: brightness(0.93); }
 .btn-login:disabled { opacity: .45; cursor: not-allowed; }
 
 .login-err { color: var(--danger); font-size: 13px; text-align: center; min-height: 18px; }
