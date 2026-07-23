@@ -1941,11 +1941,15 @@ async function loadClients(force=false) {
         <td data-conn-online="${c.connId}" style="color:var(--c-muted);font-size:11px;font-family:var(--f-mono)">${duration}</td>
         <td>
           <div class="td-actions">
-            ${hasUpdate
-              ? `<button class="btn btn-success btn-sm" onclick="forceUpdate(${c.connId},'${jesc(c.displayName||c.username)}','${jesc(c.hostname)}','${jesc(c.clientVersion)}','${jesc(latestVersion||'')}')">Обновить</button>`
-              : `<button class="btn btn-ghost btn-sm" disabled>Обновить</button>`
+            ${(c.installScope==='pwa' || c.installScope==='web')
+              ? `<span class="btn btn-sm" style="visibility:hidden;pointer-events:none">Обновить</span>
+                 <span class="btn btn-sm" style="visibility:hidden;pointer-events:none">Перезапуск</span>`
+              : `${hasUpdate
+                  ? `<button class="btn btn-success btn-sm" onclick="forceUpdate(${c.connId},'${jesc(c.displayName||c.username)}','${jesc(c.hostname)}','${jesc(c.clientVersion)}','${jesc(latestVersion||'')}')">Обновить</button>`
+                  : `<button class="btn btn-ghost btn-sm" disabled>Обновить</button>`
+                }
+                <button class="btn btn-ghost btn-sm" onclick="forceRestart(${c.connId},'${jesc(c.displayName||c.username)}','${jesc(c.hostname)}')">Перезапуск</button>`
             }
-            ${(c.installScope!=='pwa' && c.installScope!=='web') ? `<button class="btn btn-ghost btn-sm" onclick="forceRestart(${c.connId},'${jesc(c.displayName||c.username)}','${jesc(c.hostname)}')">Перезапуск</button>` : ''}
             <button class="btn btn-danger btn-sm" onclick="forceLogout(${c.connId},'${jesc(c.displayName||c.username)}','${jesc(c.hostname)}')">Выйти</button>
           </div>
         </td>
