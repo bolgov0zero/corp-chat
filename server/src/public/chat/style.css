@@ -2126,7 +2126,7 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.18); }
   to   { opacity: 1; transform: translateX(0); }
 }
 .gi-panel {
-  display: flex; flex-direction: column; flex: 1; overflow: hidden;
+  display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
   background: var(--bg);
   animation: gi-slide-in 0.18s ease;
 }

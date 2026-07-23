@@ -1919,7 +1919,7 @@ select:focus-visible, .user-row:focus-visible, .chat-item:focus-visible {
   to   { opacity: 1; transform: translateX(0); }
 }
 .gi-panel {
-  display: flex; flex-direction: column; flex: 1; overflow: hidden;
+  display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
   background: var(--bg);
   animation: gi-slide-in 0.18s ease;
 }
