@@ -1605,9 +1605,10 @@ function showCtxMenu(e, msgId, sentAt, isMine) {
   menu.classList.add('open');
   const mw = menu.offsetWidth, mh = menu.offsetHeight;
   const margin = 6;
-  let x = e.clientX, y = e.clientY;
+  const _z = (S.settings.uiScale || 100) / 100;
+  let x = e.clientX / _z, y = e.clientY / _z;
   if (x + mw + margin > window.innerWidth)  x = window.innerWidth  - mw - margin;
-  if (y + mh + margin > window.innerHeight) y = e.clientY - mh; // открываем вверх
+  if (y + mh + margin > window.innerHeight) y = e.clientY / _z - mh;
   if (y < margin) y = margin;
   if (x < margin) x = margin;
   menu.style.left = x + 'px';
@@ -2702,9 +2703,10 @@ function showChatCtx(e, chatId) {
   menu.style.display = 'block';
   const mw = menu.offsetWidth, mh = menu.offsetHeight;
   const margin = 6;
-  let x = e.clientX, y = e.clientY;
+  const _z = (S.settings.uiScale || 100) / 100;
+  let x = e.clientX / _z, y = e.clientY / _z;
   if (x + mw + margin > window.innerWidth) x = window.innerWidth - mw - margin;
-  if (y + mh + margin > window.innerHeight) y = e.clientY - mh;
+  if (y + mh + margin > window.innerHeight) y = e.clientY / _z - mh;
   if (y < margin) y = margin;
   if (x < margin) x = margin;
   menu.style.left = x + 'px';

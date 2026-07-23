@@ -1825,13 +1825,15 @@ function showCtxMenu(e, msgId, sentAt, isMine) {
   menu.classList.add('open');
   const mw = menu.offsetWidth, mh = menu.offsetHeight;
   const margin = 8;
+  const _z = (S.settings.uiScale || 100) / 100;
+  const cx = e.clientX / _z, cy = e.clientY / _z;
   // По центру над точкой тапа
-  let x = e.clientX - mw / 2;
-  let y = e.clientY - mh - margin;
+  let x = cx - mw / 2;
+  let y = cy - mh - margin;
   if (x + mw + margin > window.innerWidth)  x = window.innerWidth - mw - margin;
   if (x < margin) x = margin;
   // Если над пальцем не влезает — показываем под ним
-  if (y < margin) y = e.clientY + margin;
+  if (y < margin) y = cy + margin;
   if (y + mh + margin > window.innerHeight) y = window.innerHeight - mh - margin;
   menu.style.left = x + 'px';
   menu.style.top  = y + 'px';
@@ -2861,9 +2863,10 @@ function showChatCtx(e, chatId) {
   menu.style.display = 'block';
   const mw = menu.offsetWidth, mh = menu.offsetHeight;
   const margin = 6;
-  let x = e.clientX, y = e.clientY;
+  const _z = (S.settings.uiScale || 100) / 100;
+  let x = e.clientX / _z, y = e.clientY / _z;
   if (x + mw + margin > window.innerWidth) x = window.innerWidth - mw - margin;
-  if (y + mh + margin > window.innerHeight) y = e.clientY - mh;
+  if (y + mh + margin > window.innerHeight) y = e.clientY / _z - mh;
   if (y < margin) y = margin;
   if (x < margin) x = margin;
   menu.style.left = x + 'px';
