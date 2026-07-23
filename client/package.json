@@ -1,6 +1,6 @@
 {
   "name": "electron",
-  "version": "2.0.36",
+  "version": "2.0.37",
   "description": "Corporate Chat Client",
   "author": "bolgov@me.com",
   "homepage": "https://github.com/bolgov0zero/corp-chat",
@@ -9,8 +9,7 @@
     "start": "electron .",
     "build:mac": "electron-builder --mac",
     "build:win": "electron-builder --win",
-    "build:linux": "electron-builder --linux --x64",
-    "build:linux-arm": "electron-builder --linux --arm64"
+    "build:linux": "electron-builder --linux --x64"
   },
   "dependencies": {},
   "devDependencies": {
