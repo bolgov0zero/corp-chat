@@ -1968,8 +1968,8 @@ select:focus-visible, .user-row:focus-visible, .chat-item:focus-visible {
   box-shadow: 0 4px 14px var(--accent-shadow);
 }
 .gi-btn-add:hover { opacity: .88; background: var(--accent); }
-.gi-btn-delete { border-color: var(--danger); color: var(--danger); }
-.gi-btn-delete:hover { background: var(--danger-bg); }
+.gi-btn-delete { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger); }
+.gi-btn-delete:hover { background: rgba(239,68,68,.14); }
 .gi-section-title {
   font-size: 11px; font-weight: 700; color: var(--muted);
   text-transform: uppercase; letter-spacing: .5px;
