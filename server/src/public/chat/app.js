@@ -2532,15 +2532,56 @@ const PP_CHECK = `<span class="pp-check"><svg width="10" height="10" fill="none"
 
 function openNewChat() {
   S.ncSelected = new Set();
-  switchTab('direct');
+  S.newGroupAvatarBase64 = null;
+  setChatMainContent(`
+    <div class="gi-panel nc-panel">
+      <div class="gi-top-bar">
+        <button class="icon-btn" onclick="closeNewChat()" title="Закрыть">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="gi-top-title" id="nc-title">Новый чат</span>
+      </div>
+      <div class="nc-panel-body">
+        <div class="nc-panel-tabs">
+          <div class="nc-tabs">
+            <button class="nc-tab active" id="nc-btn-direct" onclick="switchTab('direct')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Личный
+            </button>
+            <button class="nc-tab" id="nc-btn-group" onclick="switchTab('group')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 1-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Группа
+            </button>
+          </div>
+        </div>
+        <div id="nc-group-settings" style="display:none" class="nc-panel-group-settings">
+          <div class="nc-group-top">
+            <div class="av av-md av-sq av-green" id="new-group-av" style="cursor:pointer;flex-shrink:0" onclick="triggerGroupAvatarUpload()">G</div>
+            <input id="group-name" class="nc-name-input" placeholder="Название группы">
+          </div>
+          <input type="file" id="group-avatar-input" accept="image/*" style="display:none" onchange="onGroupAvatarChange(this)">
+        </div>
+        <div class="nc-search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="nc-search-input" placeholder="Поиск..." oninput="filterModalUsers(this.value,'tab-direct');filterModalUsers(this.value,'tab-group')">
+        </div>
+        <div class="nc-panel-lists">
+          <div id="tab-direct" class="users-list nc-list"></div>
+          <div id="tab-group" class="users-list nc-list" style="display:none"></div>
+        </div>
+      </div>
+      <div id="nc-footer" style="display:none" class="gi-footer">
+        <button class="modal-btn-ghost" onclick="closeNewChat()">Отмена</button>
+        <button class="modal-btn-primary" onclick="createGroup()">Создать группу</button>
+      </div>
+    </div>`);
   renderModalUsers('tab-direct', false);
   renderModalUsers('tab-group', true);
-  document.getElementById('group-name').value='';
-  document.getElementById('nc-search-input').value='';
-  S.newGroupAvatarBase64 = null;
-  const av = document.getElementById('new-group-av');
-  if (av) { av.style.backgroundImage=''; av.textContent='G'; }
-  openModal('modal-new-chat');
+}
+
+function closeNewChat() {
+  if (S.activeChatId) openChat(S.activeChatId);
+  else setChatMainContent(`<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">Electron</div><div class="empty-sub">Выберите чат или создайте новый</div></div>`);
 }
 
 function renderModalUsers(containerId, multi, filter='') {
@@ -2572,7 +2613,6 @@ function toggleModalUser(id) {
 }
 
 async function startDirect(userId) {
-  closeModal('modal-new-chat');
   const data = await api('POST','/chats/direct',{user_id:userId});
   if (data?.id) { await loadChats(); openChat(data.id); }
 }
@@ -2587,7 +2627,7 @@ async function createGroup() {
       await api('POST', `/chats/${data.id}/avatar`, { data: S.newGroupAvatarBase64 });
       S.newGroupAvatarBase64 = null;
     }
-    closeModal('modal-new-chat'); await loadChats(); openChat(data.id);
+    await loadChats(); openChat(data.id);
   }
 }
 

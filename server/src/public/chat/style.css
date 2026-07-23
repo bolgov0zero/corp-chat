@@ -2188,3 +2188,12 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.18); }
 }
 .gi-back-btn:hover { color: var(--accent); }
 .gi-add-list { display: flex; flex-direction: column; gap: 4px; }
+
+/* ── NEW CHAT PANEL ── */
+.nc-panel-body {
+  flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
+}
+.nc-panel-tabs { padding: 14px 14px 0; flex-shrink: 0; }
+.nc-panel-group-settings { padding: 0 14px; flex-shrink: 0; }
+.nc-panel-lists { flex: 1; overflow-y: auto; }
+.nc-panel-lists .nc-list { max-height: none; }

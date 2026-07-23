@@ -167,46 +167,6 @@
   </div>
 </div>
 
-<!-- New chat modal -->
-<div class="modal-bg" id="modal-new-chat">
-  <div class="modal" style="width:420px;max-height:85vh">
-    <div class="modal-hdr">
-      <span id="nc-title">Новый чат</span>
-      <button class="icon-btn" onclick="closeModal('modal-new-chat')">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
-    <div style="padding:14px 14px 0">
-      <div class="nc-tabs">
-        <button class="nc-tab active" id="nc-btn-direct" onclick="switchTab('direct')">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          Личный
-        </button>
-        <button class="nc-tab" id="nc-btn-group" onclick="switchTab('group')">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 1-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          Группа
-        </button>
-      </div>
-    </div>
-    <div id="nc-group-settings" style="display:none;padding:0 14px 0">
-      <div class="nc-group-top">
-        <div class="av av-md av-sq av-green" id="new-group-av" style="cursor:pointer;flex-shrink:0" onclick="triggerGroupAvatarUpload()">G</div>
-        <input id="group-name" class="nc-name-input" placeholder="Название группы">
-      </div>
-      <input type="file" id="group-avatar-input" accept="image/*" style="display:none" onchange="onGroupAvatarChange(this)">
-    </div>
-    <div class="nc-search">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input id="nc-search-input" placeholder="Поиск..." oninput="filterModalUsers(this.value,'tab-direct');filterModalUsers(this.value,'tab-group')">
-    </div>
-    <div id="tab-direct" class="users-list nc-list"></div>
-    <div id="tab-group" class="users-list nc-list" style="display:none"></div>
-    <div id="nc-footer" style="display:none" class="modal-footer">
-      <button class="modal-btn-ghost" onclick="closeModal('modal-new-chat')">Отмена</button>
-      <button class="modal-btn-primary" onclick="createGroup()">Создать группу</button>
-    </div>
-  </div>
-</div>
 
 <!-- Chat list context menu -->
 <div class="ctx-menu" id="ctx-chat-menu">
