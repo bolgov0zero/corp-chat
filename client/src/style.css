@@ -1592,8 +1592,10 @@ html:not(.dark) .modal { box-shadow: 0 24px 60px rgba(15,23,42,.12); }
 
 .update-modal-footer {
   padding: 10px 16px; border-top: 1px solid var(--border);
-  display: flex; justify-content: flex-end; gap: 8px;
+  display: flex; gap: 8px;
 }
+.update-modal-footer .ha-btn-cancel,
+.update-modal-footer .ha-btn-apply { flex: 1; justify-content: center; }
 
 /* ── FORCE UPDATE (remote) MODAL ── */
 .force-update-modal {
