@@ -1129,7 +1129,7 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
 .seg-single-btn {
   padding: 4px 12px; border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  background: transparent; color: var(--text);
+  background: var(--search-bg); color: var(--text);
   font-size: 12px; font-weight: 600;
   cursor: pointer; transition: background .15s;
   font-family: inherit;
@@ -1348,17 +1348,16 @@ html:not(.dark) .modal { box-shadow: 0 24px 60px rgba(15,23,42,.12); }
 }
 #nc-footer .modal-btn-ghost, #nc-footer .modal-btn-primary { flex: 1; text-align: center; }
 .modal-btn-primary {
-  padding: 6px 14px; border: none; border-radius: 10px;
-  background: var(--accent); color: #fff;
+  padding: 6px 14px; border: 1px solid var(--accent-border); border-radius: 10px;
+  background: var(--accent-soft); color: var(--accent);
   font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
-  box-shadow: 0 4px 14px var(--accent-shadow);
 }
-.modal-btn-primary:hover { opacity: .88; }
+.modal-btn-primary:hover { background: var(--role-teal-bg); }
 .modal-btn-ghost {
   padding: 6px 14px;
   border: 1px solid var(--border); border-radius: 10px;
-  background: none; font-size: 13px;
-  cursor: pointer; color: var(--muted); font-family: inherit;
+  background: var(--search-bg); font-size: 13px;
+  cursor: pointer; color: var(--text); font-family: inherit;
 }
 .modal-btn-ghost:hover { background: var(--hover-row); }
 
@@ -1391,11 +1390,11 @@ html:not(.dark) .modal { box-shadow: 0 24px 60px rgba(15,23,42,.12); }
 }
 .nc-type-btn {
   flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 8px 0; border-radius: 7px; border: none;
-  background: none; font-size: 13px; font-weight: 500;
-  cursor: pointer; color: var(--text2); font-family: inherit; transition: background .15s, color .15s;
+  padding: 8px; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--search-bg); font-size: 13px; font-weight: 600;
+  cursor: pointer; color: var(--text); font-family: inherit; transition: all .15s;
 }
-.nc-type-btn.active { background: var(--accent); color: #0c0e10; font-weight: 700; }
+.nc-type-btn.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
 .nc-group-top { display: flex; align-items: center; gap: 12px; padding: 12px 0 8px; }
 .nc-name-input {
   flex: 1; padding: 8px 12px;
@@ -1530,20 +1529,19 @@ html:not(.dark) .modal { box-shadow: 0 24px 60px rgba(15,23,42,.12); }
 /* Shared button styles (used by HA, Update, Link modals) */
 .ha-btn-cancel {
   padding: 6px 14px; border-radius: 10px;
-  border: 1px solid var(--border); background: transparent;
+  border: 1px solid var(--border); background: var(--search-bg);
   color: var(--text); font-size: 13px; font-weight: 500;
   cursor: pointer; transition: background .15s; font-family: inherit;
 }
 .ha-btn-cancel:hover { background: var(--hover-row); }
 .ha-btn-apply {
   display: flex; align-items: center; gap: 7px;
-  padding: 6px 14px; border-radius: 10px; border: none;
-  background: var(--accent); color: #fff;
+  padding: 6px 14px; border-radius: 10px; border: 1px solid var(--accent-border);
+  background: var(--accent-soft); color: var(--accent);
   font-size: 13px; font-weight: 600;
-  cursor: pointer; transition: opacity .15s; font-family: inherit;
-  box-shadow: 0 4px 14px var(--accent-shadow);
+  cursor: pointer; transition: background .15s; font-family: inherit;
 }
-.ha-btn-apply:hover { opacity: .88; }
+.ha-btn-apply:hover { background: var(--role-teal-bg); }
 .ha-btn-danger {
   display: flex; align-items: center; gap: 6px;
   padding: 6px 12px; border-radius: 10px;
