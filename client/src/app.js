@@ -1313,6 +1313,7 @@ function stickToBottom(container, newEl, m) {
 function appendMsg(m) {
   const container = document.getElementById('messages');
   if (!container) return;
+  if (m.id > 0 && container.querySelector(`[data-msg-id="${m.id}"]`)) return;
   const chat = S.chats.find(c=>c.id===S.activeChatId);
   const allMsgs = [...container.querySelectorAll('[data-msg-id]')];
   const lastEl = allMsgs[allMsgs.length - 1];
