@@ -2440,8 +2440,13 @@ function openNewChat() {
 }
 
 function closeNewChat() {
-  if (S.activeChatId) openChat(S.activeChatId);
-  else document.getElementById('chat-main').innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">Чат</div><div class="empty-sub">Выберите чат или создайте новый</div></div>`;
+  const go = () => {
+    if (S.activeChatId) openChat(S.activeChatId);
+    else document.getElementById('chat-main').innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">Чат</div><div class="empty-sub">Выберите чат или создайте новый</div></div>`;
+  };
+  const panel = document.querySelector('.gi-panel');
+  if (panel) { panel.classList.add('gi-closing'); setTimeout(go, 150); }
+  else go();
 }
 
 function renderModalUsers(containerId, multi, filter='') {
@@ -2510,11 +2515,11 @@ async function openGroupInfo(chatId) {
   S.giAvatarBase64 = null;
   const chat = S.chats.find(c => c.id === chatId);
   const isRoom = chat?.type === 'room';
+  const canEdit = isRoom ? S.user.is_admin : (chat.created_by === S.user.id || S.user.is_admin);
   const canDelete = !isRoom && (chat.created_by === S.user.id || S.user.is_admin);
-  const canAdd = isRoom ? S.user.is_admin : (chat.created_by === S.user.id || S.user.is_admin);
   const leaveBtn = !isRoom ? `<button class="gi-btn gi-btn-leave" onclick="giLeave()">Выйти</button>` : '';
   const deleteBtn = canDelete ? `<button class="gi-btn gi-btn-delete" onclick="giDelete()">Удалить</button>` : '';
-  const addBtn = canAdd ? `<button class="gi-btn gi-btn-add" onclick="giShowAdd()">Добавить участника</button>` : '';
+  const addBtn = canEdit ? `<button class="gi-btn gi-btn-add" onclick="giShowAdd()">Добавить участника</button>` : '';
   document.getElementById('chat-main').innerHTML = `
     <div class="gi-panel">
       <div class="gi-top-bar">
@@ -2525,14 +2530,12 @@ async function openGroupInfo(chatId) {
       </div>
       <div class="gi-body">
         <div class="gi-avatar-wrap">
-          <div class="av av-sq ${avatarColor(chatId)}" id="gi-av" style="width:80px;height:80px;font-size:24px;font-weight:700;cursor:pointer" onclick="triggerGiAvatarUpload()">${initials(chat?.name||'G')}</div>
-          <div class="gi-avatar-badge" onclick="triggerGiAvatarUpload()">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-          </div>
+          <div class="av av-sq ${avatarColor(chatId)}" id="gi-av" style="width:80px;height:80px;font-size:24px;font-weight:700;${canEdit?'cursor:pointer':''}" ${canEdit?'onclick="triggerGiAvatarUpload()"':''}>${initials(chat?.name||'G')}</div>
+          ${canEdit?`<div class="gi-avatar-badge" onclick="triggerGiAvatarUpload()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>`:''}
         </div>
         <input type="file" id="gi-avatar-input" accept="image/*" style="display:none" onchange="onGiAvatarChange(this)">
         <div class="gi-name-wrap">
-          <input id="gi-name" class="gi-name-input" value="${esc(chat?.name||'')}" placeholder="Название">
+          <input id="gi-name" class="gi-name-input" value="${esc(chat?.name||'')}" placeholder="Название" ${canEdit?'':'readonly'}>
         </div>
         <div class="gi-actions">
           ${addBtn}
@@ -2542,22 +2545,23 @@ async function openGroupInfo(chatId) {
         <div class="gi-section-title">Участники</div>
         <div class="gi-members-list" id="gi-members"></div>
       </div>
-      <div class="gi-footer">
-        <button class="modal-btn-ghost" onclick="closeGroupInfo()">Отмена</button>
-        <button class="modal-btn-primary" onclick="saveGroupEdit()">Сохранить</button>
-      </div>
+      ${canEdit?`<div class="gi-footer"><button class="modal-btn-ghost" onclick="closeGroupInfo()">Отмена</button><button class="modal-btn-primary" onclick="saveGroupEdit()">Сохранить</button></div>`:''}
     </div>`;
   const av = document.getElementById('gi-av');
   const avatarUrl = `${httpProto()}://${S.server}/api/chats/${chatId}/avatar?t=${Date.now()}`;
   const img = new Image();
   img.onload = () => { av.style.backgroundImage = `url('${avatarUrl}')`; av.style.backgroundSize = 'cover'; av.textContent = ''; };
   img.src = avatarUrl;
-  giRenderMembers(chat?.members || []);
+  giRenderMembers(chat?.members || [], canEdit);
 }
 
-function closeGroupInfo() { openChat(S.giChatId); }
+function closeGroupInfo() {
+  const panel = document.querySelector('.gi-panel');
+  if (panel) { panel.classList.add('gi-closing'); setTimeout(() => openChat(S.giChatId), 150); }
+  else openChat(S.giChatId);
+}
 
-function giRenderMembers(members) {
+function giRenderMembers(members, canEdit = false) {
   const container = document.getElementById('gi-members');
   if (!container) return;
   container.innerHTML = members
@@ -2566,12 +2570,14 @@ function giRenderMembers(members) {
       <div class="member-remove-row" id="gim-${m.id}">
         <div class="av av-sm av-round ${avatarColor(m.id)}" data-av-user="${m.id}">${initials(m.display_name)}</div>
         <div class="info"><div class="rname">${esc(m.display_name)}</div><div class="rlogin">@${esc(m.username)}</div></div>
-        <button class="rm-btn" onclick="giRemoveMember(${m.id})">✕</button>
+        ${canEdit?`<button class="rm-btn" onclick="giRemoveMember(${m.id})">✕</button>`:''}
       </div>`).join('') || '<div style="font-size:13px;color:var(--muted)">Только вы</div>';
   applyAvatars();
 }
 
-function giRemoveMember(id) {
+async function giRemoveMember(id) {
+  const ok = await showConfirm('Удалить участника из группы?', 'Удалить');
+  if (!ok) return;
   S.giRemovedIds.add(id);
   document.getElementById(`gim-${id}`)?.remove();
 }

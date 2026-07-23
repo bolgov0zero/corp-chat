@@ -1918,11 +1918,16 @@ select:focus-visible, .user-row:focus-visible, .chat-item:focus-visible {
   from { opacity: 0; transform: translateX(14px); }
   to   { opacity: 1; transform: translateX(0); }
 }
+@keyframes gi-slide-out {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(14px); }
+}
 .gi-panel {
   display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
   background: var(--bg);
   animation: gi-slide-in 0.18s ease;
 }
+.gi-closing { animation: gi-slide-out 0.15s ease forwards; pointer-events: none; }
 .gi-top-bar {
   display: flex; align-items: center; gap: 10px;
   padding: 12px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
@@ -1950,6 +1955,7 @@ select:focus-visible, .user-row:focus-visible, .chat-item:focus-visible {
   padding: 4px 8px; font-family: inherit; outline: none;
 }
 .gi-name-input:focus { border-bottom-color: var(--accent); }
+.gi-name-input[readonly] { opacity: 0.55; cursor: default; border-bottom-color: transparent; }
 .gi-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .gi-btn {
   background: none; border: 1px solid var(--border); color: var(--muted);
