@@ -1,9 +1,9 @@
 'use strict';
 
-const CACHE = 'corp-chat-v32';
+const CACHE = 'corp-chat-v33';
 // index.html (/chat/) намеренно не прекэшируем — он всегда из сети,
 // иначе закэшированная страница может рендериться без актуального viewport/вёрстки
-const STATIC = ['/chat/app.js?v=1.2.056', '/chat/style.css?v=1.2.056', '/chat/manifest.json', '/chat/icons/icon.svg'];
+const STATIC = ['/chat/app.js?v=1.2.057', '/chat/style.css?v=1.2.057', '/chat/manifest.json', '/chat/icons/icon.svg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(

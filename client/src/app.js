@@ -133,6 +133,10 @@ function loadSession() {
 }
 
 // ── INIT ──
+window.addEventListener('resize', () => {
+  const sc = S.settings.uiScale || 100;
+  if (sc !== 100) document.body.style.height = Math.round(window.innerHeight / (sc / 100)) + 'px';
+});
 window.addEventListener('DOMContentLoaded', async () => {
   // Версия — всегда, независимо от сессии
   if (window.electron?.getVersion) {
@@ -305,8 +309,9 @@ function applySettings() {
   document.querySelectorAll('#theme-seg button').forEach(b => b.classList.toggle('active', b.textContent.trim()===(S.settings.theme==='light'?'Светлая':'Тёмная')));
   document.querySelectorAll('#font-seg button').forEach(b => b.classList.toggle('active', b.textContent.trim()===S.settings.fontSize[0].toUpperCase()));
   const _scale = S.settings.uiScale || 100;
-  document.documentElement.style.zoom = _scale + '%';
-  document.documentElement.style.minHeight = (_scale === 100 ? '' : (100 / (_scale / 100)).toFixed(2) + 'vh');
+  document.documentElement.style.zoom = _scale !== 100 ? _scale + '%' : '';
+  document.documentElement.style.minHeight = '';
+  document.body.style.height = _scale !== 100 ? Math.round(window.innerHeight / (_scale / 100)) + 'px' : '';
   document.querySelectorAll('#scale-seg button').forEach(b => b.classList.toggle('active', parseInt(b.textContent) === _scale));
   updateSidebarThemeIcon();
 }
