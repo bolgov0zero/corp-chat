@@ -133,10 +133,6 @@ function loadSession() {
 }
 
 // ── INIT ──
-window.addEventListener('resize', () => {
-  const sc = S.settings.uiScale || 100;
-  if (sc !== 100) document.body.style.height = Math.round(window.innerHeight / (sc / 100)) + 'px';
-});
 window.addEventListener('DOMContentLoaded', async () => {
   // Версия — всегда, независимо от сессии
   if (window.electron?.getVersion) {
@@ -311,7 +307,9 @@ function applySettings() {
   const _scale = S.settings.uiScale || 100;
   document.documentElement.style.zoom = _scale !== 100 ? _scale + '%' : '';
   document.documentElement.style.minHeight = '';
-  document.body.style.height = _scale !== 100 ? Math.round(window.innerHeight / (_scale / 100)) + 'px' : '';
+  const _sh = _scale !== 100 ? `calc(100dvh / ${_scale / 100})` : '';
+  document.body.style.height = _sh;
+  document.querySelectorAll('.screen').forEach(el => el.style.height = _sh);
   document.querySelectorAll('#scale-seg button').forEach(b => b.classList.toggle('active', parseInt(b.textContent) === _scale));
   updateSidebarThemeIcon();
 }

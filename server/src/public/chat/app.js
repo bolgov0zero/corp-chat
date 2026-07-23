@@ -285,10 +285,6 @@ function updateAppHeight() {
   if (window.scrollY !== 0) window.scrollTo(0, 0);
   // Держим список у нижнего края, если пользователь был внизу
   if (_stickBottom) pinMessagesToBottom();
-  // Компенсация высоты при масштабировании: zoom уменьшает визуальный размер body,
-  // поэтому переопределяем его высоту в px чтобы заполнить весь viewport
-  const _sc = S.settings.uiScale || 100;
-  document.body.style.height = _sc !== 100 ? Math.round(h / (_sc / 100)) + 'px' : '';
 }
 
 function pinMessagesToBottom() {
@@ -514,6 +510,9 @@ function applySettings() {
   const _scale = S.settings.uiScale || 100;
   document.documentElement.style.zoom = _scale !== 100 ? _scale + '%' : '';
   document.documentElement.style.minHeight = '';
+  const _sh = _scale !== 100 ? `calc(100dvh / ${_scale / 100})` : '';
+  document.body.style.height = _sh;
+  document.querySelectorAll('.screen').forEach(el => el.style.height = _sh);
   document.querySelectorAll('#scale-seg button').forEach(b => b.classList.toggle('active', parseInt(b.textContent) === _scale));
   updateAppHeight();
   updateSidebarThemeIcon();
