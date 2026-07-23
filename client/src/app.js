@@ -22,6 +22,7 @@ const S = {
   chatHasMoreAfter: false, // есть ли сообщения ниже (после перехода вглубь истории)
   chatNewestId: null,      // id самого нового загруженного сообщения
   searchResults: null,     // результаты поиска по сообщениям
+  _deferMainScreen: false,
 };
 
 const SESSION_KEY = 'electron_v2';
@@ -149,8 +150,14 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (session?.token) {
     Object.assign(S, { server:session.server, token:session.token, user:session.user, settings:session.settings||S.settings });
     applySettings();
-    await api('GET', '/users/presence');
-    if (S.token) enterApp();
+    const presenceOk = await Promise.race([
+      api('GET', '/users/presence'),
+      new Promise(r => setTimeout(() => r(null), 5000)),
+    ]);
+    if (S.token) {
+      S._deferMainScreen = (presenceOk === null);
+      enterApp();
+    }
   } else {
     applySettings();
     const lastServer = localStorage.getItem('lastServer');
@@ -262,8 +269,10 @@ function logout() {
 
 // ── ENTER APP ──
 function enterApp() {
-  document.getElementById('screen-login').classList.remove('active');
-  document.getElementById('screen-main').classList.add('active');
+  if (!S._deferMainScreen) {
+    document.getElementById('screen-login').classList.remove('active');
+    document.getElementById('screen-main').classList.add('active');
+  }
   loadDownloadedFiles();
   verifyDownloadedFiles();
   loadChats();
@@ -2266,6 +2275,11 @@ function connectWS() {
   ws.onopen = async () => {
     S.wsRetry = 0;
     hideServerToast();
+    if (S._deferMainScreen) {
+      S._deferMainScreen = false;
+      document.getElementById('screen-login').classList.remove('active');
+      document.getElementById('screen-main').classList.add('active');
+    }
     loadChats();
     // Delay status send: at launch document.hidden may still be true while window is appearing
     setTimeout(() => {

@@ -35,6 +35,7 @@ const S = {
   chatHasMoreAfter: false,
   chatNewestId: null,
   searchResults: null,
+  _deferMainScreen: false,
 };
 
 const SESSION_KEY = 'electron_v2';
@@ -350,8 +351,14 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (session?.token) {
     Object.assign(S, { server: S.server, token:session.token, user:session.user, settings:session.settings||S.settings });
     applySettings();
-    await api('GET', '/users/presence');
-    if (S.token) enterApp();
+    const presenceOk = await Promise.race([
+      api('GET', '/users/presence'),
+      new Promise(r => setTimeout(() => r(null), 5000)),
+    ]);
+    if (S.token) {
+      S._deferMainScreen = (presenceOk === null);
+      enterApp();
+    }
   } else {
     applySettings();
   }
@@ -450,8 +457,10 @@ function logout() {
 
 // ── ENTER APP ──
 function enterApp() {
-  document.getElementById('screen-login').classList.remove('active');
-  document.getElementById('screen-main').classList.add('active');
+  if (!S._deferMainScreen) {
+    document.getElementById('screen-login').classList.remove('active');
+    document.getElementById('screen-main').classList.add('active');
+  }
   loadChats().then(() => {
     if (S._pendingOpenChatId) {
       const c = S.chats.find(c => c.id === S._pendingOpenChatId);
@@ -2397,6 +2406,11 @@ function connectWS() {
   ws.onopen = () => {
     S.wsRetry = 0;
     hideServerToast();
+    if (S._deferMainScreen) {
+      S._deferMainScreen = false;
+      document.getElementById('screen-login').classList.remove('active');
+      document.getElementById('screen-main').classList.add('active');
+    }
     loadChats();
     // Heartbeat: держим соединение живым и ловим «зомби»-сокеты в фоне.
     // Если на ping не пришёл pong — соединение мёртвое, закрываем → реконнект.
