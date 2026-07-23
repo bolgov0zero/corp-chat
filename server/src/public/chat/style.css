@@ -428,7 +428,7 @@ body.sidebar-hidden.sidebar-peeking .sidebar {
 }
 .sidebar-account .sa-av { width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0; }
 .sidebar-account .sa-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sidebar-account .sa-gear { background: none; border: none; cursor: pointer; color: var(--muted); display: flex; align-items: center; padding: 4px; border-radius: 6px; transition: color .15s; }
+.sidebar-account .sa-gear { background: none; border: none; cursor: pointer; color: var(--muted); display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 6px; transition: color .15s; }
 .sidebar-account .sa-gear:hover { color: var(--text); }
 
 /* Section labels */

@@ -2585,13 +2585,19 @@ async function giRemoveMember(id) {
 async function giLeave() { await leaveGroup(S.giChatId); }
 async function giDelete() { await deleteChat(S.giChatId); }
 
+function giBackToInfo() {
+  const panel = document.querySelector('.gi-panel');
+  if (panel) { panel.classList.add('gi-closing'); setTimeout(() => openGroupInfo(S.giChatId), 150); }
+  else openGroupInfo(S.giChatId);
+}
+
 async function giShowAdd() {
-  const chatId = S.giChatId;
-  const chat = S.chats.find(c => c.id === chatId);
-  document.getElementById('chat-main').innerHTML = `
+  const chat = S.chats.find(c => c.id === S.giChatId);
+  const render = () => {
+    document.getElementById('chat-main').innerHTML = `
     <div class="gi-panel">
       <div class="gi-top-bar">
-        <button class="icon-btn" onclick="openGroupInfo(${chatId})" title="Назад">
+        <button class="icon-btn" onclick="giBackToInfo()" title="Назад">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         <span class="gi-top-title">Добавить участника</span>
@@ -2600,11 +2606,15 @@ async function giShowAdd() {
         <div class="gi-add-list" id="gi-add-list"></div>
       </div>
       <div class="gi-footer">
-        <button class="modal-btn-ghost" onclick="openGroupInfo(${chatId})">Отмена</button>
+        <button class="modal-btn-ghost" onclick="giBackToInfo()">Отмена</button>
         <button class="modal-btn-primary" onclick="giConfirmAdd()">Добавить</button>
       </div>
     </div>`;
-  giRenderAddList(chat?.members || []);
+    giRenderAddList(chat?.members || []);
+  };
+  const panel = document.querySelector('.gi-panel');
+  if (panel) { panel.classList.add('gi-closing'); setTimeout(render, 150); }
+  else render();
 }
 
 function giRenderAddList(existingMembers) {
@@ -2630,7 +2640,7 @@ async function giConfirmAdd() {
   await Promise.all([...S.giAddIds].map(uid => api('POST', `/chats/${chatId}/members`, {user_id: uid})));
   S.giAddIds = new Set();
   await loadChats();
-  openGroupInfo(chatId);
+  giBackToInfo();
 }
 
 async function saveGroupEdit() {
