@@ -307,9 +307,8 @@ function applySettings() {
   const _scale = S.settings.uiScale || 100;
   document.documentElement.style.zoom = _scale !== 100 ? _scale + '%' : '';
   document.documentElement.style.minHeight = '';
-  const _sh = _scale !== 100 ? `calc(100dvh / ${_scale / 100})` : '';
-  document.body.style.height = _sh;
-  document.querySelectorAll('.screen').forEach(el => el.style.height = _sh);
+  document.body.style.height = '';
+  document.documentElement.style.setProperty('--vh100', _scale !== 100 ? `calc(100vh / ${_scale / 100})` : '100vh');
   document.querySelectorAll('#scale-seg button').forEach(b => b.classList.toggle('active', parseInt(b.textContent) === _scale));
   updateSidebarThemeIcon();
 }
