@@ -19,7 +19,7 @@ const S = {
   chats: [], activeChatId: null,
   ws: null, wsRetry: 0,
   unread: {}, unreadMentions: {}, allUsers: [], drafts: (()=>{ try { return JSON.parse(localStorage.getItem('chat_drafts'))||{}; } catch { return {}; } })(),
-  settings: { theme: 'dark', fontSize: 'medium' },
+  settings: { theme: 'dark', fontSize: 'medium', uiScale: 100 },
   ctx: { messageId: null, canEdit: false, isMine: false, replyText: '', replySenderName: '' },
   editingMessageId: null,
   replyTo: null,
@@ -507,6 +507,8 @@ function applySettings() {
   document.documentElement.classList.add('font-'+S.settings.fontSize);
   document.querySelectorAll('#theme-seg button').forEach(b => b.classList.toggle('active', b.textContent.trim()===(S.settings.theme==='light'?'Светлая':'Тёмная')));
   document.querySelectorAll('#font-seg button').forEach(b => b.classList.toggle('active', b.textContent.trim()===S.settings.fontSize[0].toUpperCase()));
+  document.documentElement.style.zoom = (S.settings.uiScale || 100) + '%';
+  document.querySelectorAll('#scale-seg button').forEach(b => b.classList.toggle('active', parseInt(b.textContent) === (S.settings.uiScale || 100)));
   updateSidebarThemeIcon();
   // Цвет системного UI (статус-бар, клавиатура) следует теме
   document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
@@ -516,6 +518,7 @@ function applySettings() {
 function setTheme(t) { S.settings.theme=t; applySettings(); saveSession(); }
 function toggleTheme() { setTheme(S.settings.theme === 'dark' ? 'light' : 'dark'); }
 function setFontSize(f) { S.settings.fontSize=f; applySettings(); saveSession(); }
+function setUiScale(v) { S.settings.uiScale=v; applySettings(); saveSession(); }
 async function openSettings() {
   openModal('modal-settings');
   showSettingsTab('profile');
@@ -581,6 +584,14 @@ function showSettingsTab(tab) {
           <button onclick="setFontSize('small')">S</button>
           <button onclick="setFontSize('medium')">M</button>
           <button onclick="setFontSize('large')">L</button>
+        </div>
+      </div>
+      <div class="setting-row" style="border:none">
+        <span>Масштаб интерфейса</span>
+        <div class="seg" id="scale-seg">
+          <button onclick="setUiScale(80)">80%</button>
+          <button onclick="setUiScale(90)">90%</button>
+          <button onclick="setUiScale(100)">100%</button>
         </div>
       </div>`;
     applySettings();
