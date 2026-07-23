@@ -23,7 +23,7 @@ const S = {
   ctx: { messageId: null, canEdit: false, isMine: false, replyText: '', replySenderName: '' },
   editingMessageId: null,
   replyTo: null,
-  egChatId: null, egRemovedIds: new Set(), egAddIds: new Set(),
+  giChatId: null, giRemovedIds: new Set(), giAddIds: new Set(), giAvatarBase64: null,
   newGroupAvatarBase64: null,
   presence: {},
   lastSeen: {}, // userId -> unix ts последнего онлайна
@@ -964,7 +964,7 @@ async function openChat(chatId, aroundId = null) {
   const peerId = getPeerUserId(chat);
   const peerDot = peerId ? presenceDot(peerId) : '';
   const sub = isRoom ? `🏠 Комната · ${memberCount} участников` : isGroup ? `${memberCount} участников` : (peerId ? peerStatusText(peerId) : 'Личный чат');
-  const nameClickable = (isGroup || isRoom) ? `style="cursor:pointer" onclick="openEditGroup(${chatId})"` : '';
+  const nameClickable = (isGroup || isRoom) ? `style="cursor:pointer" onclick="openGroupInfo(${chatId})"` : '';
 
   const main = document.getElementById('chat-main');
   setChatMainContent(`
@@ -2508,18 +2508,6 @@ function getPeerUserId(chat) {
   return chat.members?.find(m => m.id !== S.user.id)?.id || null;
 }
 
-function triggerEgAvatarUpload() { document.getElementById('eg-avatar-input').click(); }
-function onEgAvatarChange(input) {
-  const file = input.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    S.egAvatarBase64 = e.target.result.split(',')[1];
-    const el = document.getElementById('eg-av');
-    el.style.backgroundImage = `url('${e.target.result}')`;
-    el.style.backgroundSize = 'cover'; el.textContent = '';
-  };
-  reader.readAsDataURL(file);
-}
 
 function triggerGroupAvatarUpload() { document.getElementById('group-avatar-input').click(); }
 async function onGroupAvatarChange(input) {
@@ -2613,83 +2601,154 @@ function switchTab(tab) {
   document.getElementById('nc-title').textContent = tab==='direct' ? 'Новый чат' : 'Новая группа';
 }
 
-// ── EDIT GROUP MODAL ──
-async function openEditGroup(chatId) {
-  S.egChatId = chatId;
-  S.egRemovedIds = new Set();
-  S.egAddIds = new Set();
-  S.egAvatarBase64 = null;
-  const chat = S.chats.find(c=>c.id===chatId);
-  document.getElementById('eg-name').value = chat.name||'';
-  document.getElementById('eg-name-label').textContent = chat.name||'';
-  document.getElementById('eg-avatar-input').value = '';
-  const av = document.getElementById('eg-av');
-  av.style.backgroundImage = ''; av.style.backgroundSize = ''; av.className = 'av ' + avatarColor(chat.id || chatId); av.textContent = initials(chat.name||'G');
+// ── GROUP INFO PANEL ──
+async function openGroupInfo(chatId) {
+  S.giChatId = chatId;
+  S.giRemovedIds = new Set();
+  S.giAddIds = new Set();
+  S.giAvatarBase64 = null;
+  const chat = S.chats.find(c => c.id === chatId);
+  const isRoom = chat?.type === 'room';
+  const canDelete = !isRoom && (chat.created_by === S.user.id || S.user.is_admin);
+  const deleteBtn = canDelete
+    ? `<button class="gi-btn gi-btn-delete" onclick="giDelete()">Удалить</button>`
+    : '';
+  setChatMainContent(`
+    <div class="gi-panel">
+      <div class="gi-top-bar">
+        <button class="icon-btn" onclick="closeGroupInfo()" title="Закрыть">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="gi-top-title">${isRoom ? 'Комната' : 'Группа'}</span>
+      </div>
+      <div class="gi-body">
+        <div class="gi-avatar-wrap">
+          <div class="av av-sq ${avatarColor(chatId)}" id="gi-av" style="width:80px;height:80px;font-size:24px;font-weight:700;cursor:pointer" onclick="triggerGiAvatarUpload()">${initials(chat?.name||'G')}</div>
+          <div class="gi-avatar-badge" onclick="triggerGiAvatarUpload()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </div>
+        </div>
+        <input type="file" id="gi-avatar-input" accept="image/*" style="display:none" onchange="onGiAvatarChange(this)">
+        <div class="gi-name-wrap">
+          <input id="gi-name" class="gi-name-input" value="${esc(chat?.name||'')}" placeholder="Название">
+        </div>
+        <div class="gi-actions">
+          <button class="gi-btn gi-btn-add" onclick="giShowAdd()">Добавить участника</button>
+          <button class="gi-btn gi-btn-leave" onclick="giLeave()">Выйти</button>
+          ${deleteBtn}
+        </div>
+        <div class="gi-section-title">Участники</div>
+        <div class="gi-members-list" id="gi-members"></div>
+        <div class="gi-save-row">
+          <button class="modal-btn-primary" onclick="saveGroupEdit()">Сохранить</button>
+        </div>
+      </div>
+    </div>`);
+  const av = document.getElementById('gi-av');
   const avatarUrl = `${httpProto()}://${S.server}/api/chats/${chatId}/avatar?t=${Date.now()}`;
   const img = new Image();
   img.onload = () => { av.style.backgroundImage = `url('${avatarUrl}')`; av.style.backgroundSize = 'cover'; av.textContent = ''; };
   img.src = avatarUrl;
-  renderEgMembers(chat.members||[]);
-  document.getElementById('eg-add-wrap').style.display = 'none';
-  openModal('modal-edit-group');
+  giRenderMembers(chat?.members || []);
 }
 
-function renderEgMembers(members) {
-  const container = document.getElementById('eg-members');
-  container.innerHTML = members.filter(m=>m.id!==S.user.id&&!S.egRemovedIds.has(m.id)).map(m=>`
-    <div class="member-remove-row" id="egm-${m.id}">
-      <div class="av av-sm av-round ${avatarColor(m.id)}" data-av-user="${m.id}">${initials(m.display_name)}</div>
-      <div class="info"><div class="rname">${esc(m.display_name)}</div><div class="rlogin">@${esc(m.username)}</div></div>
-      <button class="rm-btn" onclick="egRemoveMember(${m.id})">✕</button>
-    </div>`).join('') || '<div style="font-size:13px;color:var(--muted)">Только вы</div>';
+function closeGroupInfo() { openChat(S.giChatId); }
+
+function giRenderMembers(members) {
+  const container = document.getElementById('gi-members');
+  if (!container) return;
+  container.innerHTML = members
+    .filter(m => m.id !== S.user.id && !S.giRemovedIds.has(m.id))
+    .map(m => `
+      <div class="member-remove-row" id="gim-${m.id}">
+        <div class="av av-sm av-round ${avatarColor(m.id)}" data-av-user="${m.id}">${initials(m.display_name)}</div>
+        <div class="info"><div class="rname">${esc(m.display_name)}</div><div class="rlogin">@${esc(m.username)}</div></div>
+        <button class="rm-btn" onclick="giRemoveMember(${m.id})">✕</button>
+      </div>`).join('') || '<div style="font-size:13px;color:var(--muted)">Только вы</div>';
   applyAvatars();
 }
 
-function renderEgAdd(existingMembers) {
-  const existingIds = new Set(existingMembers.map(m=>m.id));
-  const container = document.getElementById('eg-add');
-  const available = S.allUsers.filter(u=>!existingIds.has(u.id)||S.egRemovedIds.has(u.id));
-  container.innerHTML = available.map(u=>`
-    <div class="user-row${S.egAddIds.has(u.id)?' selected':''}" data-uid="${u.id}" onclick="egToggleAdd(this,${u.id})">
+function giRemoveMember(id) {
+  S.giRemovedIds.add(id);
+  document.getElementById(`gim-${id}`)?.remove();
+}
+
+async function giLeave() { await leaveGroup(S.giChatId); }
+async function giDelete() { await deleteChat(S.giChatId); }
+
+async function giShowAdd() {
+  const chatId = S.giChatId;
+  const chat = S.chats.find(c => c.id === chatId);
+  setChatMainContent(`
+    <div class="gi-panel">
+      <div class="gi-top-bar">
+        <button class="icon-btn" onclick="openGroupInfo(${chatId})" title="Назад">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="gi-top-title">Добавить участника</span>
+      </div>
+      <div class="gi-body">
+        <div class="gi-add-list" id="gi-add-list"></div>
+        <div class="gi-save-row">
+          <button class="modal-btn-primary" onclick="giConfirmAdd()">Добавить</button>
+        </div>
+      </div>
+    </div>`);
+  giRenderAddList(chat?.members || []);
+}
+
+function giRenderAddList(existingMembers) {
+  const existingIds = new Set(existingMembers.map(m => m.id));
+  const container = document.getElementById('gi-add-list');
+  if (!container) return;
+  const available = S.allUsers.filter(u => !existingIds.has(u.id) || S.giRemovedIds.has(u.id));
+  container.innerHTML = available.map(u => `
+    <div class="user-row${S.giAddIds.has(u.id) ? ' selected' : ''}" data-uid="${u.id}" onclick="giToggleAdd(this,${u.id})">
       <div class="av av-sm av-round ${avatarColor(u.id)}" data-av-user="${u.id}">${initials(u.display_name)}</div>
       <div><div class="uname">${esc(u.display_name)}</div><div class="ulogin">@${esc(u.username)}</div></div>
     </div>`).join('') || '<div style="font-size:13px;color:var(--muted)">Нет доступных</div>';
   applyAvatars();
 }
 
-function toggleEgAdd() {
-  const wrap = document.getElementById('eg-add-wrap');
-  const showing = wrap.style.display !== 'none';
-  if (!showing) {
-    const chat = S.chats.find(c => c.id === S.egChatId);
-    renderEgAdd(chat?.members || []);
-  }
-  wrap.style.display = showing ? 'none' : '';
+function giToggleAdd(el, id) {
+  el.classList.toggle('selected');
+  S.giAddIds.has(id) ? S.giAddIds.delete(id) : S.giAddIds.add(id);
 }
 
-function egRemoveMember(id) {
-  S.egRemovedIds.add(id);
-  document.getElementById(`egm-${id}`)?.remove();
+async function giConfirmAdd() {
+  const chatId = S.giChatId;
+  await Promise.all([...S.giAddIds].map(uid => api('POST', `/chats/${chatId}/members`, {user_id: uid})));
+  S.giAddIds = new Set();
+  await loadChats();
+  openGroupInfo(chatId);
 }
-function egToggleAdd(el, id) {
-  el.classList.toggle('selected');
-  S.egAddIds.has(id) ? S.egAddIds.delete(id) : S.egAddIds.add(id);
+
+function triggerGiAvatarUpload() { document.getElementById('gi-avatar-input').click(); }
+function onGiAvatarChange(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    S.giAvatarBase64 = e.target.result.split(',')[1];
+    const el = document.getElementById('gi-av');
+    el.style.backgroundImage = `url('${e.target.result}')`;
+    el.style.backgroundSize = 'cover'; el.textContent = '';
+  };
+  reader.readAsDataURL(file);
 }
 
 async function saveGroupEdit() {
-  const name = document.getElementById('eg-name').value.trim();
-  const chatId = S.egChatId;
+  const name = document.getElementById('gi-name').value.trim();
+  const chatId = S.giChatId;
   const ops = [
-    name && api('PATCH',`/chats/${chatId}`,{name}),
-    ...[...S.egRemovedIds].map(uid=>api('DELETE',`/chats/${chatId}/members/${uid}`)),
-    ...[...S.egAddIds].map(uid=>api('POST',`/chats/${chatId}/members`,{user_id:uid})),
+    name && api('PATCH', `/chats/${chatId}`, {name}),
+    ...[...S.giRemovedIds].map(uid => api('DELETE', `/chats/${chatId}/members/${uid}`)),
+    ...[...S.giAddIds].map(uid => api('POST', `/chats/${chatId}/members`, {user_id: uid})),
   ];
-  if (S.egAvatarBase64) ops.push(api('POST',`/chats/${chatId}/avatar`,{data:S.egAvatarBase64}));
+  if (S.giAvatarBase64) ops.push(api('POST', `/chats/${chatId}/avatar`, {data: S.giAvatarBase64}));
   await Promise.all(ops);
-  S.egAvatarBase64 = null;
-  closeModal('modal-edit-group');
+  S.giAvatarBase64 = null;
   await loadChats();
-  if (S.activeChatId===chatId) openChat(chatId);
+  openChat(chatId);
 }
 
 // ── CHAT LIST CONTEXT MENU ──
