@@ -350,7 +350,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (session?.token) {
     Object.assign(S, { server: S.server, token:session.token, user:session.user, settings:session.settings||S.settings });
     applySettings();
-    enterApp();
+    await api('GET', '/users/presence');
+    if (S.token) enterApp();
   } else {
     applySettings();
   }
