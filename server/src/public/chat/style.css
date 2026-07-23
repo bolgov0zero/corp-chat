@@ -2013,6 +2013,13 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.18); }
   /* Топбар скрыт — навигация через хедер чата и сайдбар */
   .topbar { display: none; }
 
+  /* Экран авторизации должен перекрывать всё, включая sidebar с position:fixed */
+  #screen-login.active {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+  }
+
 
   /* Настройки — полноэкранное окно */
   #modal-settings .modal,
