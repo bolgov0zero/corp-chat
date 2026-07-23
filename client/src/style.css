@@ -1602,8 +1602,8 @@ html:not(.dark) .modal { box-shadow: 0 24px 60px rgba(15,23,42,.12); }
   display: flex; flex-direction: column;
   align-items: center; gap: 12px;
   text-align: center;
-  background: #0c0e10;
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--bg);
+  border: 1px solid var(--border);
 }
 .force-update-icon {
   width: 44px; height: 44px; border-radius: 12px;
@@ -1612,11 +1612,11 @@ html:not(.dark) .modal { box-shadow: 0 24px 60px rgba(15,23,42,.12); }
   display: flex; align-items: center; justify-content: center;
   margin-bottom: 4px;
 }
-.force-update-title { font-size: 15px; font-weight: 700; color: #e7eaed; }
-.force-update-sub { font-size: 13px; color: #5b6169; }
+.force-update-title { font-size: 15px; font-weight: 700; color: var(--text); }
+.force-update-sub { font-size: 13px; color: var(--muted); }
 .force-update-bar-wrap { width: 100%; display: flex; align-items: center; gap: 10px; margin-top: 6px; }
 .force-update-bar {
-  flex: 1; height: 4px; background: rgba(255,255,255,0.10);
+  flex: 1; height: 4px; background: var(--border);
   border-radius: 4px; overflow: hidden;
 }
 .force-update-fill {
@@ -1624,7 +1624,7 @@ html:not(.dark) .modal { box-shadow: 0 24px 60px rgba(15,23,42,.12); }
   background: var(--accent);
   border-radius: 4px; width: 0%; transition: width .3s;
 }
-.force-update-pct { font-size: 12px; color: #5b6169; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.force-update-pct { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; flex-shrink: 0; }
 
 /* ══════════════════════════════════════════
    CONTEXT MENUS
