@@ -2383,8 +2383,9 @@ function connectWS() {
     if (data.type === 'force_logout') { logout(); }
   };
 
-  ws.onclose = () => {
+  ws.onclose = (event) => {
     clearInterval(ws._hb);
+    if (event.code === 1008) { logout(); return; }
     S.wsRetry++;
     const delay = Math.min(1000*S.wsRetry, 10000);
     if (S.token) {

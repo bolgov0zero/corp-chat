@@ -2253,7 +2253,8 @@ function connectWS() {
     }
   };
 
-  ws.onclose = () => {
+  ws.onclose = (event) => {
+    if (event.code === 1008) { logout(); return; }
     S.wsRetry++;
     const delay = Math.min(1000*S.wsRetry, 10000);
     if (S.token) {
