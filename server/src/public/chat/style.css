@@ -1404,7 +1404,7 @@ html:not(.dark) .modal { box-shadow: 0 24px 60px rgba(15,23,42,.12); }
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; color: var(--muted); transition: color .15s; flex-shrink: 0;
 }
-.mi-close:hover { color: var(--text); }
+.mi-close:not(.icon-btn-danger):hover { color: var(--text); }
 #msg-info-body { overflow-y: auto; }
 
 /* Timeline */

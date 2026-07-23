@@ -1421,7 +1421,7 @@ html:not(.dark) .modal { box-shadow: 0 24px 60px rgba(15,23,42,.12); }
 .mi-hdr { display: flex; align-items: center; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid var(--border); margin-bottom: 12px; flex-shrink: 0; }
 .mi-title { font-size: 14px; font-weight: 700; color: var(--text); }
 .mi-close { width: 26px; height: 26px; background: var(--search-bg); border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); transition: color .15s; flex-shrink: 0; }
-.mi-close:hover { color: var(--text); }
+.mi-close:not(.icon-btn-danger):hover { color: var(--text); }
 #msg-info-body { overflow-y: auto; }
 .mi-timeline { display: flex; flex-direction: column; }
 .mi-step { display: flex; gap: 12px; }
