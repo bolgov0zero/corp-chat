@@ -902,13 +902,32 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
 
 /* Pill */
 .composer-pill {
-  display: flex; align-items: center; gap: 4px;
+  display: flex; flex-direction: column;
   background: var(--composer-bg);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 8px 8px 8px 14px;
+  overflow: hidden;
 }
 .composer-pill.has-reply { border-radius: 4px 4px 12px 12px; }
+
+/* Строка кнопок и поля ввода внутри пилюли */
+.ep-row {
+  display: flex; align-items: center; gap: 4px;
+  padding: 8px 8px 8px 14px;
+}
+
+/* Раскрывающаяся сетка смайликов */
+.ep-grid {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height .25s ease;
+}
+.ep-grid.open { max-height: 220px; }
+.ep-grid-inner {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px;
+  padding: 8px 8px 6px;
+  border-bottom: 1px solid var(--border);
+}
 
 .composer-icon-btn {
   width: 30px; height: 30px; flex-shrink: 0;
@@ -1745,26 +1764,8 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.18); }
 .mention-item .mn-name { font-size: 13px; font-weight: 500; color: var(--text); }
 .mention-item .mn-login { font-size: 11px; color: var(--muted); }
 
-.emoji-picker {
-  position: fixed; z-index: 400;
-  background: var(--menu-bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 16px 40px rgba(0,0,0,.2);
-  padding: 8px;
-  display: grid; grid-template-columns: repeat(6, 36px); gap: 2px;
-  transform: translateY(calc(100% + 12px));
-  opacity: 0;
-  pointer-events: none;
-  transition: transform .22s ease, opacity .18s ease;
-}
-.emoji-picker.open {
-  transform: translateY(0);
-  opacity: 1;
-  pointer-events: auto;
-}
 .emoji-item {
-  width: 36px; height: 36px;
+  height: 36px;
   background: none; border: none;
   font-size: 20px; cursor: pointer;
   border-radius: 8px;
@@ -2022,17 +2023,6 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.18); }
     font-size: 16px !important;
   }
 
-  /* Emoji picker: bottom sheet on mobile */
-  .emoji-picker {
-    left: 0 !important; right: 0 !important;
-    bottom: 0 !important;
-    border-radius: 16px 16px 0 0;
-    grid-template-columns: repeat(6, 1fr);
-    padding: 12px 8px calc(12px + env(safe-area-inset-bottom, 0px));
-    width: 100% !important;
-    box-sizing: border-box;
-    transform: translateY(100%);
-  }
 
   .modal {
     width: calc(100vw - 24px) !important;

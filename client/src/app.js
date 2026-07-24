@@ -187,8 +187,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     hideCtxMenu();
     document.getElementById('ctx-chat-menu').style.display = 'none';
     if (!e.target.closest('#mention-popup')) hideMentionPopup();
-    const picker = document.getElementById('emoji-picker');
-    if (picker && !picker.contains(e.target)) closeEmojiPicker();
+    if (!e.target.closest('.composer-pill')) closeEmojiPicker();
   });
   document.addEventListener('keydown', e => { if(e.key==='Escape'){ hideCtxMenu(); closeSettings(); }});
   window.electron?.onOpenChat(chatId => { const chat = S.chats.find(c=>c.id===chatId); if(chat) openChat(chatId); });
@@ -911,17 +910,20 @@ async function openChat(chatId, aroundId = null) {
           </button>
         </div>
         <div class="composer-pill" id="composer-pill">
-          <button class="composer-icon-btn" title="Эмодзи" onclick="toggleEmojiPicker(event)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 3 4 3 4-3 4-3"/><circle cx="9" cy="9" r="1" fill="currentColor"/><circle cx="15" cy="9" r="1" fill="currentColor"/></svg>
-          </button>
-          <button class="composer-icon-btn" title="Прикрепить файл" onclick="pickFile()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-          </button>
-          <input type="file" id="file-input" accept="*" style="display:none" onchange="onFilePicked(this)">
-          <textarea id="msg-input" rows="1" placeholder="Сообщение…" onkeydown="handleKey(event)" oninput="onMsgInput(this)"></textarea>
-          <button class="send-btn" id="send-btn" onclick="sendOrEdit()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          </button>
+          <div class="ep-grid" id="ep-grid"><div class="ep-grid-inner">${EMOJIS.map(em=>`<button class="emoji-item" onclick="insertEmoji('${em}')">${em}</button>`).join('')}</div></div>
+          <div class="ep-row">
+            <button class="composer-icon-btn" title="Эмодзи" onclick="toggleEmojiPicker(event)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 3 4 3 4-3 4-3"/><circle cx="9" cy="9" r="1" fill="currentColor"/><circle cx="15" cy="9" r="1" fill="currentColor"/></svg>
+            </button>
+            <button class="composer-icon-btn" title="Прикрепить файл" onclick="pickFile()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            </button>
+            <input type="file" id="file-input" accept="*" style="display:none" onchange="onFilePicked(this)">
+            <textarea id="msg-input" rows="1" placeholder="Сообщение…" onkeydown="handleKey(event)" oninput="onMsgInput(this)"></textarea>
+            <button class="send-btn" id="send-btn" onclick="sendOrEdit()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>`;
@@ -971,31 +973,12 @@ async function openChat(chatId, aroundId = null) {
 const EMOJIS = ['😀','😂','😍','😎','🤔','😭','😡','👍','👎','❤️','🔥','🎉','👏','🙏','💪','🤝','😊','🥳','😴','🤣','💯','✅','❌','🚀','⭐','💡','📌','🎯','💬','📷'];
 
 function closeEmojiPicker() {
-  const picker = document.getElementById('emoji-picker');
-  if (picker) picker.classList.remove('open');
+  document.getElementById('ep-grid')?.classList.remove('open');
 }
 
 function toggleEmojiPicker(e) {
   e.stopPropagation();
-  let picker = document.getElementById('emoji-picker');
-  if (!picker) {
-    picker = document.createElement('div');
-    picker.id = 'emoji-picker';
-    picker.className = 'emoji-picker';
-    picker.innerHTML = EMOJIS.map(em => `<button class="emoji-item" onclick="insertEmoji('${em}')">${em}</button>`).join('');
-    document.body.appendChild(picker);
-  }
-  if (picker.classList.contains('open')) {
-    closeEmojiPicker();
-    return;
-  }
-  const btn = e.currentTarget;
-  const rect = btn.getBoundingClientRect();
-  picker.style.bottom = picker.style.top = picker.style.left = picker.style.right = '';
-  picker.style.right = Math.max(4, window.innerWidth - rect.right) + 'px';
-  picker.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
-  picker.getBoundingClientRect();
-  picker.classList.add('open');
+  document.getElementById('ep-grid')?.classList.toggle('open');
 }
 
 function insertEmoji(em) {
