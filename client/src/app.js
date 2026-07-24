@@ -187,11 +187,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     hideCtxMenu();
     document.getElementById('ctx-chat-menu').style.display = 'none';
     if (!e.target.closest('#mention-popup')) hideMentionPopup();
-    // Close emoji picker if click outside
     const picker = document.getElementById('emoji-picker');
-    if (picker && !picker.contains(e.target) && !e.target.closest('.emoji-btn')) {
-      picker.style.display = 'none';
-    }
+    if (picker && !picker.contains(e.target)) closeEmojiPicker();
   });
   document.addEventListener('keydown', e => { if(e.key==='Escape'){ hideCtxMenu(); closeSettings(); }});
   window.electron?.onOpenChat(chatId => { const chat = S.chats.find(c=>c.id===chatId); if(chat) openChat(chatId); });
@@ -973,6 +970,11 @@ async function openChat(chatId, aroundId = null) {
 // ── EMOJI PICKER ──
 const EMOJIS = ['😀','😂','😍','😎','🤔','😭','😡','👍','👎','❤️','🔥','🎉','👏','🙏','💪','🤝','😊','🥳','😴','🤣','💯','✅','❌','🚀','⭐','💡','📌','🎯','💬','📷'];
 
+function closeEmojiPicker() {
+  const picker = document.getElementById('emoji-picker');
+  if (picker) picker.classList.remove('open');
+}
+
 function toggleEmojiPicker(e) {
   e.stopPropagation();
   let picker = document.getElementById('emoji-picker');
@@ -983,22 +985,17 @@ function toggleEmojiPicker(e) {
     picker.innerHTML = EMOJIS.map(em => `<button class="emoji-item" onclick="insertEmoji('${em}')">${em}</button>`).join('');
     document.body.appendChild(picker);
   }
-  if (picker.style.display === 'grid') {
-    picker.style.display = 'none';
+  if (picker.classList.contains('open')) {
+    closeEmojiPicker();
     return;
   }
   const btn = e.currentTarget;
   const rect = btn.getBoundingClientRect();
   picker.style.bottom = picker.style.top = picker.style.left = picker.style.right = '';
-  picker.style.display = 'grid';
   picker.style.right = Math.max(4, window.innerWidth - rect.right) + 'px';
   picker.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
-  requestAnimationFrame(() => {
-    const pr = picker.getBoundingClientRect();
-    if (pr.top < 8) { picker.style.bottom = ''; picker.style.top = (rect.bottom + 8) + 'px'; }
-    if (pr.bottom > window.innerHeight - 4) { picker.style.top = ''; picker.style.bottom = '4px'; }
-    if (pr.left < 4) { picker.style.right = ''; picker.style.left = '4px'; }
-  });
+  picker.getBoundingClientRect();
+  picker.classList.add('open');
 }
 
 function insertEmoji(em) {
@@ -1009,7 +1006,7 @@ function insertEmoji(em) {
   input.selectionStart = input.selectionEnd = start + em.length;
   input.focus();
   autoResize(input);
-  document.getElementById('emoji-picker').style.display = 'none';
+  closeEmojiPicker();
 }
 
 // ── RENDER MESSAGES ──

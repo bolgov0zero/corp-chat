@@ -367,9 +367,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('ctx-chat-menu').style.display = 'none';
     if (!e.target.closest('#mention-popup')) hideMentionPopup();
     const picker = document.getElementById('emoji-picker');
-    if (picker && !picker.contains(e.target) && !e.target.closest('.emoji-btn')) {
-      picker.style.display = 'none';
-    }
+    if (picker && !picker.contains(e.target)) closeEmojiPicker();
   });
   document.addEventListener('keydown', e => { if(e.key==='Escape'){ hideCtxMenu(); closeSettings(); }});
 
@@ -1223,6 +1221,11 @@ document.addEventListener('touchmove', () => { clearTimeout(_longPressTimer); _l
 // ── EMOJI PICKER ──
 const EMOJIS = ['😀','😂','😍','😎','🤔','😭','😡','👍','👎','❤️','🔥','🎉','👏','🙏','💪','🤝','😊','🥳','😴','🤣','💯','✅','❌','🚀','⭐','💡','📌','🎯','💬','📷'];
 
+function closeEmojiPicker() {
+  const picker = document.getElementById('emoji-picker');
+  if (picker) picker.classList.remove('open');
+}
+
 function toggleEmojiPicker(e) {
   e.stopPropagation();
   let picker = document.getElementById('emoji-picker');
@@ -1233,15 +1236,16 @@ function toggleEmojiPicker(e) {
     picker.innerHTML = EMOJIS.map(em => `<button class="emoji-item" onclick="insertEmoji('${em}')">${em}</button>`).join('');
     document.body.appendChild(picker);
   }
-  if (picker.style.display === 'grid') {
-    picker.style.display = 'none';
+  if (picker.classList.contains('open')) {
+    closeEmojiPicker();
     return;
   }
   const btn = e.currentTarget;
   const rect = btn.getBoundingClientRect();
-  picker.style.display = 'grid';
   picker.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
   picker.style.right = (window.innerWidth - rect.right) + 'px';
+  picker.getBoundingClientRect();
+  picker.classList.add('open');
 }
 
 function insertEmoji(em) {
@@ -1252,7 +1256,7 @@ function insertEmoji(em) {
   input.selectionStart = input.selectionEnd = start + em.length;
   input.focus();
   autoResize(input);
-  document.getElementById('emoji-picker').style.display = 'none';
+  closeEmojiPicker();
 }
 
 // ── RENDER MESSAGES ──

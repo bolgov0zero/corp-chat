@@ -1753,6 +1753,15 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.18); }
   box-shadow: 0 16px 40px rgba(0,0,0,.2);
   padding: 8px;
   display: grid; grid-template-columns: repeat(6, 36px); gap: 2px;
+  transform: translateY(calc(100% + 12px));
+  opacity: 0;
+  pointer-events: none;
+  transition: transform .22s ease, opacity .18s ease;
+}
+.emoji-picker.open {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
 }
 .emoji-item {
   width: 36px; height: 36px;
@@ -2022,6 +2031,7 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.18); }
     padding: 12px 8px calc(12px + env(safe-area-inset-bottom, 0px));
     width: 100% !important;
     box-sizing: border-box;
+    transform: translateY(100%);
   }
 
   .modal {
