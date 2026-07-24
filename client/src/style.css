@@ -445,7 +445,7 @@ body.sidebar-hidden #sidebar-peek-zone { display: flex; }
   display: flex; align-items: center; gap: 10px;
   flex-shrink: 0;
 }
-.sidebar-account .sa-av { width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0; }
+.sidebar-account .sa-av { width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0; font-size: 13px; }
 .sidebar-account .sa-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-account .sa-gear { background: var(--search-bg); border: 1px solid var(--border); cursor: pointer; color: var(--muted); display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 6px; transition: background .15s, color .15s; }
 .sidebar-account .sa-gear:hover { background: var(--hover-row); color: var(--text); }

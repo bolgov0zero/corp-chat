@@ -429,7 +429,7 @@ body.sidebar-hidden.sidebar-peeking .sidebar {
   display: flex; align-items: center; gap: 10px;
   flex-shrink: 0;
 }
-.sidebar-account .sa-av { width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0; }
+.sidebar-account .sa-av { width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0; font-size: 13px; }
 .sidebar-account .sa-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-account .sa-gear { background: var(--search-bg); border: 1px solid var(--border); cursor: pointer; color: var(--muted); display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 6px; transition: background .15s, color .15s; }
 .sidebar-account .sa-gear:hover { background: var(--hover-row); color: var(--text); }
@@ -2084,6 +2084,7 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.18); }
     padding: 10px 14px;
   }
   .sa-gear { width: 36px; height: 36px; border-radius: 8px; }
+  .sidebar-account .sa-settings { width: 36px; height: 36px; border-radius: 8px; }
 }
 
 /* Desktop: hide mobile-only elements */
