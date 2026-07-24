@@ -1,6 +1,10 @@
 import UIKit
 import WebKit
 
+private class NoAccessoryWebView: WKWebView {
+    override var inputAccessoryView: UIView? { nil }
+}
+
 class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
 
     private var webView: WKWebView!
@@ -32,7 +36,7 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         config.mediaTypesRequiringUserActionForPlayback = []
         config.defaultWebpagePreferences.allowsContentJavaScript = true
 
-        webView = WKWebView(frame: .zero, configuration: config)
+        webView = NoAccessoryWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
         webView.uiDelegate = self
         webView.scrollView.contentInsetAdjustmentBehavior = .never
