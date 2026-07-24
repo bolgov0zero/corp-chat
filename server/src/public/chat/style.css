@@ -428,6 +428,7 @@ body.sidebar-hidden.sidebar-peeking .sidebar {
   border-top: 1px solid var(--border);
   display: flex; align-items: center; gap: 10px;
   flex-shrink: 0;
+  margin-top: auto;
 }
 .sidebar-account .sa-av { width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0; font-size: 13px; }
 .sidebar-account .sa-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -2078,7 +2079,7 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.18); }
   .settings-content { padding: 20px 16px; }
 
   .sidebar-account {
-    order: -1;
+    margin-top: 0;
     border-top: none;
     border-bottom: 1px solid var(--border);
     padding: 10px 14px;
