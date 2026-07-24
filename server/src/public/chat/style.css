@@ -367,7 +367,7 @@ body {
 .topbar-actions .icon-btn { background: var(--search-bg); border: 1px solid var(--border); color: var(--muted); }
 .topbar-actions .icon-btn:hover { background: var(--hover-row); color: var(--text); }
 .btn-new-chat {
-  height: 30px; padding: 0 12px; border-radius: 9px;
+  padding: 7px 12px; border-radius: 9px;
   background: var(--accent-soft); color: var(--accent);
   font-weight: 700; font-size: 12px; font-family: inherit;
   border: 1px solid var(--accent-border); cursor: pointer;
@@ -433,6 +433,7 @@ body.sidebar-hidden.sidebar-peeking .sidebar {
 .sidebar-account .sa-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-account .sa-gear { background: var(--search-bg); border: 1px solid var(--border); cursor: pointer; color: var(--muted); display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 6px; transition: background .15s, color .15s; }
 .sidebar-account .sa-gear:hover { background: var(--hover-row); color: var(--text); }
+.sidebar-account .sa-settings { width: 30px; height: 30px; padding: 0; border-radius: 9px; }
 
 /* Section labels */
 .chat-section-label { font-size: 11px; letter-spacing: 1.2px; color: var(--muted); text-transform: uppercase; font-weight: 700; padding: 10px 14px 5px; }
@@ -471,6 +472,14 @@ body.sidebar-hidden.sidebar-peeking .sidebar {
   margin-bottom: 12px;
 }
 .search-icon { color: var(--muted); flex-shrink: 0; }
+.search-clear {
+  background: none; border: none; padding: 0; margin: 0;
+  color: var(--muted); cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%;
+  transition: color .15s;
+}
+.search-clear:hover { color: var(--text); }
 .search-wrap input {
   background: none; border: none; outline: none;
   font-size: 14px; color: var(--text); width: 100%;
@@ -1119,6 +1128,14 @@ textarea, input[type="text"], input[type="password"], input[type="search"], inpu
   transition: background .15s; flex-shrink: 0;
 }
 .setting-logout:hover { background: rgba(239,68,68,.14); }
+.settings-save-btn {
+  padding: 8px 16px; border: 1px solid var(--accent-border); border-radius: 9px;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+  transition: background .15s; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.settings-save-btn:hover { background: var(--role-teal-bg); }
 
 /* Profile edit */
 .profile-av-wrap { position: relative; cursor: pointer; flex-shrink: 0; }
@@ -1317,16 +1334,20 @@ html:not(.dark) .modal { box-shadow: 0 24px 60px rgba(15,23,42,.12); }
 }
 #nc-footer .modal-btn-ghost, #nc-footer .modal-btn-primary { flex: 1; text-align: center; }
 .modal-btn-primary {
-  padding: 6px 14px; border: 1px solid var(--accent-border); border-radius: 10px;
+  padding: 8px 14px; border: 1px solid var(--accent-border); border-radius: 10px;
   background: var(--accent-soft); color: var(--accent);
   font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: background .15s;
 }
 .modal-btn-primary:hover { background: var(--role-teal-bg); }
 .modal-btn-ghost {
-  padding: 6px 14px;
+  padding: 8px 14px;
   border: 1px solid var(--border); border-radius: 10px;
   background: var(--search-bg); font-size: 13px;
   cursor: pointer; color: var(--text); font-family: inherit;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
 }
 .modal-btn-ghost:hover { background: var(--hover-row); }
 
@@ -2176,8 +2197,10 @@ html:not(.dark) .ctx-menu { box-shadow: 0 16px 40px rgba(15,23,42,.18); }
 .gi-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .gi-btn {
   background: none; border: 1px solid var(--border); color: var(--muted);
-  font-size: 13px; padding: 6px 14px; border-radius: 10px;
+  font-size: 13px; padding: 8px 14px; border-radius: 10px;
   cursor: pointer; font-family: inherit; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: background .15s;
 }
 .gi-btn:hover { background: var(--hover-row); }
 .gi-btn-add { background: var(--accent-soft); border-color: var(--accent-border); color: var(--accent); }

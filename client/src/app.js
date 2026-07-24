@@ -372,7 +372,7 @@ function showSettingsTab(tab) {
         <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Имя пользователя</div>
         <div style="display:flex;gap:8px">
           <input id="settings-display-name" class="settings-name-input" value="${esc(u.display_name)}" style="flex:1;background:var(--search-bg);border:1px solid var(--border);border-radius:9px;padding:9px 12px;font-size:13px;font-weight:600;color:var(--text);font-family:inherit;outline:none;pointer-events:auto;border-color:transparent" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='transparent'">
-          <button onclick="saveDisplayName()" style="height:36px;padding:0 16px;border-radius:9px;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:12.5px;border:1px solid var(--accent-border);cursor:pointer;font-family:inherit">Сохранить</button>
+          <button onclick="saveDisplayName()" class="settings-save-btn">Сохранить</button>
         </div>
       </div>
       <button class="setting-logout" onclick="logout()">
@@ -784,9 +784,18 @@ function renderChatRow(c) {
 }
 
 let _searchTimer = null;
+function clearSearch() {
+  const inp = document.getElementById('search');
+  if (inp) { inp.value = ''; inp.focus(); }
+  const btn = document.getElementById('search-clear');
+  if (btn) btn.style.display = 'none';
+  filterChats();
+}
 function filterChats() {
   renderChatList();
   const q = document.getElementById('search').value.trim();
+  const btn = document.getElementById('search-clear');
+  if (btn) btn.style.display = q ? '' : 'none';
   clearTimeout(_searchTimer);
   if (q.length < 2) {
     if (S.searchResults) { S.searchResults = null; renderChatList(); }
