@@ -50,11 +50,56 @@ jobs:
           name: Electron-${{ matrix.name }}
           path: ${{ matrix.artifact }}
 
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Build
+        working-directory: ios
+        run: |
+          xcodebuild \
+            -scheme CorpChat \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            PROVISIONING_PROFILE="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            ONLY_ACTIVE_ARCH=NO \
+            build
+
+      - name: Package IPA
+        working-directory: ios
+        run: |
+          APP=$(find build/Build/Products/Release-iphoneos -name "*.app" | head -1)
+          mkdir Payload
+          cp -r "$APP" Payload/
+          zip -r CorpChat.ipa Payload/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iOS
+          path: ios/CorpChat.ipa
+
   release:
     name: Создать релиз
-    needs: build
+    needs: [build, build-ios]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/c') || startsWith(github.ref, 'refs/tags/v')
+    if: always() && needs.build.result == 'success' && (startsWith(github.ref, 'refs/tags/c') || startsWith(github.ref, 'refs/tags/v'))
     permissions:
       contents: write
     steps:

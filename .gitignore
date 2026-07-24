@@ -1,4 +1,9 @@
 node_modules/
+ios/Sources/Info.plist
+ios/CorpChat.xcodeproj/
+ios/build/
+ios/Payload/
+ios/*.ipa
 client/dist/
 server/data/
 *.log
