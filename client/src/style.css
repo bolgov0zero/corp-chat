@@ -449,7 +449,6 @@ body.sidebar-hidden #sidebar-peek-zone { display: flex; }
 .sidebar-account .sa-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-account .sa-gear { background: var(--search-bg); border: 1px solid var(--border); cursor: pointer; color: var(--muted); display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 6px; transition: background .15s, color .15s; }
 .sidebar-account .sa-gear:hover { background: var(--hover-row); color: var(--text); }
-.sidebar-account .sa-settings { width: 30px; height: 30px; padding: 0; border-radius: 9px; }
 
 /* Section labels */
 .chat-section-label { font-size: 11px; letter-spacing: 1.2px; color: var(--muted); text-transform: uppercase; font-weight: 700; padding: 10px 14px 5px; }
