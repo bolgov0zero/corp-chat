@@ -36,6 +36,21 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         config.mediaTypesRequiringUserActionForPlayback = []
         config.defaultWebpagePreferences.allowsContentJavaScript = true
 
+        let noZoom = """
+        (function() {
+            var m = document.querySelector('meta[name="viewport"]');
+            var c = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+            if (m) { m.setAttribute('content', c); } else {
+                m = document.createElement('meta');
+                m.name = 'viewport'; m.content = c;
+                document.head.appendChild(m);
+            }
+        })();
+        """
+        config.userContentController.addUserScript(
+            WKUserScript(source: noZoom, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
+        )
+
         webView = NoAccessoryWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
         webView.uiDelegate = self
