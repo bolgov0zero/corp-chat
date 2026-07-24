@@ -7,7 +7,7 @@ const fs = require('fs');
 const os = require('os');
 
 // ── AUTO UPDATE ──
-const GITHUB_REPO = 'bolgov0zero/corp-chat';
+const GITHUB_REPO = 'bolgov0zero/Electron-Messenger';
 
 function httpsGet(url) {
   return new Promise((resolve, reject) => {

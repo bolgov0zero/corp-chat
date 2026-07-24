@@ -38,7 +38,7 @@ function fetchRemoteVersion() {
       // Используем GitHub API — не кешируется CDN, в отличие от raw.githubusercontent.com
       const req = https.request({
         hostname: 'api.github.com',
-        path: '/repos/bolgov0zero/corp-chat/contents/server/version.json',
+        path: '/repos/bolgov0zero/Electron-Messenger/contents/server/version.json',
         headers,
       }, res => {
         let data = '';
@@ -238,7 +238,7 @@ async function fetchLatestVersion(force = false) {
     const data = await new Promise((resolve, reject) => {
       const req = https.request({
         hostname: 'api.github.com',
-        path: '/repos/bolgov0zero/corp-chat/releases/latest',
+        path: '/repos/bolgov0zero/Electron-Messenger/releases/latest',
         headers,
       }, res => {
         let body = '';
@@ -304,7 +304,7 @@ router.post('/clients/:connId/force-update', async (req, res) => {
     const headers = { 'User-Agent': 'Electron-Admin', 'Accept': 'application/vnd.github.v3+json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const data = await new Promise((resolve, reject) => {
-      const req2 = https.request({ hostname: 'api.github.com', path: '/repos/bolgov0zero/corp-chat/releases/latest', headers }, r => {
+      const req2 = https.request({ hostname: 'api.github.com', path: '/repos/bolgov0zero/Electron-Messenger/releases/latest', headers }, r => {
         let body = ''; r.on('data', c => body += c); r.on('end', () => { try { resolve(JSON.parse(body)); } catch { reject(); } });
       });
       req2.on('error', reject);
