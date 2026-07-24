@@ -60,6 +60,9 @@ jobs:
       - name: Install xcodegen
         run: brew install xcodegen
 
+      - name: Copy app icon
+        run: cp icons/app/icon-1024.png ios/Assets.xcassets/AppIcon.appiconset/
+
       - name: Generate Xcode project
         working-directory: ios
         run: xcodegen generate
@@ -68,7 +71,7 @@ jobs:
         working-directory: ios
         run: |
           xcodebuild \
-            -scheme CorpChat \
+            -scheme Electron \
             -configuration Release \
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
@@ -87,13 +90,13 @@ jobs:
           APP=$(find build/Build/Products/Release-iphoneos -name "*.app" | head -1)
           mkdir Payload
           cp -r "$APP" Payload/
-          zip -r CorpChat.ipa Payload/
+          zip -r Electron.ipa Payload/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: iOS
-          path: ios/CorpChat.ipa
+          path: ios/Electron.ipa
 
   release:
     name: Создать релиз

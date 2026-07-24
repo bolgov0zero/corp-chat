@@ -1,5 +1,6 @@
 node_modules/
 ios/Sources/Info.plist
+ios/Assets.xcassets/AppIcon.appiconset/icon-1024.png
 ios/CorpChat.xcodeproj/
 ios/build/
 ios/Payload/

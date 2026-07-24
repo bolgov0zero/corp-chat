@@ -12,7 +12,12 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         if let saved = UserDefaults.standard.string(forKey: serverKey), !saved.isEmpty {
             setupWebView()
             loadChat(saved)
-        } else {
+        }
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        if UserDefaults.standard.string(forKey: serverKey)?.isEmpty != false {
             promptServer()
         }
     }

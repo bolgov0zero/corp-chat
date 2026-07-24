@@ -1,4 +1,4 @@
-name: CorpChat
+name: Electron
 options:
   bundleIdPrefix: com.corpchat
   deploymentTarget:
@@ -6,16 +6,17 @@ options:
   createIntermediateGroups: true
 
 targets:
-  CorpChat:
+  Electron:
     type: application
     platform: iOS
     deploymentTarget: "16.0"
     sources:
       - path: Sources
+      - path: Assets.xcassets
     info:
       path: Sources/Info.plist
       properties:
-        CFBundleDisplayName: Чат
+        CFBundleDisplayName: Electron
         CFBundleShortVersionString: "1.0.0"
         CFBundleVersion: "1"
         UILaunchScreen: {}
@@ -31,6 +32,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.corpchat.client
         SWIFT_VERSION: "5.0"
         IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGNING_REQUIRED: "NO"
         CODE_SIGNING_ALLOWED: "NO"
         CODE_SIGN_IDENTITY: ""
